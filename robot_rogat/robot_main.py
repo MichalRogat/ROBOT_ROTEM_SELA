@@ -6,14 +6,15 @@ import os
 
 import pwm_rpi
 import ps4_controller
+import robot_keyboard
 
 class RobotMain():
     def __init__(self) -> None:
         logging.info("Init")
         self.ps4_thread = threading.Thread(target=self.PS4Handler)
         self.ps4_eventQ = queue.Queue()
-        self.ps4Conroller = ps4_controller.RobotPS4(self.ps4_eventQ, interface="/dev/input/js0", connecting_using_ds4drv=False)
-        
+        #self.ps4Conroller = ps4_controller.RobotPS4(self.ps4_eventQ, interface="/dev/input/js0", connecting_using_ds4drv=False)
+        self.robot_keyboard = robot_keyboard.RobotKeyboard(self.ps4_eventQ)
         self.mainthread = threading.Thread(target=self.RobotMain)
         self.ps4_thread.start()
         self.mainthread.start()
@@ -21,7 +22,8 @@ class RobotMain():
         
         
     def PS4Handler(self):
-        self.ps4Conroller.listen(timeout=60)
+        #self.ps4Conroller.listen(timeout=60)
+        self.robot_keyboard.listen()
         
     def RobotMain(self):
         while True:
