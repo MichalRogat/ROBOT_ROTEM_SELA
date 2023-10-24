@@ -27,19 +27,22 @@ class RobotMain():
         while True:
             event = self.ps4_eventQ.get()
             speed = event["value"]
+            print(f"dutyc={speed}")
             motor = event["motor"]
+            dir = event["dir"]
             
-            if motor.value < pwm_rpi.RobotMotor.Func1.value:
-                dir = event["dir"]
-                if speed < 20:
+            if motor.value < pwm_rpi.RobotMotor.Pump1.value:
+               
+                if speed < 10:
                     self.motors.MotorStop(motor)
                 else:           
                     self.motors.MotorRun(motor,dir,speed)
             else:
-                self.motors.SetRelay(motor, speed)
-                
-             
-             
+                if speed == 1:
+                    self.motors.MotorRun(motor,dir, speed)
+                else:
+                    self.motors.DisablePumps()
+                    
 if __name__ == "__main__":
     obj = RobotMain()
     
