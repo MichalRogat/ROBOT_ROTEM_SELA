@@ -1,0 +1,13 @@
+[Unit]
+Description=robot
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=pi
+ExecStart=~/robot_rogat/dist/robot_main/robot_main
+
+[Install]
+WantedBy=multi-user.target
