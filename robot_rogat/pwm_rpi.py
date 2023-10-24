@@ -126,46 +126,37 @@ class MotorDriver:
             else:
                 print ("Drive2 Reverse ")
                 GPIO.output(PWMB_DIR, GPIO.LOW)
-        # elif motor == RobotMotor.Roller:
-        #     GPIO.output(PWMD_EN, GPIO.HIGH)
-        #     self.pwmD.ChangeDutyCycle(speed)
-        #     if(index == Dir[0]):
-        #         print ("Roller Forward")
-        #         GPIO.output(PWMD_DIR, GPIO.HIGH)
-        #     else:
-        #         print ("Roller Reverse")
-        #         GPIO.output(PWMD_DIR, GPIO.LOW)
+        elif motor == RobotMotor.Roller:
+            GPIO.output(PWMD_EN, GPIO.HIGH)
+            self.pwmD.ChangeDutyCycle(speed)
+            if(index == Dir[0]):
+                print ("Roller Forward")
+                GPIO.output(PWMD_DIR, GPIO.HIGH)
+            else:
+                print ("Roller Reverse")
+                GPIO.output(PWMD_DIR, GPIO.LOW)
         elif motor.value > RobotMotor.Drive2.value and motor.value < RobotMotor.Roller.value:
             if motor != self.lastPwmCMotor:
                 self.DisableMuxPWMC()
                 self.lastPwmCMotor = motor
             if motor == RobotMotor.Elev1:
                 print ("Elev1")
-                self.pwmC.ChangeDutyCycle(speed)                            #Test Only
                 GPIO.output(PWMC_ELEV1_EN  , GPIO.HIGH)
             if motor == RobotMotor.Elev2:
                 print ("Elev2")
-                self.pwmC.ChangeDutyCycle(speed)                            #Test Only
                 GPIO.output(PWMC_ELEV2_EN  , GPIO.HIGH)
             if motor == RobotMotor.Turn1:
                 print ("Turn1")
-                self.pwmC.ChangeDutyCycle(speed)                            #Test Only
                 GPIO.output(PWMC_TURN1_EN  , GPIO.HIGH)
             if motor == RobotMotor.Turn2:
                 print ("Turn2")
-                self.pwmD.ChangeDutyCycle(speed)                            #Test Only
-                #GPIO.output(PWMC_TURN2_EN  , GPIO.HIGH)   REAL ROBOT
-                GPIO.output(PWMC_ELEV2_EN , GPIO.HIGH)                      #Test Only
+                GPIO.output(PWMC_TURN2_EN  , GPIO.HIGH)
             if motor == RobotMotor.Joint1:
                 print ("Joint1")
-                self.pwmD.ChangeDutyCycle(speed)                            #Test Only
-                #GPIO.output(PWMC_JOINT1_EN , GPIO.HIGH)   REAL ROBOT
-                GPIO.output(PWMC_TURN1_EN , GPIO.HIGH)                      #Test Only
+                GPIO.output(PWMC_JOINT1_EN , GPIO.HIGH)
             if motor == RobotMotor.Joint2:
                 print ("Joint2")
-                self.pwmD.ChangeDutyCycle(speed)                            #Test Only
-                #GPIO.output(PWMC_JOINT2_EN , GPIO.HIGH)   REAL ROBOT
-                GPIO.output(PWMC_ELEV1_EN , GPIO.HIGH)                      #Test Only
+                GPIO.output(PWMC_JOINT2_EN , GPIO.HIGH)
             self.pwmC.ChangeDutyCycle(speed)
             if(index == Dir[0]):
                 print ("PWMC Right")
