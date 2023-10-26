@@ -3,6 +3,7 @@ import queue
 import time
 from enum import Enum
 from pwm_rpi import RobotMotor
+from remote_main import CommandOpcode
 
 class ps4_joystic(Enum):
     left_stick_x = 0
@@ -79,7 +80,7 @@ class PS4Controller(object):
                             dir = "forward"
                         else:
                             dir = "reverse"
-                        self.rc_q.put({"motor":RobotMotor.Turn2,"dir":dir ,"value":abs(speed)})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Turn2,"dir":dir ,"value":abs(speed)})
                     if event.axis == ps4_joystic.left_stick_y.value:
                         speed = int(event.value * 100)
                         if speed < 0:
@@ -92,35 +93,35 @@ class PS4Controller(object):
                             motor = RobotMotor.Joint2
                         else:
                             motor = RobotMotor.Drive2
-                        self.rc_q.put({"motor":motor,"dir":dir ,"value":abs(speed)})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":motor,"dir":dir ,"value":abs(speed)})
                     if event.axis == ps4_joystic.right_stick_x.value:
                         speed = int(event.value * 100)
                         if speed > 0:
                             dir = "forward"
                         else:
                             dir = "reverse"
-                        self.rc_q.put({"motor":RobotMotor.Turn1,"dir":dir ,"value":abs(speed)})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Turn1,"dir":dir ,"value":abs(speed)})
                     if event.axis == ps4_joystic.right_stick_y.value:
                         speed = int(event.value * 100)
                         if speed < 0:
                             dir = "forward"
                         else:
                             dir = "reverse"
-                        self.rc_q.put({"motor":RobotMotor.Drive1,"dir":dir ,"value":abs(speed)})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Drive1,"dir":dir ,"value":abs(speed)})
                     if event.axis == ps4_joystic.left_trigger.value:
                         speed = int(event.value * 100)
                         if self.x_pressed:
                             dir = "forward"
                         else:
                             dir = "reverse"
-                        self.rc_q.put({"motor":RobotMotor.Elev2,"dir": dir,"value":speed})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Elev2,"dir": dir,"value":speed})
                     if event.axis == ps4_joystic.right_trigger.value:
                         speed = int(event.value * 100)
                         if self.x_pressed:
                             dir = "forward"
                         else:
                             dir = "reverse"
-                        self.rc_q.put({"motor":RobotMotor.Elev1,"dir": dir,"value":speed})
+                        self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Elev1,"dir": dir,"value":speed})
                 
                 # elif event.type == pygame.JOYBALLMOTION:
                 #     print(event.dict, event.joy, event.ball, event.rel)
@@ -135,24 +136,24 @@ class PS4Controller(object):
                         self.l1_pressed = True
                     if event.button == ps4_buttons.up_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump1,"dir":"forward","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump1,"dir":"forward","value": 1})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump1,"dir":"reverse","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump1,"dir":"reverse","value": 1})
                     if event.button == ps4_buttons.down_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump2,"dir":"forward","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump2,"dir":"forward","value": 1})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump2,"dir":"reverse","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump2,"dir":"reverse","value": 1})
                     if event.button == ps4_buttons.right_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump3,"dir":"forward","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump3,"dir":"forward","value": 1})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump3,"dir":"reverse","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump3,"dir":"reverse","value": 1})
                     if event.button == ps4_buttons.left_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump4,"dir":"forward","value": 1})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump4,"dir":"forward","value": 1})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump4,"dir":"reverse","value": 1})   
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump4,"dir":"reverse","value": 1})   
                 elif event.type == pygame.JOYBUTTONUP:
                     if event.button == ps4_buttons.x.value:
                         self.x_pressed = False
@@ -164,24 +165,24 @@ class PS4Controller(object):
                         self.l1_pressed = False
                     if event.button == ps4_buttons.up_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump1,"dir":"forward","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump1,"dir":"forward","value": 0})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump1,"dir":"reverse","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump1,"dir":"reverse","value": 0})
                     if event.button == ps4_buttons.down_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump2,"dir":"forward","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump2,"dir":"forward","value": 0})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump2,"dir":"reverse","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump2,"dir":"reverse","value": 0})
                     if event.button == ps4_buttons.right_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump3,"dir":"forward","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump3,"dir":"forward","value": 0})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump3,"dir":"reverse","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump3,"dir":"reverse","value": 0})
                     if event.button == ps4_buttons.left_arrow.value:
                         if self.x_pressed:
-                            self.rc_q.put({"motor":RobotMotor.Pump4,"dir":"forward","value": 0})
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump4,"dir":"forward","value": 0})
                         else:
-                            self.rc_q.put({"motor":RobotMotor.Pump4,"dir":"reverse","value": 0})        
+                            self.rc_q.put({"opcode":CommandOpcode.motor,"motor":RobotMotor.Pump4,"dir":"reverse","value": 0})        
                
             time.sleep(0.1)
 
