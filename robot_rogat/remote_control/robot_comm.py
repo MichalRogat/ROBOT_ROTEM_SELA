@@ -15,9 +15,21 @@ class RobotComm():
 
     def RxHandler(self):
         while True:
-            data = self.socket.recv(1024)
-            #event = pickle.loads(data)
-            #self.rx_q.put(event)
+            try:
+                request = self.socket.recv(1024).decode('utf-8')
+                for event_str in request.split('}'):
+                    try:
+                        event_str += '}'
+                        event=json.loads(event_str)
+                        #self.control_q.put(event)
+                        print(event)
+                    except ValueError as err:
+                            continue
+            except Exception as e :
+                print(str(e))
+                self.client_socket.close() #close connection to client
+                break
+            
 
     
     def Transmit(self, data):
