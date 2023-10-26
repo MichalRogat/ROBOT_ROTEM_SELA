@@ -1,47 +1,59 @@
 import threading
 import time
 import queue
+import logging
 import os
 
 import pwm_rpi
 import ps4_controller
-import robot_keyboard
+import robot_remote_control
+from enum import Enum
+
+class CommandOpcode(Enum):
+    motor = 1
+
+RC = "REMOTE"  # RC=Remote Control
 
 class RobotMain():
     def __init__(self) -> None:
-        self.ps4_thread = threading.Thread(target=self.PS4Handler)
-        self.ps4_eventQ = queue.Queue()
-        #self.ps4Conroller = ps4_controller.RobotPS4(self.ps4_eventQ, interface="/dev/input/js0", connecting_using_ds4drv=False)
-        self.robot_keyboard = robot_keyboard.RobotKeyboard(self.ps4_eventQ)
-        self.mainthread = threading.Thread(target=self.run)
-        self.ps4_thread.start()
-        self.mainthread.start()
+        logging.info("Init")
+
+        self.comm_thread = threading.Thread(target=self.CommRxHandle)
+        self.rx_q = queue.Queue()
+        self.tx_q = queue.Queue()
+        if RC == "LOCAL":
+            self.ps4Conroller = ps4_controller.RobotPS4(self.rx_q, interface="/dev/input/js0", connecting_using_ds4drv=False)
+        else:
+            self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
+        self.main_thread = threading.Thread(target=self.RobotMain)
+        self.comm_thread.start()
+        self.main_thread.start()
         self.motors = pwm_rpi.MotorDriver()
         
         
-    def PS4Handler(self):
-        self.ps4Conroller.listen(timeout=60)
+    def CommRxHandle(self):
+        if RC == "LOCAL":
+            self.ps4Conroller.listen()
+        else:
+            while True:
+                self.comm.start()
         
-    def run(self):
+    def RobotMain(self):
         while True:
-            event = self.ps4_eventQ.get()
-            speed = event["value"]
-            print(f"dutyc={speed}")
-            motor = event["motor"]
-            dir = event["dir"]
-            
-            if motor.value < pwm_rpi.RobotMotor.Pump1.value:
-               
-                if speed < 10:
-                    self.motors.MotorStop(motor)
-                else:           
-                    self.motors.MotorRun(motor,dir,speed)
-            else:
-                if speed == 1:
-                    self.motors.MotorRun(motor,dir, speed)
-                else:
-                    self.motors.DisablePumps()
-                    
+            event = self.rx_q.get()
+            if event["opcode"] == CommandOpcode.motor.value:
+                self.MotorHandler(event)
+
+    def MotorHandler(self,event):
+        speed = event["value"]
+        print(f"dutyc={speed}")
+        motor = pwm_rpi.RobotMotor(event["motor"])
+        dir = event["dir"]
+        
+        if speed < 10:
+            self.motors.MotorStop(motor)
+        else:           
+            self.motors.MotorRun(motor,dir,speed)
+
 if __name__ == "__main__":
     obj = RobotMain()
-    

@@ -22,11 +22,13 @@ class RobotRemoteControl():
         while True:
             try:
                 request = self.client_socket.recv(1024).decode('utf-8')
-                for event in request.split('}'):
-                    if event != '':
-                        json.loads(event+'}')
-                        print(event)
-
+                for event_str in request.split('}'):
+                    try:
+                        event_str += '}'
+                        event=json.loads(event_str)
+                        self.control_q.put(event)
+                    except ValueError as err:
+                        continue
             except Exception as e :
                 print(str(e))
                 self.client_socket.close() #close connection to client
