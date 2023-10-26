@@ -7,6 +7,10 @@ import os
 import ps4_usb
 import robot_comm
 from pwm_rpi import RobotMotor
+from enum import Enum
+
+class CommandOpcode(Enum):
+    motor = 1
 
 class RobotRemote():
     def __init__(self) -> None:
@@ -35,6 +39,7 @@ class RobotRemote():
             speed = event["value"]
             motor = event["motor"]
             dir = event["dir"]
+            
             if motor.value <  RobotMotor.Roller.value:
                 if speed > 5:
                     self.comm.Transmit(event)
