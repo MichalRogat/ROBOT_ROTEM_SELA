@@ -1,6 +1,7 @@
 import socket
 import json
 import queue
+from enum import Enum
 
 
 PORT=1234
@@ -35,8 +36,15 @@ class RobotRemoteControl():
                 break
            
 
-    def Transmit(self, response):
-        self.client_socket.send(pickle.dump(response))
+    def Transmit(self, data):
+        payload = bytes(json.dumps(data, cls=EnumEncoder),'utf-8')
+        self.client_socket.sendall(payload)
+
+class EnumEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return json.JSONEncoder.default(self, obj)
             
 if __name__ == "__main__":
     dummy = queue.Queue

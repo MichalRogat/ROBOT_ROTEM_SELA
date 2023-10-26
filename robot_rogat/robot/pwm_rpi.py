@@ -85,7 +85,19 @@ class MotorDriver:
         self.pwmD.start(0)
         # self.lastPwmCMotor = RobotMotor.Elev1
         # self.lastPumpMotor = RobotMotor.Pump1
+
+        self.disable_motors = False
     
+
+    def StopAllMotors(self):
+        if not self.disable_motors:
+            print("Disable all motors")
+            self.pwmA.ChangeDutyCycle(0)
+            self.pwmB.ChangeDutyCycle(0)
+            self.pwmC.ChangeDutyCycle(0)
+            self.pwmD.ChangeDutyCycle(0)
+        self.disable_motors = True
+
     def DisableMuxPWMC(self):
         print("Disable PWMC")
         # GPIO.output(PWMC_ELEV1_EN  , GPIO.LOW)
