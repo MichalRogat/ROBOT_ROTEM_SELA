@@ -6,6 +6,13 @@ from enum import Enum
 
 PORT=1234
 
+
+class CommandOpcode(Enum):
+    motor = 1
+    keep_alive = 2
+    camera = 3
+    telemetric = 4
+    
 class RobotRemoteControl():
     def __init__(self, control_q):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

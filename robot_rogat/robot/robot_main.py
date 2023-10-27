@@ -4,20 +4,16 @@ import queue
 import logging
 import os
 import datetime
-
-import pwm_rpi
+from pwm_rpi import RobotMotor,MotorDriver
 import ps4_controller
 import robot_remote_control
+from robot_remote_control import CommandOpcode
 from enum import Enum
+
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
-class CommandOpcode(Enum):
-    motor = 1
-    keep_alive = 2
-    camera = 3
-    telemetric = 4
 
 RC = "REMOTE"  # RC=Remote Control
 
@@ -30,14 +26,14 @@ class RobotMain():
             self.ps4Conroller = ps4_controller.RobotPS4(self.rx_q, interface="/dev/input/js0", connecting_using_ds4drv=False)
         else:
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
+        self.message_handler_thread = threading.Thread(target=self.RobotMessageHandler)
         self.main_thread = threading.Thread(target=self.RobotMain)
-        self.keep_alive_thread = threading.Thread(target=self.TestKeepAlive)
         self.last_keep_alive = datetime.datetime.now()
-        self.motors = pwm_rpi.MotorDriver()
+        self.motors = MotorDriver()
 
         self.comm_thread.start()
+        self.message_handler_thread.start()
         self.main_thread.start()
-        self.keep_alive_thread.start()
        
         
         
@@ -48,7 +44,7 @@ class RobotMain():
             while True:
                 self.comm.start()
         
-    def RobotMain(self):
+    def RobotMessageHandler(self):
         while True:
             event = self.rx_q.get(0.5)
             if event["opcode"] == CommandOpcode.motor.value:
@@ -60,7 +56,7 @@ class RobotMain():
     def MotorHandler(self,event):
         speed = event["value"]
         print(f"dutyc={speed}")
-        motor = pwm_rpi.RobotMotor(event["motor"])
+        motor = RobotMotor(event["motor"])
         dir = event["dir"]
 
         if speed < 10:
@@ -73,24 +69,32 @@ class RobotMain():
         self.motors.disable_motors = False
         self.TelemetricInfoSend()
 
-    def TestKeepAlive(self):
+    def RobotMain(self):
         while True:
             delta = datetime.datetime.now() - self.last_keep_alive
             if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
                 self.motors.StopAllMotors()
-            time.sleep(0.5) 
+
+            #read current of motors
+            self.motors.MotorTestCurrentOverload() #this function take time i2c a2d issue to solve
 
     def TelemetricInfoSend(self):
         info = {
             "opcode": CommandOpcode.telemetric,
             "imu-1" : [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],
             "imu-2" : [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],
-            "drive1-CS" : 4096,
-            "drive2-CS" : 4096,
-            "turn1-CS"  : 4096,
-            "turn2-CS"  : 4096,
-            "elev-CS"   : 4096,
-            "joint-CS"  : 4096,
+            "drive1-CS" : self.motors.motor_current[RobotMotor.Drive1.value],
+            "drive1-OC" : self.motors.over_current[RobotMotor.Drive1.value],
+            "drive2-CS" : self.motors.motor_current[RobotMotor.Drive2.value],
+            "drive2-OC" : self.motors.over_current[RobotMotor.Drive2.value],
+            "turn1-CS"  : self.motors.motor_current[RobotMotor.Turn1.value],
+            "turn1-OC"  : self.motors.over_current[RobotMotor.Turn1.value],
+            "turn2-CS"  : self.motors.motor_current[RobotMotor.Turn2.value],
+            "turn2-OC"  : self.motors.over_current[RobotMotor.Turn2.value],
+            "elev-CS"   : self.motors.motor_current[RobotMotor.Elev1.value],
+            "elev-OC"   : self.motors.over_current[RobotMotor.Elev1.value],
+            "joint-CS"  : self.motors.motor_current[RobotMotor.Joint1.value],
+            "joint-OC"  : self.motors.over_current[RobotMotor.Joint1.value],
             "FullTank1" : 4096,
             "FullTank2" : 4096,
             "FullTank3" : 4096,
