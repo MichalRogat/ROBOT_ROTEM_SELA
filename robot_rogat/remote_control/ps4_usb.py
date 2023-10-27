@@ -46,7 +46,11 @@ class PS4Controller(object):
         pygame.init()
         pygame.joystick.init()
         self.rc_q = rc_q
-        self.controller = pygame.joystick.Joystick(0)
+        try:
+            self.controller = pygame.joystick.Joystick(0)
+        except pygame.error:
+            print("Joystick not found.")
+            return None
         self.controller.init()
         self.x_pressed = False
         self.l3_pressed = False
