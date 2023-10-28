@@ -10,6 +10,7 @@ import robot_remote_control
 from robot_remote_control import CommandOpcode
 from enum import Enum
 from minimu import MinIMU_v5_pi
+import serial_a2d
 
 
 
@@ -30,6 +31,8 @@ class RobotMain():
         else:
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
         
+        self.a2d = serial_a2d.SerialA2D()
+        self.a2d_thread = threading.Thread(target=self.A2dHandler)
         self.i2c_lock = threading.Lock()
         self.message_handler_thread = threading.Thread(target=self.RobotMessageHandler)
         self.main_thread = threading.Thread(target=self.RobotMain)
@@ -46,6 +49,10 @@ class RobotMain():
         self.comm_thread.start()
         self.message_handler_thread.start()
         self.main_thread.start()
+        self.a2d_thread.start()
+    
+    def A2dHandler(self):
+        self.a2d.listen()
        
     def CommRxHandle(self):
         if RC == "LOCAL":
@@ -88,6 +95,7 @@ class RobotMain():
 
     def RobotMain(self):
         while True:
+            print(self.a2d.values)
             delta = datetime.datetime.now() - self.last_keep_alive
             if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
                 self.motors.StopAllMotors()

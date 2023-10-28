@@ -226,11 +226,11 @@ class MotorDriver:
             GPIO.output(PWMD_DIR, GPIO.LOW)
             self.pwmD.ChangeDutyCycle(0)
 
-    def MotorTestCurrentOverload(self,lock):
+    def MotorTestCurrentOverload(self,a2d_values):
         #in case overload detected we disable the motor pwm for 1 sec
         for i in range(0,RobotMotor.Joint2.value):
             if self.motor_speed[i] > 0:
-                self.motor_current[i] = 1.0
+                self.motor_current[i] = a2d_values[i]
                 if not self.over_current[i] and self.motor_current[i]>self.current_limit[i]:
                     print(f"{RobotMotor(i)} OverCurrent")
                     if RobotMotor.Drive1.value == i:
