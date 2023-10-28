@@ -64,17 +64,22 @@ class RobotMain():
 
 
     def MotorHandler(self,event):
-        if len(event)< 3:
+        if len(event)< 2:
             print("motor arg missing")
             return
         speed = event["value"]
         motor = RobotMotor(event["motor"])
-        dir = event["dir"]
-        print(f"{motor} dir:{dir} speed:{speed}")
         if speed == 0:
             self.motors.MotorStop(motor)
-        else:           
-            self.motors.MotorRun(motor,dir,speed)
+        else:
+            if motor == RobotMotor.Drive1:
+                self.motors.MotorRun(motor,speed)
+                self.motors.MotorRun(RobotMotor.Drive2,speed)
+            if motor == RobotMotor.Turn1:
+                self.motors.MotorRun(motor,speed)
+            if motor == RobotMotor.Turn2:
+                self.motors.MotorRun(motor,speed)
+                
         
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()

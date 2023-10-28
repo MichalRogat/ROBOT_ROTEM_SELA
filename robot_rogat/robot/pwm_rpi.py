@@ -27,11 +27,6 @@ PWM1_FREQ = 5000
 MOTORS_TO_MONITOR = 6
 TIME_TO_DISABLE_MOTOR_OVERCURRENT_SEC= 1.0
 
-Dir = [
-    'forward',
-    'reverse',
-]
-
 class RobotMotor(Enum):
     Drive1      = 0
     Drive2      = 1
@@ -122,76 +117,81 @@ class MotorDriver:
         GPIO.output(PUMP4_EN  , GPIO.LOW)
             
         
-    def MotorRun(self, motor, index, speed):
-        if speed > 100 or speed<0 :
+    def MotorRun(self, motor, speed):
+        if speed > 100 or speed < -100:
             return
+        if speed>=0:
+            dir='f'
+        else:
+            dir ='r'
+        speed=abs(speed)
         if motor == RobotMotor.Drive1:
             #GPIO.output(PWMA_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Drive1.value]=speed
             if self.over_current[RobotMotor.Drive1.value]:
                 return
             self.pwmA.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                #print ("Drive1 Forward")
+            if dir=='f':
+                print ("Drive1 Forward")
                 GPIO.output(PWMA_EN, GPIO.LOW)
                 GPIO.output(PWMA_DIR, GPIO.HIGH)
             else:
-                #print ("Drive1 Reverse")
+                print ("Drive1 Reverse")
                 GPIO.output(PWMA_EN, GPIO.HIGH)
                 GPIO.output(PWMA_DIR, GPIO.LOW)
         elif motor == RobotMotor.Drive2:
             #GPIO.output(PWMB_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Drive2.value]=speed
             self.pwmB.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                #print ("Drive2 Forward")
+            if dir=='f':
+                print ("Drive2 Forward")
                 GPIO.output(PWMB_EN, GPIO.LOW)
                 GPIO.output(PWMB_DIR, GPIO.HIGH)
             else:
-                #print ("Drive2 Reverse ")
+                print ("Drive2 Reverse ")
                 GPIO.output(PWMB_EN, GPIO.HIGH)
                 GPIO.output(PWMB_DIR, GPIO.LOW)
         elif motor == RobotMotor.Turn1:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Turn1.value]=speed
-            self.pwmC.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                #print ("Turn1 Forward")
+            self.pwmC.ChangeDutyCycle(abs(speed))
+            if dir=='f':
+                print ("Turn1 Right")
                 GPIO.output(PWMC_EN, GPIO.LOW)
                 GPIO.output(PWMC_DIR, GPIO.HIGH)
             else:
-                #print ("Turn1 Reverse")
+                print ("Turn1 Left")
                 GPIO.output(PWMC_EN, GPIO.HIGH)
                 GPIO.output(PWMC_DIR, GPIO.LOW)
         elif motor == RobotMotor.Elev1:
-                #GPIO.output(PWMD_EN, GPIO.HIGH)
-                self.motor_speed[RobotMotor.Elev1.value]=speed
-                self.pwmC.ChangeDutyCycle(speed)
-                if(index == Dir[0]):
-                    #print ("Elev1 Forward")
-                    GPIO.output(PWMC_EN, GPIO.LOW)
-                    GPIO.output(PWMC_DIR, GPIO.HIGH)
-                else:
-                    #print ("Elev1 Reverse")
-                    GPIO.output(PWMC_EN, GPIO.HIGH)
-                    GPIO.output(PWMC_DIR, GPIO.LOW)   
+            #GPIO.output(PWMD_EN, GPIO.HIGH)
+            self.motor_speed[RobotMotor.Elev1.value]=speed
+            self.pwmC.ChangeDutyCycle(speed)
+            if dir=='f':
+                #print ("Elev1 Forward")
+                GPIO.output(PWMC_EN, GPIO.LOW)
+                GPIO.output(PWMC_DIR, GPIO.HIGH)
+            else:
+                #print ("Elev1 Reverse")
+                GPIO.output(PWMC_EN, GPIO.HIGH)
+                GPIO.output(PWMC_DIR, GPIO.LOW)   
         elif motor == RobotMotor.Turn2:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Turn2.value]=speed
             self.pwmD.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                #print ("Turn2 Forward")
+            if dir=='f':
+                print ("Turn2 Right")
                 GPIO.output(PWMD_EN, GPIO.LOW)
                 GPIO.output(PWMD_DIR, GPIO.HIGH)
             else:
-                #print ("Turn2 Reverse")
+                print ("Turn2 Left")
                 GPIO.output(PWMD_EN, GPIO.HIGH)
                 GPIO.output(PWMD_DIR, GPIO.LOW)
         elif motor == RobotMotor.Joint1:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Joint1.value]=speed
             self.pwmD.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
+            if dir=='f':
                 #print ("Joint1 Forward")
                 GPIO.output(PWMD_EN, GPIO.LOW)
                 GPIO.output(PWMD_DIR, GPIO.HIGH)
