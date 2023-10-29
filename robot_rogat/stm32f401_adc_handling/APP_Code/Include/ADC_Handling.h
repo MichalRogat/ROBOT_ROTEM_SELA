@@ -10,15 +10,15 @@
 typedef enum
 {
 	ADC_CH_0 = 0,
-	ADC_CH_1 = 0,  // Motor_1_current
-	ADC_CH_2 = 0,  // Motor_2_current
-	ADC_CH_3 = 0,  // Elevation_Motor_1
-	ADC_CH_4 = 0,  // Turn_Motor_1
-	ADC_CH_5 = 0,  // Turn_Motor_2
-	ADC_CH_6 = 0,  // Joint_Motor_1
-	ADC_CH_7 = 0,  // FullTank_1
-	ADC_CH_8 = 0,  // FullTank_2
-	ADC_CH_9 = 0   // FullTank_3
+	ADC_CH_1 = 1,  // Motor_1_current
+	ADC_CH_2 = 2,  // Motor_2_current
+	ADC_CH_3 = 3,  // Elevation_Motor_1
+	ADC_CH_4 = 4,  // Turn_Motor_1
+	ADC_CH_5 = 5,  // Turn_Motor_2
+	ADC_CH_6 = 6,  // Joint_Motor_1
+	ADC_CH_7 = 7,  // FullTank_1
+	ADC_CH_8 = 8,  // FullTank_2
+	ADC_CH_9 = 9   // FullTank_3
 
 } ADC_CH_t;
 
