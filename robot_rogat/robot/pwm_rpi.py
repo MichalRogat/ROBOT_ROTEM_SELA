@@ -213,15 +213,15 @@ class MotorDriver:
             GPIO.output(PWMB_EN, GPIO.LOW)
             GPIO.output(PWMB_DIR, GPIO.LOW)
             self.pwmB.ChangeDutyCycle(0)
-        if motor == RobotMotor.Turn1:
-            print("Turn1 Stop")
-            self.motor_speed[RobotMotor.Turn1.value]=0
+        if motor == RobotMotor.Elev1:
+            print("Elev1 Stop")
+            self.motor_speed[RobotMotor.Elev1.value]=0
             GPIO.output(PWMC_EN, GPIO.LOW)
             GPIO.output(PWMC_DIR, GPIO.LOW)
             self.pwmC.ChangeDutyCycle(0)
-        if motor == RobotMotor.Turn2:
-            print("Turn2 Stop")
-            self.motor_speed[RobotMotor.Turn2.value]=0
+        if motor == RobotMotor.Joint1:
+            print("Joint1 Stop")
+            self.motor_speed[RobotMotor.Joint1.value]=0
             GPIO.output(PWMD_EN, GPIO.LOW)
             GPIO.output(PWMD_DIR, GPIO.LOW)
             self.pwmD.ChangeDutyCycle(0)

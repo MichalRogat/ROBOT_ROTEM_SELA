@@ -68,6 +68,10 @@ class RobotMain():
                 self.MotorHandler(event)
             if event["opcode"] == CommandOpcode.keep_alive.value:
                 self.KeepAliveHandler()
+            if event["opcode"] == CommandOpcode.camera.value:
+                self.CameraHandler(event)
+            if event["opcode"] == CommandOpcode.pump.value:
+                self.PumpHandler()
 
 
     def MotorHandler(self,event):
@@ -82,9 +86,9 @@ class RobotMain():
             if motor == RobotMotor.Drive1:
                 self.motors.MotorRun(motor,speed)
                 self.motors.MotorRun(RobotMotor.Drive2,speed)
-            if motor == RobotMotor.Turn1:
+            if motor == RobotMotor.Elev1:
                 self.motors.MotorRun(motor,speed)
-            if motor == RobotMotor.Turn2:
+            if motor == RobotMotor.Joint1:
                 self.motors.MotorRun(motor,speed)
                 
         
@@ -92,6 +96,36 @@ class RobotMain():
         self.last_keep_alive = datetime.datetime.now()
         self.motors.disable_motors = False
         self.TelemetricInfoSend()
+
+    def CameraHandler(self, event):
+        if len(event) < 2:
+            print("camera arg missing")
+            return
+        isToggle = event["isToggle"]
+        isFlip = event["isFlip"]
+        lightLevel = event["lightLevel"]
+        if(isToggle):
+            #toggle cameras (left / right)
+            pass
+        if(isFlip):
+            #flip cameras (front / back)
+            pass
+        if(lightLevel):
+            #toggle light level (off, low, high)
+            pass
+        
+    def PumpHandler(self, event):
+        if len(event) < 2:
+            print("pump arg missing")
+            return
+        togglePumps = event["togglePumps"]
+        activePumping = event["activePumping"]
+        if(togglePumps):
+            #toggle pumps selection
+            pass
+        if(activePumping):
+            #pump with active pump selected
+            pass
 
     def RobotMain(self):
         while True:
