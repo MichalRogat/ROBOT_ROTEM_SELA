@@ -41,7 +41,7 @@ void PrepareFrameAndSend()
 
 static void CalcChecsum()
 {
-	int MsgLen = sizeof(Message);
+	int MsgLen = (sizeof(Message) - 1); // data length for checksum calculation does not include the checksum itself  !
 	uint8_t *pMsg = (uint8_t*)&Message;
 	uint8_t MsgChk = 0;
 
