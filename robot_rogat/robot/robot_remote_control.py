@@ -12,6 +12,7 @@ class CommandOpcode(Enum):
     keep_alive = 2
     camera = 3
     telemetric = 4
+    pump = 5
     
 class RobotRemoteControl():
     def __init__(self, control_q):
