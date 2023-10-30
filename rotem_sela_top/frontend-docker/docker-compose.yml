@@ -1,0 +1,13 @@
+version: '3.3'
+
+services:
+  rs_f:
+    env_file:
+      - configuration.env
+    image: ${SERVICE_NAME}:${IMAGE_VERSION}
+    container_name: rs_f
+    build: 
+        context: .
+        args:
+          SERVICE_NAME: ${SERVICE_NAME} 
+    network_mode: host
