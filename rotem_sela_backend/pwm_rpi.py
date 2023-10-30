@@ -2,7 +2,6 @@ import RPi.GPIO as GPIO
 import threading
 import time
 import datetime
-# import pi_16adc
 from enum import Enum
 
 PWMA            = 12  #PWM0 GPIO18
@@ -27,11 +26,6 @@ PWM0_FREQ = 5000
 PWM1_FREQ = 5000
 MOTORS_TO_MONITOR = 6
 TIME_TO_DISABLE_MOTOR_OVERCURRENT_SEC= 1.0
-
-Dir = [
-    'forward',
-    'reverse',
-]
 
 class RobotMotor(Enum):
     Drive1      = 0
@@ -123,16 +117,21 @@ class MotorDriver:
         GPIO.output(PUMP4_EN  , GPIO.LOW)
             
         
-    def MotorRun(self, motor, index, speed):
-        if speed > 100 or speed<0 :
+    def MotorRun(self, motor, speed):
+        if speed > 100 or speed < -100:
             return
+        if speed>=0:
+            dir='f'
+        else:
+            dir ='r'
+        speed=abs(speed)
         if motor == RobotMotor.Drive1:
             #GPIO.output(PWMA_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Drive1.value]=speed
             if self.over_current[RobotMotor.Drive1.value]:
                 return
             self.pwmA.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
+            if dir=='f':
                 print ("Drive1 Forward")
                 GPIO.output(PWMA_EN, GPIO.LOW)
                 GPIO.output(PWMA_DIR, GPIO.HIGH)
@@ -144,7 +143,7 @@ class MotorDriver:
             #GPIO.output(PWMB_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Drive2.value]=speed
             self.pwmB.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
+            if dir=='f':
                 print ("Drive2 Forward")
                 GPIO.output(PWMB_EN, GPIO.LOW)
                 GPIO.output(PWMB_DIR, GPIO.HIGH)
@@ -155,49 +154,49 @@ class MotorDriver:
         elif motor == RobotMotor.Turn1:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Turn1.value]=speed
-            self.pwmC.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                print ("Turn1 Forward")
+            self.pwmC.ChangeDutyCycle(abs(speed))
+            if dir=='f':
+                print ("Turn1 Right")
                 GPIO.output(PWMC_EN, GPIO.LOW)
                 GPIO.output(PWMC_DIR, GPIO.HIGH)
             else:
-                print ("Turn1 Reverse")
+                print ("Turn1 Left")
                 GPIO.output(PWMC_EN, GPIO.HIGH)
                 GPIO.output(PWMC_DIR, GPIO.LOW)
         elif motor == RobotMotor.Elev1:
-                #GPIO.output(PWMD_EN, GPIO.HIGH)
-                self.motor_speed[RobotMotor.Elev1.value]=speed
-                self.pwmC.ChangeDutyCycle(speed)
-                if(index == Dir[0]):
-                    print ("Elev1 Forward")
-                    GPIO.output(PWMC_EN, GPIO.LOW)
-                    GPIO.output(PWMC_DIR, GPIO.HIGH)
-                else:
-                    print ("Elev1 Reverse")
-                    GPIO.output(PWMC_EN, GPIO.HIGH)
-                    GPIO.output(PWMC_DIR, GPIO.LOW)   
+            #GPIO.output(PWMD_EN, GPIO.HIGH)
+            self.motor_speed[RobotMotor.Elev1.value]=speed
+            self.pwmC.ChangeDutyCycle(speed)
+            if dir=='f':
+                #print ("Elev1 Forward")
+                GPIO.output(PWMC_EN, GPIO.LOW)
+                GPIO.output(PWMC_DIR, GPIO.HIGH)
+            else:
+                #print ("Elev1 Reverse")
+                GPIO.output(PWMC_EN, GPIO.HIGH)
+                GPIO.output(PWMC_DIR, GPIO.LOW)   
         elif motor == RobotMotor.Turn2:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Turn2.value]=speed
             self.pwmD.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                print ("Turn2 Forward")
+            if dir=='f':
+                print ("Turn2 Right")
                 GPIO.output(PWMD_EN, GPIO.LOW)
                 GPIO.output(PWMD_DIR, GPIO.HIGH)
             else:
-                print ("Turn2 Reverse")
+                print ("Turn2 Left")
                 GPIO.output(PWMD_EN, GPIO.HIGH)
                 GPIO.output(PWMD_DIR, GPIO.LOW)
         elif motor == RobotMotor.Joint1:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
             self.motor_speed[RobotMotor.Joint1.value]=speed
             self.pwmD.ChangeDutyCycle(speed)
-            if(index == Dir[0]):
-                print ("Joint1 Forward")
+            if dir=='f':
+                #print ("Joint1 Forward")
                 GPIO.output(PWMD_EN, GPIO.LOW)
                 GPIO.output(PWMD_DIR, GPIO.HIGH)
             else:
-                print ("Joint1 Reverse")
+                #print ("Joint1 Reverse")
                 GPIO.output(PWMD_EN, GPIO.HIGH)
                 GPIO.output(PWMD_DIR, GPIO.LOW)
          
@@ -208,30 +207,30 @@ class MotorDriver:
             GPIO.output(PWMA_EN, GPIO.LOW)
             GPIO.output(PWMA_DIR, GPIO.LOW)
             self.pwmA.ChangeDutyCycle(0)
-        elif motor == RobotMotor.Drive2:
+        if motor == RobotMotor.Drive2:
             print("Drive2 Stop")
             self.motor_speed[RobotMotor.Drive2.value]=0
             GPIO.output(PWMB_EN, GPIO.LOW)
             GPIO.output(PWMB_DIR, GPIO.LOW)
             self.pwmB.ChangeDutyCycle(0)
-        elif motor == RobotMotor.Turn1:
-            print("Turn1 Stop")
-            self.motor_speed[RobotMotor.Turn1.value]=0
+        if motor == RobotMotor.Elev1:
+            print("Elev1 Stop")
+            self.motor_speed[RobotMotor.Elev1.value]=0
             GPIO.output(PWMC_EN, GPIO.LOW)
             GPIO.output(PWMC_DIR, GPIO.LOW)
             self.pwmC.ChangeDutyCycle(0)
-        elif motor == RobotMotor.Turn2:
-            print("Turn2 Stop")
-            self.motor_speed[RobotMotor.Turn2.value]=0
+        if motor == RobotMotor.Joint1:
+            print("Joint1 Stop")
+            self.motor_speed[RobotMotor.Joint1.value]=0
             GPIO.output(PWMD_EN, GPIO.LOW)
             GPIO.output(PWMD_DIR, GPIO.LOW)
             self.pwmD.ChangeDutyCycle(0)
 
-    def MotorTestCurrentOverload(self):
+    def MotorTestCurrentOverload(self,a2d_values):
         #in case overload detected we disable the motor pwm for 1 sec
         for i in range(0,RobotMotor.Joint2.value):
             if self.motor_speed[i] > 0:
-                # self.motor_current[i] = pi_16adc.GetA2d(i)
+                self.motor_current[i] = a2d_values[i]
                 if not self.over_current[i] and self.motor_current[i]>self.current_limit[i]:
                     print(f"{RobotMotor(i)} OverCurrent")
                     if RobotMotor.Drive1.value == i:
