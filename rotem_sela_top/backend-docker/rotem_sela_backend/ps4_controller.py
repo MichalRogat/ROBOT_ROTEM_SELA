@@ -128,6 +128,23 @@ class RobotPS4(Controller):
     def on_up_down_arrow_release(self):
         self.ps_queue.put({"motor":RobotMotor.Pump1,"dir":"reverse","value": 0})
     
+    def on_R3_y_at_rest(self):
+        self.ps_queue.put({"motor":RobotMotor.Drive1,"dir":"forward","value": 0})
+        print("on_R3_y_at_rest")
+
+    def on_R3_x_at_rest(self):
+        self.ps_queue.put({"motor":RobotMotor.Turn1,"dir":"forward","value": 0})
+        print("on_R3_x_at_rest")
+
+    def on_L3_y_at_rest(self):
+        self.ps_queue.put({"motor":RobotMotor.Drive2,"dir":"forward","value": 0})
+        print("on_L3_y_at_rest")
+
+    def on_L3_x_at_rest(self):
+        self.ps_queue.put({"motor":RobotMotor.Turn2,"dir":"forward","value": 0})
+        print("on_L3_x_at_rest")
+
+    
 if __name__ == "__main__":
     dummy = queue.Queue()
     controller = RobotPS4(dummy, interface="/dev/input/js0", connecting_using_ds4drv=False,)

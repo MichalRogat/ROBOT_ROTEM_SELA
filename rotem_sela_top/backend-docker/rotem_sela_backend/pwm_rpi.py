@@ -217,6 +217,12 @@ class MotorDriver:
             GPIO.output(PWMA_EN, GPIO.LOW)
             GPIO.output(PWMA_DIR, GPIO.LOW)
             self.pwmA.ChangeDutyCycle(0)
+
+            print("Drive2 Stop")
+            self.motor_speed[RobotMotor.Drive2.value]=0
+            GPIO.output(PWMB_EN, GPIO.LOW)
+            GPIO.output(PWMB_DIR, GPIO.LOW)
+            self.pwmB.ChangeDutyCycle(0)
         if motor == RobotMotor.Drive2:
             print("Drive2 Stop")
             self.motor_speed[RobotMotor.Drive2.value]=0
