@@ -187,11 +187,11 @@ class MotorDriver:
             self.motor_speed[RobotMotor.Elev1.value]=speed
             GPIO.output(PWMC_EN, GPIO.HIGH)
             if dir=='f':
-                #print ("Elev1 Forward")
+                print ("Elev1 Forward")
                 self.pwmC.ChangeDutyCycle(abs(100-speed))
                 GPIO.output(PWMC_DIR, GPIO.HIGH)
             else:
-                #print ("Elev1 Reverse")
+                print ("Elev1 Reverse")
                 self.pwmC.ChangeDutyCycle(speed)
                 GPIO.output(PWMC_DIR, GPIO.LOW) 
 
