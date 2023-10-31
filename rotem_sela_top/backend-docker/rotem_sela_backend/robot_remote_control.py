@@ -16,6 +16,7 @@ class CommandOpcode(Enum):
     
 class RobotRemoteControl():
     def __init__(self, control_q):
+        print(f"Start socket server")
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.control_q = control_q

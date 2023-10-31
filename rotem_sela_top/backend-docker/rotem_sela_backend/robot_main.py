@@ -13,7 +13,6 @@ from minimu import MinIMU_v5_pi
 import serial_a2d
 
 
-
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 A2D_EXISTS = False
 IMU1_EXIST = True
@@ -22,13 +21,19 @@ IMU2_EXIST = False
 RC = "REMOTE"  # RC=Remote Control
 
 class RobotMain():
+
+    telemetryChannel = None
+    
     def __init__(self) -> None:
+        print(f"Start robot service {RC}")
+
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.tx_q = queue.Queue()
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(self.rx_q, interface="/dev/input/js0", connecting_using_ds4drv=False)
         else:
+            print(f"Start remote control service")
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
         
         self.a2d = serial_a2d.SerialA2D()
@@ -51,6 +56,9 @@ class RobotMain():
         self.main_thread.start()
         self.a2d_thread.start()
     
+    def setTelemetryChannel(self, channel):
+        self.telemetryChannel = channel
+
     def A2dHandler(self):
         self.a2d.listen()
        
@@ -71,7 +79,7 @@ class RobotMain():
             if event["opcode"] == CommandOpcode.camera.value:
                 self.CameraHandler(event)
             if event["opcode"] == CommandOpcode.pump.value:
-                self.PumpHandler()
+                self.PumpHandler(event)
 
 
     def MotorHandler(self,event):
@@ -106,9 +114,11 @@ class RobotMain():
         lightLevel = event["lightLevel"]
         if(isToggle):
             #toggle cameras (left / right)
+            print(f"Toggle cameras")
             pass
         if(isFlip):
             #flip cameras (front / back)
+            print(f"Flip cameras")
             pass
         if(lightLevel):
             #toggle light level (off, low, high)
@@ -129,10 +139,10 @@ class RobotMain():
 
     def RobotMain(self):
         while True:
-            print(self.a2d.values)
+            # print(self.a2d.values)
             delta = datetime.datetime.now() - self.last_keep_alive
-            if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
-                self.motors.StopAllMotors()
+            # if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
+            #     self.motors.StopAllMotors()
 
             #read current of motors
             if A2D_EXISTS:
@@ -183,7 +193,11 @@ class RobotMain():
             "Camera-F4" : True,
             "Camera-S4" : True
         }
-        self.comm.Transmit(info)
+
+        print(f"Send telemetry")
+        self.telemetryChannel.send_message(str(info))
 
 if __name__ == "__main__":
     obj = RobotMain()
+    obj.motors.MotorRun(RobotMotor.Joint1, -90)
+    time.sleep(1000000)
