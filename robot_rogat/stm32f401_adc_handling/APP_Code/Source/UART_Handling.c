@@ -43,7 +43,7 @@ static void CalcChecsum()
 {
 	int MsgLen = (sizeof(Message) - 1); // data length for checksum calculation does not include the checksum itself  !
 	uint8_t *pMsg = (uint8_t*)&Message;
-	uint8_t MsgChk = 0;
+	uint32_t MsgChk = 0;
 
 	for(int i=0; i<MsgLen; i++)
 	{
@@ -52,7 +52,7 @@ static void CalcChecsum()
 		pMsg++;
 	}
 
-	MsgChk = ~MsgChk;
+	MsgChk = ((uint8_t)~MsgChk);
 
 	Message.Checksum = MsgChk;
 }
