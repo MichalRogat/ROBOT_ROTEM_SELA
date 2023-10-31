@@ -4,6 +4,7 @@ import cv2
 import tornado.gen
 import tornado.ioloop
 import tornado.web
+import tornado.websocket
 from tornado.web import RequestHandler, Application
 import asyncio
 import sys
@@ -159,13 +160,29 @@ def run_server(port, cam):
 
 
 class ChannelHandler(tornado.websocket.WebSocketHandler):
+    
+    clients = set()
+
+    def open(self):
+        ChannelHandler.clients.add(self)
+
+    def on_close(self):
+        ChannelHandler.clients.remove(self)
+
+    @classmethod
+    def send_message(cls, message: str):
+        print(f"Sending message {message} to {len(cls.clients)} client(s).")
+        for client in cls.clients:
+
+            client.write_message(message)
+
     """
     Handler that handles a websocket channel
     """
     @classmethod
     def urls(cls):
         return [
-            (r'/ws/', cls, {}),  # Route/Handler/kwargs
+            (r'/ws', ChannelHandler),  # Route/Handler/kwargs
         ]
     
     def initialize(self):
@@ -207,11 +224,13 @@ if __name__ == "__main__":
     # Setup HTTP Server
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(8888, '0.0.0.0')
-    
+    print(f"Websocket started")
     # Start IO/Event loop
-    tornado.ioloop.IOLoop.instance().start()
-
+   
     obj = RobotMain()
+    obj.setTelemetryChannel(ChannelHandler)
+
+    tornado.ioloop.IOLoop.instance().start()
 
     for process in processes:
         process.join()
