@@ -27,6 +27,7 @@ class RobotMain():
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
         self.activePump = 1
+        self.isPumpingNow = 0
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.tx_q = queue.Queue()
@@ -128,23 +129,31 @@ class RobotMain():
             return
         togglePumps = event["togglePumps"]
         activePumping = event["activePumping"]
-        if(togglePumps):
-            activePump = activePump + 1
-            if (activePump == 4):
-                activePump = 1
+        if (togglePumps):
+            self.activePump = self.activePump + 1
+            if (self.activePump == 4):
+                self.activePump = 1
         if (activePumping):
-            if activePump == 1:
-                activePump = RobotMotor.Pump1
-            elif activePump == 2:
-                activePump = RobotMotor.Pump2
-            elif activePump == 3:
-                activePump = RobotMotor.Pump3 
-            elif activePump == 4:
-                activePump = RobotMotor.Pump4 
-            self.motors.MotorRun(activePump,50)
-            print("activePumping !!!!!!")
+            self.isPumpingNow=1
+            if self.activePump == 1:
+                self.motors.MotorRun(RobotMotor.Pump1, 50)
+            elif self.activePump == 2:
+                self.motors.MotorRun(RobotMotor.Pump2, 50)
+            elif self.activePump == 3:
+                self.motors.MotorRun(RobotMotor.Pump3, 50)
+        else:
+            if (self.isPumpingNow):
+                self.isPumpingNow = 0
+                if self.activePump == 1:
+                    self.motors.MotorStop(RobotMotor.Pump1)
+                elif self.activePump == 2:
+                    self.motors.MotorStop(RobotMotor.Pump2)
+                elif self.activePump == 3:
+                    self.motors.MotorStop(RobotMotor.Pump3)
+
             #pump with active pump selected
             #pass
+        
 
     def RobotMain(self):
         while True:

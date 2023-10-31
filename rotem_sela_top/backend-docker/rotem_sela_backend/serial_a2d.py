@@ -11,9 +11,11 @@ class SerialA2D():
 
     def listen(self):    
         while True:
+                if(self.ser.in_waiting):
                     calc_checksum = 0
                     received_checksum = 0
                     received_data = self.ser.read(1)              #read serial port
+                    # print("Received data !!", received_data)
                     if received_data[0] == 0xaa:
                         received_data = self.ser.read(1)    
                         if received_data[0] == 0xde:
@@ -32,7 +34,7 @@ class SerialA2D():
                     else:
                         continue
     
-    def CalcChecsum(values):
+    def CalcChecsum(self, values):
         MsgLen = 20
         ret_val = 0xaa + 0xde + 21
         for value in values:
