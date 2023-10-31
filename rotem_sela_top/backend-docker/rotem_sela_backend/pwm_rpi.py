@@ -14,7 +14,7 @@ PWMC            = 33  #PWM1 GPIO13
 PWMC_DIR        = 11  #DIRC GPIO05
 PWMC_EN         = 38  #C_EN GPIO10  sleep1 
 TURN1_EN         = 24
-TURN2_DIR        = 11
+TURN1_DIR        = 11 #GPIO 17
 PWMD            = 35  #PWM1 GPIO19
 PWMD_DIR        = 13  #PWM1 GPIO06
 JOINT1_EN       = 7         
@@ -64,6 +64,7 @@ class MotorDriver:
         GPIO.setup(PWMD_DIR       , GPIO.OUT)
         GPIO.setup(PWMD_EN        , GPIO.OUT)
         GPIO.setup(TURN1_EN  , GPIO.OUT)
+        GPIO.setup(TURN1_DIR  , GPIO.OUT)
         GPIO.setup(JOINT1_EN  , GPIO.OUT)
         # GPIO.setup(PWMC_TURN1_EN  , GPIO.OUT)
         # GPIO.setup(PWMC_TURN2_EN  , GPIO.OUT)
@@ -165,11 +166,11 @@ class MotorDriver:
             if dir=='f':
                 print ("Turn1 Right")
                 self.pwmC.ChangeDutyCycle(abs(100-speed))
-                GPIO.output(TURN2_DIR, GPIO.HIGH)
+                GPIO.output(TURN1_DIR, GPIO.HIGH)
             else:
                 print ("Turn1 Left")
                 self.pwmC.ChangeDutyCycle(speed)
-                GPIO.output(TURN2_DIR, GPIO.LOW)
+                GPIO.output(TURN1_DIR, GPIO.LOW)
 
         elif motor == RobotMotor.Elev1:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
