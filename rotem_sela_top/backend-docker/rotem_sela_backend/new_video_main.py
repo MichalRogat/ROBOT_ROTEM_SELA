@@ -171,7 +171,7 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
 
     @classmethod
     def send_message(cls, message: str):
-        print(f"Sending message {message} to {len(cls.clients)} client(s).")
+        # print(f"Sending message {message} to {len(cls.clients)} client(s).")
         for client in cls.clients:
 
             client.write_message(message)

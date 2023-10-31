@@ -14,7 +14,7 @@ import serial_a2d
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
-A2D_EXISTS = False
+A2D_EXISTS = True
 IMU1_EXIST = True
 IMU2_EXIST = False
 
@@ -56,6 +56,7 @@ class RobotMain():
         self.message_handler_thread.start()
         self.main_thread.start()
         self.a2d_thread.start()
+        self.motors.StopAllMotors()
     
     def setTelemetryChannel(self, channel):
         self.telemetryChannel = channel
@@ -164,8 +165,7 @@ class RobotMain():
 
             #read current of motors
             if A2D_EXISTS:
-                pass
-                #self.motors.MotorTestCurrentOverload() #this function take time i2c a2d issue to solve
+                self.motors.MotorTestCurrentOverload(self.a2d.values) #this function take time i2c a2d issue to solve
 
     def TelemetricInfoSend(self):
         if IMU1_EXIST:
@@ -180,15 +180,15 @@ class RobotMain():
             "opcode": CommandOpcode.telemetric,
             "imu-1" : angle1,
             "imu-2" : angle2,
-            "drive1" : self.a2d.values[0],
-            "drive2" : self.a2d.values[1],
-            "elev"   : self.a2d.values[2],
+            "drive1" : self.a2d.values[1],
+            "drive2" : self.a2d.values[2],
+            "elev"   : self.a2d.values[4],
             "turn1"  : self.a2d.values[3],
-            "turn2"  : self.a2d.values[4],
-            "joint1" : self.a2d.values[5],
-            "FullTank1" : self.a2d.values[6],
-            "FullTank2" : self.a2d.values[7],
-            "FullTank3" : self.a2d.values[8],
+            "turn2"  : self.a2d.values[5],
+            "joint1" : self.a2d.values[6],
+            "FullTank1" : self.a2d.values[7],
+            "FullTank2" : self.a2d.values[8],
+            "FullTank3" : self.a2d.values[9],
             "activePump"    : self.activePump,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
@@ -207,7 +207,7 @@ class RobotMain():
             
         }
 
-        print(f"Send telemetry")
+        # print(f"Send telemetry")
         self.telemetryChannel.send_message(str(info))
 
 if __name__ == "__main__":

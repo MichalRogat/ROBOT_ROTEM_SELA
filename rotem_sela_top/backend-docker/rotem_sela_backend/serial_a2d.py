@@ -17,16 +17,20 @@ class SerialA2D():
                     received_data = self.ser.read(1)              #read serial port
                     # print("Received data !!", received_data)
                     if received_data[0] == 0xaa:
-                        received_data = self.ser.read(1)    
+                        received_data = self.ser.read(1)
+                           
                         if received_data[0] == 0xde:
                             received_data = self.ser.read(1)    
                             if received_data[0] == 21:
                                 received_data = self.ser.read(21)
                                 self.values = list(struct.unpack('10h', received_data[0:20]))
-                                calc_checksum = self.CalcChecsum(self.values)
+                                calc_checksum = self.CalcChecksum(received_data)
                                 received_checksum = received_data[20]
+                            
                                 if(calc_checksum != received_checksum):
                                     continue
+                                else:
+                                    print(self.values) 
                             else:
                                 continue
                         else:
@@ -34,12 +38,11 @@ class SerialA2D():
                     else:
                         continue
     
-    def CalcChecsum(self, values):
-        MsgLen = 20
+    def CalcChecksum(self, values):
         ret_val = 0xaa + 0xde + 21
-        for value in values:
-            ret_val += value
-        ret_val = ~ret_val
+        for i in range(20):
+            ret_val += values[i]
+        ret_val = (~ret_val)&0xFF
         return ret_val            
 
 if __name__ == "__main__":
