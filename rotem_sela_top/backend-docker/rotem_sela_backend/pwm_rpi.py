@@ -103,6 +103,16 @@ class MotorDriver:
             self.pwmB.ChangeDutyCycle(0)
             self.pwmC.ChangeDutyCycle(0)
             self.pwmD.ChangeDutyCycle(0)
+            GPIO.output(PWMA_EN, GPIO.LOW)
+            GPIO.output(PWMB_EN, GPIO.LOW)
+            GPIO.output(PWMC_EN, GPIO.LOW)
+            GPIO.output(TURN1_EN, GPIO.LOW)
+            GPIO.output(JOINT1_EN, GPIO.LOW)
+            GPIO.output(PWMD_EN, GPIO.LOW)
+            GPIO.output(PUMP1_EN, GPIO.LOW)
+            GPIO.output(PUMP2_EN, GPIO.LOW)
+            GPIO.output(PUMP3_EN, GPIO.LOW)
+            GPIO.output(PUMP4_EN, GPIO.LOW)            
         self.disable_motors = True
 
     def DisableMuxPWMC(self):
@@ -236,9 +246,21 @@ class MotorDriver:
             GPIO.output(PWMC_EN, GPIO.LOW)
             GPIO.output(PWMC_DIR, GPIO.LOW)
             self.pwmC.ChangeDutyCycle(0)
+        if motor == RobotMotor.Turn1:
+            print("Turn1 Stop")
+            self.motor_speed[RobotMotor.Turn1.value]=0
+            GPIO.output(PWMC_EN, GPIO.LOW)
+            GPIO.output(PWMC_DIR, GPIO.LOW)
+            self.pwmC.ChangeDutyCycle(0)
         if motor == RobotMotor.Joint1:
             print("Joint1 Stop")
             self.motor_speed[RobotMotor.Joint1.value]=0
+            GPIO.output(PWMD_EN, GPIO.LOW)
+            GPIO.output(PWMD_DIR, GPIO.LOW)
+            self.pwmD.ChangeDutyCycle(0)
+        if motor == RobotMotor.Turn2:
+            print("Turn2 Stop")
+            self.motor_speed[RobotMotor.Turn2.value]=0
             GPIO.output(PWMD_EN, GPIO.LOW)
             GPIO.output(PWMD_DIR, GPIO.LOW)
             self.pwmD.ChangeDutyCycle(0)

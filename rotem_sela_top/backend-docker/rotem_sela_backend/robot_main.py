@@ -26,7 +26,7 @@ class RobotMain():
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
-
+        self.activePump = 1
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.tx_q = queue.Queue()
@@ -94,11 +94,9 @@ class RobotMain():
             if motor == RobotMotor.Drive1:
                 self.motors.MotorRun(motor,speed)
                 self.motors.MotorRun(RobotMotor.Drive2,speed)
-            if motor == RobotMotor.Elev1:
+            else:
                 self.motors.MotorRun(motor,speed)
-            if motor == RobotMotor.Joint1:
-                self.motors.MotorRun(motor,speed)
-                
+           
         
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
@@ -131,11 +129,22 @@ class RobotMain():
         togglePumps = event["togglePumps"]
         activePumping = event["activePumping"]
         if(togglePumps):
-            #toggle pumps selection
-            pass
-        if(activePumping):
+            activePump = activePump + 1
+            if (activePump == 4):
+                activePump = 1
+        if (activePumping):
+            if activePump == 1:
+                activePump = RobotMotor.Pump1
+            elif activePump == 2:
+                activePump = RobotMotor.Pump2
+            elif activePump == 3:
+                activePump = RobotMotor.Pump3 
+            elif activePump == 4:
+                activePump = RobotMotor.Pump4 
+            self.motors.MotorRun(activePump,50)
+            print("activePumping !!!!!!")
             #pump with active pump selected
-            pass
+            #pass
 
     def RobotMain(self):
         while True:
@@ -171,7 +180,7 @@ class RobotMain():
             "FullTank1" : self.a2d.values[6],
             "FullTank2" : self.a2d.values[7],
             "FullTank3" : self.a2d.values[8],
-            "Spare1"    : 4096,
+            "activePump"    : self.activePump,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
             "Spare4"    : 4096,
@@ -185,7 +194,8 @@ class RobotMain():
             "Camera-F3" : True,
             "Camera-S3" : True,
             "Camera-F4" : True,
-            "Camera-S4" : True
+            "Camera-S4" : True,
+            
         }
 
         print(f"Send telemetry")
