@@ -171,14 +171,26 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
         ChannelHandler.clients.add(self)
 
     def on_close(self):
-        ChannelHandler.clients.remove(self)
+        try:
+            ChannelHandler.clients.remove(self)
+        except Exception as e:
+            print(str(e))
 
     @classmethod
     def send_message(cls, message: str):
         # print(f"Sending message {message} to {len(cls.clients)} client(s).")
-        for client in cls.clients:
-
-            client.write_message(message)
+        try:
+            for client in cls.clients:
+           
+                client.write_message(message)
+        except Exception as e:
+            print(str(e))
+            # if client.get_status() == 101:
+            #     try:
+            #         cls.clients.remove(client)
+            #     except Exception as e:
+            #         print(str(e))
+            #     break
 
     """
     Handler that handles a websocket channel
