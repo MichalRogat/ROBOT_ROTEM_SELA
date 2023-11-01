@@ -42,7 +42,8 @@ class RobotRemoteControl():
             except Exception as e :
                 print(str(e))
                 self.client_socket.close() #close connection to client
-                break
+                self.client_socket, self.client_address = self.server.accept()
+                continue
            
 
     def Transmit(self, data):

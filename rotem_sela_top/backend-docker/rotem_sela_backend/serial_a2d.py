@@ -29,8 +29,8 @@ class SerialA2D():
                             
                                 if(calc_checksum != received_checksum):
                                     continue
-                                else:
-                                    print(self.values) 
+                                # else:
+                                #     print(self.values) 
                             else:
                                 continue
                         else:

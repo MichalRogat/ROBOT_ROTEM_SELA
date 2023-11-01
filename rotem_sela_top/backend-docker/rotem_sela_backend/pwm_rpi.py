@@ -135,10 +135,12 @@ class MotorDriver:
         GPIO.output(PUMP1_EN  , GPIO.LOW)
         GPIO.output(PUMP2_EN  , GPIO.LOW)
         GPIO.output(PUMP3_EN  , GPIO.LOW)
-        GPIO.output(PUMP4_EN  , GPIO.LOW)
+        #GPIO.output(PUMP4_EN  , GPIO.LOW)
             
         
     def MotorRun(self, motor, speed):
+        ELEV_TIME = 0.5
+        JOINT_TIME = 3
         if speed > 100 or speed < -100:
             return
         
@@ -212,6 +214,9 @@ class MotorDriver:
                
                 self.pwmC.ChangeDutyCycle(speed)
                 GPIO.output(PWMC_DIR, GPIO.LOW) 
+            time.sleep(ELEV_TIME)
+            self.MotorStop(RobotMotor.Elev1)
+
 
         elif motor == RobotMotor.Turn2:
             #GPIO.output(PWMD_EN, GPIO.HIGH)
@@ -242,6 +247,9 @@ class MotorDriver:
                 #print ("Joint1 Reverse")
                 self.pwmD.ChangeDutyCycle(speed)
                 GPIO.output(PWMD_DIR, GPIO.LOW)
+            time.sleep(JOINT_TIME)
+            self.MotorStop(RobotMotor.Joint1)
+
         elif motor == RobotMotor.Pump1:
             # print(f"Run motor drvie1 {speed}")
             self.motor_speed[RobotMotor.Pump1.value]=speed

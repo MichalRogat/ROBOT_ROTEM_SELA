@@ -19,8 +19,7 @@ CAM_PORTS = {
     'cam1': 5000,
     'cam2': 5001,
     'cam3': 5002,
-    'cam4': 5003,
-    'system': 5004
+    'cam4': 5003
 }
 
 # Dictionary of cameras; the key is an identifier, the value is the OpenCV VideoCapture object

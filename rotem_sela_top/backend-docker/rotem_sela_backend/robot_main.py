@@ -135,7 +135,7 @@ class RobotMain():
             if (self.activePump == 4):
                 self.activePump = 1
         if (activePumping):
-            self.isPumpingNow=1
+            self.isPumpingNow = 1
             if self.activePump == 1:
                 self.motors.MotorRun(RobotMotor.Pump1, 50)
             elif self.activePump == 2:
