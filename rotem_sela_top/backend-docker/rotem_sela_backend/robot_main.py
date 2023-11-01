@@ -123,11 +123,9 @@ class RobotMain():
         if(isToggle):
             #toggle cameras (left / right)
             print(f"Toggle cameras")
-            pass
         if(isFlip):
             #flip cameras (front / back)
             print(f"Flip cameras")
-            pass
         if(lightLevel):
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
@@ -136,6 +134,7 @@ class RobotMain():
                 GPIO.output(LIGHT, not (GPIO.input(LIGHT)))
             else:
                 stopVideo = True
+        self.telemetryChannel.send_message(json.dumps(event))
         
     def PumpHandler(self, event):
         if len(event) < 2:
@@ -164,6 +163,7 @@ class RobotMain():
                     self.motors.MotorStop(RobotMotor.Pump2)
                 elif self.activePump == 3:
                     self.motors.MotorStop(RobotMotor.Pump3)
+        self.telemetryChannel.send_message(json.dumps(event))
 
     def RobotMain(self):
         while True:
