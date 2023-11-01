@@ -17,7 +17,7 @@ class MinIMU_v5_pi:
 			self.accel_gyro = 0x6b
 		else:
 			#i2c addresses
-			self.mag = 0x1b #0011100 (from docs)
+			self.mag = 0x1c #0011100 (from docs)
 			self.accel_gyro = 0x6a
 		self.lock = lock
 		#Accelerometer and Gyro Register addresses

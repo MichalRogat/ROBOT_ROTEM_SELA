@@ -19,7 +19,7 @@ import json
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 A2D_EXISTS = True
 IMU1_EXIST = True
-IMU2_EXIST = False
+IMU2_EXIST = True
 
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
