@@ -9,7 +9,7 @@ from tornado.web import RequestHandler, Application
 import asyncio
 import sys
 import v4l2py
-from robot_main import RobotMain
+from robot_main import RobotMain, stopVideo
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -61,6 +61,10 @@ class VideoFeedHandler(CorsHandler):
     async def get(self, cam_id):
         res = map_cams()
         global cameras
+
+        if stopVideo:
+            self.set_status(404)
+            self.write("Camera stopped")
        
         video_dev = res[cam_id]['dev']
         if video_dev not in cameras:
@@ -97,7 +101,8 @@ class VideoFeedHandler(CorsHandler):
                         # if video_dev not in cameras:
                         #     print("!!!!exit")
                         #     break 
-                        
+                        if stopVideo:
+                            break
                         self.write(b'--frame\r\n')
                         self.write(b'Content-Type: image/jpeg\r\n\r\n')
                         self.write(frame.data)  # Assuming frame data is already in MJPEG format
@@ -181,27 +186,11 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def urls(cls):
         return [
-            (r'/ws', ChannelHandler),  # Route/Handler/kwargs
+            (r'/ws', cls,{}),  # Route/Handler/kwargs
         ]
     
     def initialize(self):
         self.channel = None
-    
-    def open(self, channel):
-        """
-        Client opens a websocket
-        """
-        self.channel = channel
-    
-    def on_message(self, message):
-        """
-        Message received on channel
-        """
-    
-    def on_close(self):
-        """
-        Channel is closed
-        """
     
     def check_origin(self, origin):
         """

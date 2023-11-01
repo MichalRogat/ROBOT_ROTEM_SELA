@@ -41,7 +41,7 @@ class OpenIdClientLoginHandler(RequestHandler, OpenIdMixin):
                 raise Exception("user is None")
             self.finish(user)
             return
-        res = self.authenticate_redirect()
+        res = self.authenticate_redirect()  # type: ignore
         assert res is None
 
 
@@ -131,7 +131,7 @@ class OAuth2ClientLoginHandler(RequestHandler, OAuth2Mixin):
         self._OAUTH_AUTHORIZE_URL = test.get_url("/oauth2/server/authorize")
 
     def get(self):
-        res = self.authorize_redirect()
+        res = self.authorize_redirect()  # type: ignore
         assert res is None
 
 
@@ -152,7 +152,7 @@ class FacebookClientLoginHandler(RequestHandler, FacebookGraphMixin):
             )
             self.write(user)
         else:
-            yield self.authorize_redirect(
+            self.authorize_redirect(
                 redirect_uri=self.request.full_url(),
                 client_id=self.settings["facebook_api_key"],
                 extra_params={"scope": "read_stream,offline_access"},
@@ -502,14 +502,14 @@ class AuthTest(AsyncHTTPTestCase):
         self.assertEqual(
             parsed,
             {
-                u"access_token": {
-                    u"key": u"hjkl",
-                    u"screen_name": u"foo",
-                    u"secret": u"vbnm",
+                "access_token": {
+                    "key": "hjkl",
+                    "screen_name": "foo",
+                    "secret": "vbnm",
                 },
-                u"name": u"Foo",
-                u"screen_name": u"foo",
-                u"username": u"foo",
+                "name": "Foo",
+                "screen_name": "foo",
+                "username": "foo",
             },
         )
 
@@ -547,7 +547,7 @@ class GoogleLoginHandler(RequestHandler, GoogleOAuth2Mixin):
             user["access_token"] = access["access_token"]
             self.write(user)
         else:
-            yield self.authorize_redirect(
+            self.authorize_redirect(
                 redirect_uri=self._OAUTH_REDIRECT_URI,
                 client_id=self.settings["google_oauth"]["key"],
                 client_secret=self.settings["google_oauth"]["secret"],
@@ -601,9 +601,9 @@ class GoogleOAuth2Test(AsyncHTTPTestCase):
         response = self.fetch("/client/login")
         self.assertDictEqual(
             {
-                u"name": u"Foo",
-                u"email": u"foo@example.com",
-                u"access_token": u"fake-access-token",
+                "name": "Foo",
+                "email": "foo@example.com",
+                "access_token": "fake-access-token",
             },
             json_decode(response.body),
         )

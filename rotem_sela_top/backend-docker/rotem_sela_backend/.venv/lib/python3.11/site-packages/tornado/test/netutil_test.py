@@ -39,17 +39,28 @@ else:
 
 
 class _ResolverTestMixin(object):
+    resolver = None  # type: typing.Any
+
     @gen_test
-    def test_localhost(self):
+    def test_localhost(self: typing.Any):
         addrinfo = yield self.resolver.resolve("localhost", 80, socket.AF_UNSPEC)
-        self.assertIn((socket.AF_INET, ("127.0.0.1", 80)), addrinfo)
+        # Most of the time localhost resolves to either the ipv4 loopback
+        # address alone, or ipv4+ipv6. But some versions of pycares will only
+        # return the ipv6 version, so we have to check for either one alone.
+        self.assertTrue(
+            ((socket.AF_INET, ("127.0.0.1", 80)) in addrinfo)
+            or ((socket.AF_INET6, ("::1", 80)) in addrinfo),
+            f"loopback address not found in {addrinfo}",
+        )
 
 
 # It is impossible to quickly and consistently generate an error in name
 # resolution, so test this case separately, using mocks as needed.
 class _ResolverErrorTestMixin(object):
+    resolver = None  # type: typing.Any
+
     @gen_test
-    def test_bad_host(self):
+    def test_bad_host(self: typing.Any):
         with self.assertRaises(IOError):
             yield self.resolver.resolve("an invalid domain", 80, socket.AF_UNSPEC)
 
@@ -62,7 +73,7 @@ def _failing_getaddrinfo(*args):
 @skipIfNoNetwork
 class BlockingResolverTest(AsyncTestCase, _ResolverTestMixin):
     def setUp(self):
-        super(BlockingResolverTest, self).setUp()
+        super().setUp()
         self.resolver = BlockingResolver()
 
 
@@ -71,19 +82,19 @@ class BlockingResolverTest(AsyncTestCase, _ResolverTestMixin):
 # our default timeout.
 class BlockingResolverErrorTest(AsyncTestCase, _ResolverErrorTestMixin):
     def setUp(self):
-        super(BlockingResolverErrorTest, self).setUp()
+        super().setUp()
         self.resolver = BlockingResolver()
         self.real_getaddrinfo = socket.getaddrinfo
         socket.getaddrinfo = _failing_getaddrinfo
 
     def tearDown(self):
         socket.getaddrinfo = self.real_getaddrinfo
-        super(BlockingResolverErrorTest, self).tearDown()
+        super().tearDown()
 
 
 class OverrideResolverTest(AsyncTestCase, _ResolverTestMixin):
     def setUp(self):
-        super(OverrideResolverTest, self).setUp()
+        super().setUp()
         mapping = {
             ("google.com", 80): ("1.2.3.4", 80),
             ("google.com", 80, socket.AF_INET): ("1.2.3.4", 80),
@@ -108,24 +119,24 @@ class OverrideResolverTest(AsyncTestCase, _ResolverTestMixin):
 @skipIfNoNetwork
 class ThreadedResolverTest(AsyncTestCase, _ResolverTestMixin):
     def setUp(self):
-        super(ThreadedResolverTest, self).setUp()
+        super().setUp()
         self.resolver = ThreadedResolver()
 
     def tearDown(self):
         self.resolver.close()
-        super(ThreadedResolverTest, self).tearDown()
+        super().tearDown()
 
 
 class ThreadedResolverErrorTest(AsyncTestCase, _ResolverErrorTestMixin):
     def setUp(self):
-        super(ThreadedResolverErrorTest, self).setUp()
+        super().setUp()
         self.resolver = BlockingResolver()
         self.real_getaddrinfo = socket.getaddrinfo
         socket.getaddrinfo = _failing_getaddrinfo
 
     def tearDown(self):
         socket.getaddrinfo = self.real_getaddrinfo
-        super(ThreadedResolverErrorTest, self).tearDown()
+        super().tearDown()
 
 
 @skipIfNoNetwork
@@ -159,9 +170,11 @@ class ThreadedResolverImportTest(unittest.TestCase):
 # name with spaces used in this test.
 @skipIfNoNetwork
 @unittest.skipIf(pycares is None, "pycares module not present")
+@unittest.skipIf(sys.platform == "win32", "pycares doesn't return loopback on windows")
+@unittest.skipIf(sys.platform == "darwin", "pycares doesn't return 127.0.0.1 on darwin")
 class CaresResolverTest(AsyncTestCase, _ResolverTestMixin):
     def setUp(self):
-        super(CaresResolverTest, self).setUp()
+        super().setUp()
         self.resolver = CaresResolver()
 
 
@@ -177,9 +190,10 @@ class CaresResolverTest(AsyncTestCase, _ResolverTestMixin):
 @unittest.skipIf(
     getattr(twisted, "__version__", "0.0") < "12.1", "old version of twisted"
 )
+@unittest.skipIf(sys.platform == "win32", "twisted resolver hangs on windows")
 class TwistedResolverTest(AsyncTestCase, _ResolverTestMixin):
     def setUp(self):
-        super(TwistedResolverTest, self).setUp()
+        super().setUp()
         self.resolver = TwistedResolver()
 
 
@@ -197,6 +211,7 @@ class IsValidIPTest(unittest.TestCase):
         self.assertTrue(not is_valid_ip(" "))
         self.assertTrue(not is_valid_ip("\n"))
         self.assertTrue(not is_valid_ip("\x00"))
+        self.assertTrue(not is_valid_ip("a" * 100))
 
 
 class TestPortAllocation(unittest.TestCase):

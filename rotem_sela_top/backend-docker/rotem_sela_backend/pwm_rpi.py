@@ -26,6 +26,7 @@ PUMP1_ON        = 15  #PUMP1_EN GPIO22
 PUMP2_ON        = 29  #PUMP2_EN GPIO10  
 PUMP3_ON        = 21  #PUMP3_EN GPIO09  
 PUMP3_ON2       = 31  #PUMP3_EN GPIO09  
+LIGHT           = 23  #CAMERA LIGHT
 
 PWM0_FREQ = 5000
 PWM1_FREQ = 5000
@@ -72,6 +73,8 @@ class MotorDriver:
         GPIO.setup(PUMP3_ON2  , GPIO.OUT)
         GPIO.setup(PUMP1_EN  , GPIO.OUT)
         GPIO.setup(PUMP3_EN  , GPIO.OUT)
+        GPIO.setup(LIGHT  , GPIO.OUT)
+
         # GPIO.setup(PWMC_TURN1_EN  , GPIO.OUT)
         # GPIO.setup(PWMC_TURN2_EN  , GPIO.OUT)
         # GPIO.setup(PWMC_JOINT1_EN , GPIO.OUT) 

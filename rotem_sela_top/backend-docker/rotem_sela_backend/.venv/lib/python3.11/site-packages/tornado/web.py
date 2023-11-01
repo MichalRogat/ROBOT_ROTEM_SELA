@@ -22,19 +22,22 @@ Here is a simple "Hello, world" example app:
 
 .. testcode::
 
-    import tornado.ioloop
-    import tornado.web
+    import asyncio
+    import tornado
 
     class MainHandler(tornado.web.RequestHandler):
         def get(self):
             self.write("Hello, world")
 
-    if __name__ == "__main__":
+    async def main():
         application = tornado.web.Application([
             (r"/", MainHandler),
         ])
         application.listen(8888)
-        tornado.ioloop.IOLoop.current().start()
+        await asyncio.Event().wait()
+
+    if __name__ == "__main__":
+        asyncio.run(main())
 
 .. testoutput::
    :hide:
@@ -72,9 +75,11 @@ import mimetypes
 import numbers
 import os.path
 import re
+import socket
 import sys
 import threading
 import time
+import warnings
 import tornado
 import traceback
 import types
@@ -87,7 +92,6 @@ from tornado import gen
 from tornado.httpserver import HTTPServer
 from tornado import httputil
 from tornado import iostream
-import tornado.locale
 from tornado import locale
 from tornado.log import access_log, app_log, gen_log
 from tornado import template
@@ -118,6 +122,7 @@ from typing import (
     Iterable,
     Generator,
     Type,
+    TypeVar,
     cast,
     overload,
 )
@@ -160,7 +165,7 @@ May be overridden by passing a ``version`` keyword argument.
 """
 
 DEFAULT_SIGNED_VALUE_MIN_VERSION = 1
-"""The oldest signed value accepted by `.RequestHandler.get_secure_cookie`.
+"""The oldest signed value accepted by `.RequestHandler.get_signed_cookie`.
 
 May be overridden by passing a ``min_version`` keyword argument.
 
@@ -204,9 +209,9 @@ class RequestHandler(object):
         self,
         application: "Application",
         request: httputil.HTTPServerRequest,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
-        super(RequestHandler, self).__init__()
+        super().__init__()
 
         self.application = application
         self.request = request
@@ -340,7 +345,7 @@ class RequestHandler(object):
         """
         pass
 
-    def set_status(self, status_code: int, reason: str = None) -> None:
+    def set_status(self, status_code: int, reason: Optional[str] = None) -> None:
         """Sets the status code for our response.
 
         :arg int status_code: Response status code.
@@ -399,14 +404,10 @@ class RequestHandler(object):
         # cases are covered by the first match for str.
         if isinstance(value, str):
             retval = value
-        elif isinstance(value, bytes):  # py3
+        elif isinstance(value, bytes):
             # Non-ascii characters in headers are not well supported,
             # but if you pass bytes, use latin1 so they pass through as-is.
             retval = value.decode("latin1")
-        elif isinstance(value, unicode_type):  # py2
-            # TODO: This is inconsistent with the use of latin1 above,
-            # but it's been that way for a long time. Should it change?
-            retval = escape.utf8(value)
         elif isinstance(value, numbers.Integral):
             # return immediately since we know the converted value will be safe
             return str(value)
@@ -424,14 +425,14 @@ class RequestHandler(object):
     def get_argument(self, name: str, default: str, strip: bool = True) -> str:
         pass
 
-    @overload  # noqa: F811
-    def get_argument(
+    @overload
+    def get_argument(  # noqa: F811
         self, name: str, default: _ArgDefaultMarker = _ARG_DEFAULT, strip: bool = True
     ) -> str:
         pass
 
-    @overload  # noqa: F811
-    def get_argument(
+    @overload
+    def get_argument(  # noqa: F811
         self, name: str, default: None, strip: bool = True
     ) -> Optional[str]:
         pass
@@ -554,7 +555,7 @@ class RequestHandler(object):
             values.append(s)
         return values
 
-    def decode_argument(self, value: bytes, name: str = None) -> str:
+    def decode_argument(self, value: bytes, name: Optional[str] = None) -> str:
         """Decodes an argument from the request.
 
         The argument has been percent-decoded and is now a byte string.
@@ -580,7 +581,7 @@ class RequestHandler(object):
         `self.request.cookies <.httputil.HTTPServerRequest.cookies>`."""
         return self.request.cookies
 
-    def get_cookie(self, name: str, default: str = None) -> Optional[str]:
+    def get_cookie(self, name: str, default: Optional[str] = None) -> Optional[str]:
         """Returns the value of the request cookie with the given name.
 
         If the named cookie is not present, returns ``default``.
@@ -597,25 +598,37 @@ class RequestHandler(object):
         self,
         name: str,
         value: Union[str, bytes],
-        domain: str = None,
-        expires: Union[float, Tuple, datetime.datetime] = None,
+        domain: Optional[str] = None,
+        expires: Optional[Union[float, Tuple, datetime.datetime]] = None,
         path: str = "/",
-        expires_days: int = None,
-        **kwargs: Any
+        expires_days: Optional[float] = None,
+        # Keyword-only args start here for historical reasons.
+        *,
+        max_age: Optional[int] = None,
+        httponly: bool = False,
+        secure: bool = False,
+        samesite: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Sets an outgoing cookie name/value with the given options.
 
         Newly-set cookies are not immediately visible via `get_cookie`;
         they are not present until the next request.
 
-        expires may be a numeric timestamp as returned by `time.time`,
-        a time tuple as returned by `time.gmtime`, or a
-        `datetime.datetime` object.
+        Most arguments are passed directly to `http.cookies.Morsel` directly.
+        See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        for more information.
 
-        Additional keyword arguments are set on the cookies.Morsel
-        directly.
-        See https://docs.python.org/3/library/http.cookies.html#http.cookies.Morsel
-        for available attributes.
+        ``expires`` may be a numeric timestamp as returned by `time.time`,
+        a time tuple as returned by `time.gmtime`, or a
+        `datetime.datetime` object. ``expires_days`` is provided as a convenience
+        to set an expiration time in days from today (if both are set, ``expires``
+        is used).
+
+        .. deprecated:: 6.3
+           Keyword arguments are currently accepted case-insensitively.
+           In Tornado 7.0 this will be changed to only accept lowercase
+           arguments.
         """
         # The cookie library only accepts type str, in both python 2 and 3
         name = escape.native_str(name)
@@ -624,7 +637,9 @@ class RequestHandler(object):
             # Don't let us accidentally inject bad stuff
             raise ValueError("Invalid cookie %r: %r" % (name, value))
         if not hasattr(self, "_new_cookie"):
-            self._new_cookie = http.cookies.SimpleCookie()
+            self._new_cookie = (
+                http.cookies.SimpleCookie()
+            )  # type: http.cookies.SimpleCookie
         if name in self._new_cookie:
             del self._new_cookie[name]
         self._new_cookie[name] = value
@@ -637,54 +652,93 @@ class RequestHandler(object):
             morsel["expires"] = httputil.format_timestamp(expires)
         if path:
             morsel["path"] = path
-        for k, v in kwargs.items():
-            if k == "max_age":
-                k = "max-age"
+        if max_age:
+            # Note change from _ to -.
+            morsel["max-age"] = str(max_age)
+        if httponly:
+            # Note that SimpleCookie ignores the value here. The presense of an
+            # httponly (or secure) key is treated as true.
+            morsel["httponly"] = True
+        if secure:
+            morsel["secure"] = True
+        if samesite:
+            morsel["samesite"] = samesite
+        if kwargs:
+            # The setitem interface is case-insensitive, so continue to support
+            # kwargs for backwards compatibility until we can remove deprecated
+            # features.
+            for k, v in kwargs.items():
+                morsel[k] = v
+            warnings.warn(
+                f"Deprecated arguments to set_cookie: {set(kwargs.keys())} "
+                "(should be lowercase)",
+                DeprecationWarning,
+            )
 
-            # skip falsy values for httponly and secure flags because
-            # SimpleCookie sets them regardless
-            if k in ["httponly", "secure"] and not v:
-                continue
-
-            morsel[k] = v
-
-    def clear_cookie(self, name: str, path: str = "/", domain: str = None) -> None:
+    def clear_cookie(self, name: str, **kwargs: Any) -> None:
         """Deletes the cookie with the given name.
 
-        Due to limitations of the cookie protocol, you must pass the same
-        path and domain to clear a cookie as were used when that cookie
-        was set (but there is no way to find out on the server side
-        which values were used for a given cookie).
+        This method accepts the same arguments as `set_cookie`, except for
+        ``expires`` and ``max_age``. Clearing a cookie requires the same
+        ``domain`` and ``path`` arguments as when it was set. In some cases the
+        ``samesite`` and ``secure`` arguments are also required to match. Other
+        arguments are ignored.
 
         Similar to `set_cookie`, the effect of this method will not be
         seen until the following request.
+
+        .. versionchanged:: 6.3
+
+           Now accepts all keyword arguments that ``set_cookie`` does.
+           The ``samesite`` and ``secure`` flags have recently become
+           required for clearing ``samesite="none"`` cookies.
         """
+        for excluded_arg in ["expires", "max_age"]:
+            if excluded_arg in kwargs:
+                raise TypeError(
+                    f"clear_cookie() got an unexpected keyword argument '{excluded_arg}'"
+                )
         expires = datetime.datetime.utcnow() - datetime.timedelta(days=365)
-        self.set_cookie(name, value="", path=path, expires=expires, domain=domain)
+        self.set_cookie(name, value="", expires=expires, **kwargs)
 
-    def clear_all_cookies(self, path: str = "/", domain: str = None) -> None:
-        """Deletes all the cookies the user sent with this request.
+    def clear_all_cookies(self, **kwargs: Any) -> None:
+        """Attempt to delete all the cookies the user sent with this request.
 
-        See `clear_cookie` for more information on the path and domain
-        parameters.
+        See `clear_cookie` for more information on keyword arguments. Due to
+        limitations of the cookie protocol, it is impossible to determine on the
+        server side which values are necessary for the ``domain``, ``path``,
+        ``samesite``, or ``secure`` arguments, this method can only be
+        successful if you consistently use the same values for these arguments
+        when setting cookies.
 
-        Similar to `set_cookie`, the effect of this method will not be
-        seen until the following request.
+        Similar to `set_cookie`, the effect of this method will not be seen
+        until the following request.
 
         .. versionchanged:: 3.2
 
            Added the ``path`` and ``domain`` parameters.
+
+        .. versionchanged:: 6.3
+
+           Now accepts all keyword arguments that ``set_cookie`` does.
+
+        .. deprecated:: 6.3
+
+           The increasingly complex rules governing cookies have made it
+           impossible for a ``clear_all_cookies`` method to work reliably
+           since all we know about cookies are their names. Applications
+           should generally use ``clear_cookie`` one at a time instead.
         """
         for name in self.request.cookies:
-            self.clear_cookie(name, path=path, domain=domain)
+            self.clear_cookie(name, **kwargs)
 
-    def set_secure_cookie(
+    def set_signed_cookie(
         self,
         name: str,
         value: Union[str, bytes],
-        expires_days: int = 30,
-        version: int = None,
-        **kwargs: Any
+        expires_days: Optional[float] = 30,
+        version: Optional[int] = None,
+        **kwargs: Any,
     ) -> None:
         """Signs and timestamps a cookie so it cannot be forged.
 
@@ -692,11 +746,12 @@ class RequestHandler(object):
         to use this method. It should be a long, random sequence of bytes
         to be used as the HMAC secret for the signature.
 
-        To read a cookie set with this method, use `get_secure_cookie()`.
+        To read a cookie set with this method, use `get_signed_cookie()`.
 
         Note that the ``expires_days`` parameter sets the lifetime of the
         cookie in the browser, but is independent of the ``max_age_days``
-        parameter to `get_secure_cookie`.
+        parameter to `get_signed_cookie`.
+        A value of None limits the lifetime to the current browser session.
 
         Secure cookies may contain arbitrary byte values, not just unicode
         strings (unlike regular cookies)
@@ -708,22 +763,30 @@ class RequestHandler(object):
 
            Added the ``version`` argument.  Introduced cookie version 2
            and made it the default.
+
+        .. versionchanged:: 6.3
+
+           Renamed from ``set_secure_cookie`` to ``set_signed_cookie`` to
+           avoid confusion with other uses of "secure" in cookie attributes
+           and prefixes. The old name remains as an alias.
         """
         self.set_cookie(
             name,
             self.create_signed_value(name, value, version=version),
             expires_days=expires_days,
-            **kwargs
+            **kwargs,
         )
 
+    set_secure_cookie = set_signed_cookie
+
     def create_signed_value(
-        self, name: str, value: Union[str, bytes], version: int = None
+        self, name: str, value: Union[str, bytes], version: Optional[int] = None
     ) -> bytes:
         """Signs and timestamps a string so it cannot be forged.
 
-        Normally used via set_secure_cookie, but provided as a separate
+        Normally used via set_signed_cookie, but provided as a separate
         method for non-cookie uses.  To decode a value not stored
-        as a cookie use the optional value argument to get_secure_cookie.
+        as a cookie use the optional value argument to get_signed_cookie.
 
         .. versionchanged:: 3.2.1
 
@@ -742,12 +805,12 @@ class RequestHandler(object):
             secret, name, value, version=version, key_version=key_version
         )
 
-    def get_secure_cookie(
+    def get_signed_cookie(
         self,
         name: str,
-        value: str = None,
-        max_age_days: int = 31,
-        min_version: int = None,
+        value: Optional[str] = None,
+        max_age_days: float = 31,
+        min_version: Optional[int] = None,
     ) -> Optional[bytes]:
         """Returns the given signed cookie if it validates, or None.
 
@@ -756,12 +819,19 @@ class RequestHandler(object):
 
         Similar to `get_cookie`, this method only returns cookies that
         were present in the request. It does not see outgoing cookies set by
-        `set_secure_cookie` in this handler.
+        `set_signed_cookie` in this handler.
 
         .. versionchanged:: 3.2.1
 
            Added the ``min_version`` argument.  Introduced cookie version 2;
            both versions 1 and 2 are accepted by default.
+
+         .. versionchanged:: 6.3
+
+           Renamed from ``get_secure_cookie`` to ``get_signed_cookie`` to
+           avoid confusion with other uses of "secure" in cookie attributes
+           and prefixes. The old name remains as an alias.
+
         """
         self.require_setting("cookie_secret", "secure cookies")
         if value is None:
@@ -774,12 +844,22 @@ class RequestHandler(object):
             min_version=min_version,
         )
 
-    def get_secure_cookie_key_version(
-        self, name: str, value: str = None
+    get_secure_cookie = get_signed_cookie
+
+    def get_signed_cookie_key_version(
+        self, name: str, value: Optional[str] = None
     ) -> Optional[int]:
         """Returns the signing key version of the secure cookie.
 
         The version is returned as int.
+
+        .. versionchanged:: 6.3
+
+           Renamed from ``get_secure_cookie_key_version`` to
+           ``set_signed_cookie_key_version`` to avoid confusion with other
+           uses of "secure" in cookie attributes and prefixes. The old name
+           remains as an alias.
+
         """
         self.require_setting("cookie_secret", "secure cookies")
         if value is None:
@@ -788,7 +868,11 @@ class RequestHandler(object):
             return None
         return get_signature_key_version(value)
 
-    def redirect(self, url: str, permanent: bool = False, status: int = None) -> None:
+    get_secure_cookie_key_version = get_signed_cookie_key_version
+
+    def redirect(
+        self, url: str, permanent: bool = False, status: Optional[int] = None
+    ) -> None:
         """Sends a redirect to the given (optionally relative) URL.
 
         If the ``status`` argument is specified, that value is used as the
@@ -989,7 +1073,7 @@ class RequestHandler(object):
         if not template_path:
             frame = sys._getframe(0)
             web_file = frame.f_code.co_filename
-            while frame.f_code.co_filename == web_file:
+            while frame.f_code.co_filename == web_file and frame.f_back is not None:
                 frame = frame.f_back
             assert frame.f_code.co_filename is not None
             template_path = os.path.dirname(frame.f_code.co_filename)
@@ -1051,12 +1135,6 @@ class RequestHandler(object):
     def flush(self, include_footers: bool = False) -> "Future[None]":
         """Flushes the current output buffer to the network.
 
-        The ``callback`` argument, if given, can be used for flow control:
-        it will be run when all flushed data has been written to the socket.
-        Note that only one flush callback can be outstanding at a time;
-        if another flush occurs before the previous flush's callback
-        has been run, the previous callback will be discarded.
-
         .. versionchanged:: 4.0
            Now returns a `.Future` if no callback is given.
 
@@ -1104,7 +1182,7 @@ class RequestHandler(object):
                 future.set_result(None)
                 return future
 
-    def finish(self, chunk: Union[str, bytes, dict] = None) -> "Future[None]":
+    def finish(self, chunk: Optional[Union[str, bytes, dict]] = None) -> "Future[None]":
         """Finishes this response, ending the HTTP request.
 
         Passing a ``chunk`` to ``finish()`` is equivalent to passing that
@@ -1137,13 +1215,11 @@ class RequestHandler(object):
                 if self.check_etag_header():
                     self._write_buffer = []
                     self.set_status(304)
-            if self._status_code in (204, 304) or (
-                self._status_code >= 100 and self._status_code < 200
-            ):
+            if self._status_code in (204, 304) or (100 <= self._status_code < 200):
                 assert not self._write_buffer, (
                     "Cannot send body with %s" % self._status_code
                 )
-                self._clear_headers_for_304()
+                self._clear_representation_headers()
             elif "Content-Length" not in self._headers:
                 content_length = sum(len(part) for part in self._write_buffer)
                 self.set_header("Content-Length", content_length)
@@ -1291,17 +1367,20 @@ class RequestHandler(object):
             locales = []
             for language in languages:
                 parts = language.strip().split(";")
-                if len(parts) > 1 and parts[1].startswith("q="):
+                if len(parts) > 1 and parts[1].strip().startswith("q="):
                     try:
-                        score = float(parts[1][2:])
+                        score = float(parts[1].strip()[2:])
+                        if score < 0:
+                            raise ValueError()
                     except (ValueError, TypeError):
                         score = 0.0
                 else:
                     score = 1.0
-                locales.append((parts[0], score))
+                if score > 0:
+                    locales.append((parts[0], score))
             if locales:
                 locales.sort(key=lambda pair: pair[1], reverse=True)
-                codes = [l[0] for l in locales]
+                codes = [loc[0] for loc in locales]
                 return locale.get(*codes)
         return locale.get(default)
 
@@ -1317,7 +1396,7 @@ class RequestHandler(object):
           and is cached for future access::
 
               def get_current_user(self):
-                  user_cookie = self.get_secure_cookie("user")
+                  user_cookie = self.get_signed_cookie("user")
                   if user_cookie:
                       return json.loads(user_cookie)
                   return None
@@ -1327,7 +1406,7 @@ class RequestHandler(object):
 
               @gen.coroutine
               def prepare(self):
-                  user_id_cookie = self.get_secure_cookie("user_id")
+                  user_id_cookie = self.get_signed_cookie("user_id")
                   if user_id_cookie:
                       self.current_user = yield load_user(user_id_cookie)
 
@@ -1422,7 +1501,8 @@ class RequestHandler(object):
             if version is None:
                 if self.current_user and "expires_days" not in cookie_kwargs:
                     cookie_kwargs["expires_days"] = 30
-                self.set_cookie("_xsrf", self._xsrf_token, **cookie_kwargs)
+                cookie_name = self.settings.get("xsrf_cookie_name", "_xsrf")
+                self.set_cookie(cookie_name, self._xsrf_token, **cookie_kwargs)
         return self._xsrf_token
 
     def _get_raw_xsrf_token(self) -> Tuple[Optional[int], bytes, float]:
@@ -1437,7 +1517,8 @@ class RequestHandler(object):
           for version 1 cookies)
         """
         if not hasattr(self, "_raw_xsrf_token"):
-            cookie = self.get_cookie("_xsrf")
+            cookie_name = self.settings.get("xsrf_cookie_name", "_xsrf")
+            cookie = self.get_cookie(cookie_name)
             if cookie:
                 version, token, timestamp = self._decode_xsrf_token(cookie)
             else:
@@ -1544,7 +1625,9 @@ class RequestHandler(object):
             + '"/>'
         )
 
-    def static_url(self, path: str, include_host: bool = None, **kwargs: Any) -> str:
+    def static_url(
+        self, path: str, include_host: Optional[bool] = None, **kwargs: Any
+    ) -> str:
         """Returns a static URL for the given relative static file path.
 
         This method requires you set the ``static_path`` setting in your
@@ -1637,7 +1720,7 @@ class RequestHandler(object):
         # Find all weak and strong etag values from If-None-Match header
         # because RFC 7232 allows multiple etag values in a single header.
         etags = re.findall(
-            br'\*|(?:W/)?"[^"]*"', utf8(self.request.headers.get("If-None-Match", ""))
+            rb'\*|(?:W/)?"[^"]*"', utf8(self.request.headers.get("If-None-Match", ""))
         )
         if not computed_etag or not etags:
             return False
@@ -1679,7 +1762,7 @@ class RequestHandler(object):
 
             result = self.prepare()
             if result is not None:
-                result = await result
+                result = await result  # type: ignore
             if self._prepared_future is not None:
                 # Tell the Application we've finished with prepare()
                 # and are ready for the body to arrive.
@@ -1785,11 +1868,11 @@ class RequestHandler(object):
                 args = [value.status_code, self._request_summary()] + list(value.args)
                 gen_log.warning(format, *args)
         else:
-            app_log.error(  # type: ignore
+            app_log.error(
                 "Uncaught exception %s\n%r",
                 self._request_summary(),
                 self.request,
-                exc_info=(typ, value, tb),
+                exc_info=(typ, value, tb),  # type: ignore
             )
 
     def _ui_module(self, name: str, module: Type["UIModule"]) -> Callable[..., str]:
@@ -1806,26 +1889,21 @@ class RequestHandler(object):
     def _ui_method(self, method: Callable[..., str]) -> Callable[..., str]:
         return lambda *args, **kwargs: method(self, *args, **kwargs)
 
-    def _clear_headers_for_304(self) -> None:
-        # 304 responses should not contain entity headers (defined in
-        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec7.html#sec7.1)
+    def _clear_representation_headers(self) -> None:
+        # 304 responses should not contain representation metadata
+        # headers (defined in
+        # https://tools.ietf.org/html/rfc7231#section-3.1)
         # not explicitly allowed by
-        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.3.5
-        headers = [
-            "Allow",
-            "Content-Encoding",
-            "Content-Language",
-            "Content-Length",
-            "Content-MD5",
-            "Content-Range",
-            "Content-Type",
-            "Last-Modified",
-        ]
+        # https://tools.ietf.org/html/rfc7232#section-4.1
+        headers = ["Content-Encoding", "Content-Language", "Content-Type"]
         for h in headers:
             self.clear_header(h)
 
 
-def stream_request_body(cls: Type[RequestHandler]) -> Type[RequestHandler]:
+_RequestHandlerType = TypeVar("_RequestHandlerType", bound=RequestHandler)
+
+
+def stream_request_body(cls: Type[_RequestHandlerType]) -> Type[_RequestHandlerType]:
     """Apply to `RequestHandler` subclasses to enable streaming body support.
 
     This decorator implies the following changes:
@@ -1843,7 +1921,7 @@ def stream_request_body(cls: Type[RequestHandler]) -> Type[RequestHandler]:
     * The regular HTTP method (``post``, ``put``, etc) will be called after
       the entire body has been read.
 
-    See the `file receiver demo <https://github.com/tornadoweb/tornado/tree/master/demos/file_upload/>`_
+    See the `file receiver demo <https://github.com/tornadoweb/tornado/tree/stable/demos/file_upload/>`_
     for example usage.
     """  # noqa: E501
     if not issubclass(cls, RequestHandler):
@@ -1925,17 +2003,19 @@ class _ApplicationRouter(ReversibleRuleRouter):
         `_ApplicationRouter` instance.
     """
 
-    def __init__(self, application: "Application", rules: _RuleList = None) -> None:
+    def __init__(
+        self, application: "Application", rules: Optional[_RuleList] = None
+    ) -> None:
         assert isinstance(application, Application)
         self.application = application
-        super(_ApplicationRouter, self).__init__(rules)
+        super().__init__(rules)
 
     def process_rule(self, rule: Rule) -> Rule:
-        rule = super(_ApplicationRouter, self).process_rule(rule)
+        rule = super().process_rule(rule)
 
         if isinstance(rule.target, (list, tuple)):
-            rule.target = _ApplicationRouter(  # type: ignore
-                self.application, rule.target
+            rule.target = _ApplicationRouter(
+                self.application, rule.target  # type: ignore
             )
 
         return rule
@@ -1948,9 +2028,7 @@ class _ApplicationRouter(ReversibleRuleRouter):
                 request, target, **target_params
             )
 
-        return super(_ApplicationRouter, self).get_target_delegate(
-            target, request, **target_params
-        )
+        return super().get_target_delegate(target, request, **target_params)
 
 
 class Application(ReversibleRouter):
@@ -1964,7 +2042,6 @@ class Application(ReversibleRouter):
         ])
         http_server = httpserver.HTTPServer(application)
         http_server.listen(8080)
-        ioloop.IOLoop.current().start()
 
     The constructor for this class takes in a list of `~.routing.Rule`
     objects or tuples of values corresponding to the arguments of
@@ -2039,10 +2116,10 @@ class Application(ReversibleRouter):
 
     def __init__(
         self,
-        handlers: _RuleList = None,
-        default_host: str = None,
-        transforms: List[Type["OutputTransform"]] = None,
-        **settings: Any
+        handlers: Optional[_RuleList] = None,
+        default_host: Optional[str] = None,
+        transforms: Optional[List[Type["OutputTransform"]]] = None,
+        **settings: Any,
     ) -> None:
         if transforms is None:
             self.transforms = []  # type: List[Type[OutputTransform]]
@@ -2093,27 +2170,48 @@ class Application(ReversibleRouter):
 
             autoreload.start()
 
-    def listen(self, port: int, address: str = "", **kwargs: Any) -> HTTPServer:
+    def listen(
+        self,
+        port: int,
+        address: Optional[str] = None,
+        *,
+        family: socket.AddressFamily = socket.AF_UNSPEC,
+        backlog: int = tornado.netutil._DEFAULT_BACKLOG,
+        flags: Optional[int] = None,
+        reuse_port: bool = False,
+        **kwargs: Any,
+    ) -> HTTPServer:
         """Starts an HTTP server for this application on the given port.
 
-        This is a convenience alias for creating an `.HTTPServer`
-        object and calling its listen method.  Keyword arguments not
-        supported by `HTTPServer.listen <.TCPServer.listen>` are passed to the
-        `.HTTPServer` constructor.  For advanced uses
-        (e.g. multi-process mode), do not use this method; create an
-        `.HTTPServer` and call its
+        This is a convenience alias for creating an `.HTTPServer` object and
+        calling its listen method.  Keyword arguments not supported by
+        `HTTPServer.listen <.TCPServer.listen>` are passed to the `.HTTPServer`
+        constructor.  For advanced uses (e.g. multi-process mode), do not use
+        this method; create an `.HTTPServer` and call its
         `.TCPServer.bind`/`.TCPServer.start` methods directly.
 
         Note that after calling this method you still need to call
-        ``IOLoop.current().start()`` to start the server.
+        ``IOLoop.current().start()`` (or run within ``asyncio.run``) to start
+        the server.
 
         Returns the `.HTTPServer` object.
 
         .. versionchanged:: 4.3
            Now returns the `.HTTPServer` object.
+
+        .. versionchanged:: 6.2
+           Added support for new keyword arguments in `.TCPServer.listen`,
+           including ``reuse_port``.
         """
         server = HTTPServer(self, **kwargs)
-        server.listen(port, address)
+        server.listen(
+            port,
+            address=address,
+            family=family,
+            backlog=backlog,
+            flags=flags,
+            reuse_port=reuse_port,
+        )
         return server
 
     def add_handlers(self, host_pattern: str, host_handlers: _RuleList) -> None:
@@ -2192,9 +2290,9 @@ class Application(ReversibleRouter):
         self,
         request: httputil.HTTPServerRequest,
         target_class: Type[RequestHandler],
-        target_kwargs: Dict[str, Any] = None,
-        path_args: List[bytes] = None,
-        path_kwargs: Dict[str, bytes] = None,
+        target_kwargs: Optional[Dict[str, Any]] = None,
+        path_args: Optional[List[bytes]] = None,
+        path_kwargs: Optional[Dict[str, bytes]] = None,
     ) -> "_HandlerDelegate":
         """Returns `~.httputil.HTTPMessageDelegate` that can serve a request
         for application and `RequestHandler` subclass.
@@ -2311,7 +2409,10 @@ class _HandlerDelegate(httputil.HTTPMessageDelegate):
                 for loader in RequestHandler._template_loaders.values():
                     loader.reset()
         if not self.application.settings.get("static_hash_cache", True):
-            StaticFileHandler.reset()
+            static_handler_class = self.application.settings.get(
+                "static_handler_class", StaticFileHandler
+            )
+            static_handler_class.reset()
 
         self.handler = self.handler_class(
             self.application, self.request, **self.handler_kwargs
@@ -2361,7 +2462,11 @@ class HTTPError(Exception):
     """
 
     def __init__(
-        self, status_code: int = 500, log_message: str = None, *args: Any, **kwargs: Any
+        self,
+        status_code: int = 500,
+        log_message: Optional[str] = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.status_code = status_code
         self.log_message = log_message
@@ -2419,9 +2524,7 @@ class MissingArgumentError(HTTPError):
     """
 
     def __init__(self, arg_name: str) -> None:
-        super(MissingArgumentError, self).__init__(
-            400, "Missing argument %s" % arg_name
-        )
+        super().__init__(400, "Missing argument %s" % arg_name)
         self.arg_name = arg_name
 
 
@@ -2478,8 +2581,8 @@ class RedirectHandler(RequestHandler):
         self._url = url
         self._permanent = permanent
 
-    def get(self, *args: Any) -> None:
-        to_url = self._url.format(*args)
+    def get(self, *args: Any, **kwargs: Any) -> None:
+        to_url = self._url.format(*args, **kwargs)
         if self.request.query_arguments:
             # TODO: figure out typing for the next line.
             to_url = httputil.url_concat(
@@ -2561,7 +2664,7 @@ class StaticFileHandler(RequestHandler):
     _static_hashes = {}  # type: Dict[str, Optional[str]]
     _lock = threading.Lock()  # protects _static_hashes
 
-    def initialize(self, path: str, default_filename: str = None) -> None:
+    def initialize(self, path: str, default_filename: Optional[str] = None) -> None:
         self.root = path
         self.default_filename = default_filename
 
@@ -2776,6 +2879,15 @@ class StaticFileHandler(RequestHandler):
             # but there is some prefix to the path that was already
             # trimmed by the routing
             if not self.request.path.endswith("/"):
+                if self.request.path.startswith("//"):
+                    # A redirect with two initial slashes is a "protocol-relative" URL.
+                    # This means the next path segment is treated as a hostname instead
+                    # of a part of the path, making this effectively an open redirect.
+                    # Reject paths starting with two slashes to prevent this.
+                    # This is only reachable under certain configurations.
+                    raise HTTPError(
+                        403, "cannot redirect path with two initial slashes"
+                    )
                 self.redirect(self.request.path + "/", permanent=True)
                 return None
             absolute_path = os.path.join(absolute_path, self.default_filename)
@@ -2787,7 +2899,7 @@ class StaticFileHandler(RequestHandler):
 
     @classmethod
     def get_content(
-        cls, abspath: str, start: int = None, end: int = None
+        cls, abspath: str, start: Optional[int] = None, end: Optional[int] = None
     ) -> Generator[bytes, None, None]:
         """Retrieve the content of the requested resource which is located
         at the given absolute path.
@@ -2829,12 +2941,12 @@ class StaticFileHandler(RequestHandler):
         """Returns a version string for the resource at the given path.
 
         This class method may be overridden by subclasses.  The
-        default implementation is a hash of the file's contents.
+        default implementation is a SHA-512 hash of the file's contents.
 
         .. versionadded:: 3.1
         """
         data = cls.get_content(abspath)
-        hasher = hashlib.md5()
+        hasher = hashlib.sha512()
         if isinstance(data, bytes):
             hasher.update(data)
         else:
@@ -3265,7 +3377,7 @@ class TemplateModule(UIModule):
     Template()) instead of inheriting the outer template's namespace.
 
     Templates rendered through this module also get access to UIModule's
-    automatic javascript/css features.  Simply call set_resources
+    automatic JavaScript/CSS features.  Simply call set_resources
     inside the template and give it keyword arguments corresponding to
     the methods on UIModule: {{ set_resources(js_files=static_url("my.js")) }}
     Note that these resources are output once per template file, not once
@@ -3274,7 +3386,7 @@ class TemplateModule(UIModule):
     """
 
     def __init__(self, handler: RequestHandler) -> None:
-        super(TemplateModule, self).__init__(handler)
+        super().__init__(handler)
         # keep resources in both a list and a dict to preserve order
         self._resource_list = []  # type: List[Dict[str, Any]]
         self._resource_dict = {}  # type: Dict[str, Dict[str, Any]]
@@ -3351,9 +3463,9 @@ def create_signed_value(
     secret: _CookieSecretTypes,
     name: str,
     value: Union[str, bytes],
-    version: int = None,
-    clock: Callable[[], float] = None,
-    key_version: int = None,
+    version: Optional[int] = None,
+    clock: Optional[Callable[[], float]] = None,
+    key_version: Optional[int] = None,
 ) -> bytes:
     if version is None:
         version = DEFAULT_SIGNED_VALUE_VERSION
@@ -3411,7 +3523,7 @@ def create_signed_value(
 
 # A leading version number in decimal
 # with no leading zeros, followed by a pipe.
-_signed_value_version_re = re.compile(br"^([1-9][0-9]*)\|(.*)$")
+_signed_value_version_re = re.compile(rb"^([1-9][0-9]*)\|(.*)$")
 
 
 def _get_version(value: bytes) -> int:
@@ -3441,9 +3553,9 @@ def decode_signed_value(
     secret: _CookieSecretTypes,
     name: str,
     value: Union[None, str, bytes],
-    max_age_days: int = 31,
-    clock: Callable[[], float] = None,
-    min_version: int = None,
+    max_age_days: float = 31,
+    clock: Optional[Callable[[], float]] = None,
+    min_version: Optional[int] = None,
 ) -> Optional[bytes]:
     if clock is None:
         clock = time.time
@@ -3472,7 +3584,7 @@ def _decode_signed_value_v1(
     secret: Union[str, bytes],
     name: str,
     value: bytes,
-    max_age_days: int,
+    max_age_days: float,
     clock: Callable[[], float],
 ) -> Optional[bytes]:
     parts = utf8(value).split(b"|")
@@ -3527,7 +3639,7 @@ def _decode_signed_value_v2(
     secret: _CookieSecretTypes,
     name: str,
     value: bytes,
-    max_age_days: int,
+    max_age_days: float,
     clock: Callable[[], float],
 ) -> Optional[bytes]:
     try:

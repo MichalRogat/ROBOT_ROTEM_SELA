@@ -1,16 +1,11 @@
 """Implementation of the WebSocket protocol.
 
 `WebSockets <http://dev.w3.org/html5/websockets/>`_ allow for bidirectional
-communication between the browser and server.
-
-WebSockets are supported in the current versions of all major browsers,
-although older versions that do not support WebSockets are still in use
-(refer to http://caniuse.com/websockets for details).
+communication between the browser and server. WebSockets are supported in the
+current versions of all major browsers.
 
 This module implements the final version of the WebSocket protocol as
-defined in `RFC 6455 <http://tools.ietf.org/html/rfc6455>`_.  Certain
-browser versions (notably Safari 5.x) implemented an earlier draft of
-the protocol (known as "draft 76") and are not compatible with this module.
+defined in `RFC 6455 <http://tools.ietf.org/html/rfc6455>`_.
 
 .. versionchanged:: 4.0
    Removed support for the draft 76 protocol version.
@@ -23,8 +18,7 @@ import hashlib
 import os
 import sys
 import struct
-import tornado.escape
-import tornado.web
+import tornado
 from urllib.parse import urlparse
 import zlib
 
@@ -34,6 +28,7 @@ from tornado import gen, httpclient, httputil
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.iostream import StreamClosedError, IOStream
 from tornado.log import gen_log, app_log
+from tornado.netutil import Resolver
 from tornado import simple_httpclient
 from tornado.queues import Queue
 from tornado.tcpclient import TCPClient
@@ -77,7 +72,7 @@ if TYPE_CHECKING:
         # the server side and WebSocketClientConnection on the client
         # side.
         def on_ws_connection_close(
-            self, close_code: int = None, close_reason: str = None
+            self, close_code: Optional[int] = None, close_reason: Optional[str] = None
         ) -> None:
             pass
 
@@ -122,10 +117,10 @@ class _DecompressTooLargeError(Exception):
 class _WebSocketParams(object):
     def __init__(
         self,
-        ping_interval: float = None,
-        ping_timeout: float = None,
+        ping_interval: Optional[float] = None,
+        ping_timeout: Optional[float] = None,
         max_message_size: int = _default_max_message_size,
-        compression_options: Dict[str, Any] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
@@ -190,7 +185,7 @@ class WebSocketHandler(tornado.web.RequestHandler):
 
     Web browsers allow any site to open a websocket connection to any other,
     instead of using the same-origin policy that governs other network
-    access from javascript.  This can be surprising and is a potential
+    access from JavaScript.  This can be surprising and is a potential
     security hole, so since Tornado 4.0 `WebSocketHandler` requires
     applications that wish to receive cross-origin websockets to opt in
     by overriding the `~WebSocketHandler.check_origin` method (see that
@@ -221,11 +216,10 @@ class WebSocketHandler(tornado.web.RequestHandler):
         request: httputil.HTTPServerRequest,
         **kwargs: Any
     ) -> None:
-        super(WebSocketHandler, self).__init__(application, request, **kwargs)
+        super().__init__(application, request, **kwargs)
         self.ws_connection = None  # type: Optional[WebSocketProtocol]
         self.close_code = None  # type: Optional[int]
         self.close_reason = None  # type: Optional[str]
-        self.stream = None  # type: Optional[IOStream]
         self._on_close_called = False
 
     async def get(self, *args: Any, **kwargs: Any) -> None:
@@ -279,8 +273,6 @@ class WebSocketHandler(tornado.web.RequestHandler):
         else:
             self.set_status(426, "Upgrade Required")
             self.set_header("Sec-WebSocket-Version", "7, 8, 13")
-
-    stream = None
 
     @property
     def ping_interval(self) -> Optional[float]:
@@ -468,7 +460,7 @@ class WebSocketHandler(tornado.web.RequestHandler):
         """
         pass
 
-    def close(self, code: int = None, reason: str = None) -> None:
+    def close(self, code: Optional[int] = None, reason: Optional[str] = None) -> None:
         """Closes this Web Socket.
 
         Once the close handshake is successful the socket will be closed.
@@ -571,7 +563,7 @@ class WebSocketHandler(tornado.web.RequestHandler):
             self._break_cycles()
 
     def on_ws_connection_close(
-        self, close_code: int = None, close_reason: str = None
+        self, close_code: Optional[int] = None, close_reason: Optional[str] = None
     ) -> None:
         self.close_code = close_code
         self.close_reason = close_reason
@@ -584,17 +576,7 @@ class WebSocketHandler(tornado.web.RequestHandler):
         # connection (if it was established in the first place,
         # indicated by status code 101).
         if self.get_status() != 101 or self._on_close_called:
-            super(WebSocketHandler, self)._break_cycles()
-
-    def send_error(self, *args: Any, **kwargs: Any) -> None:
-        if self.stream is None:
-            super(WebSocketHandler, self).send_error(*args, **kwargs)
-        else:
-            # If we get an uncaught exception during the handshake,
-            # we have no choice but to abruptly close the connection.
-            # TODO: for uncaught exceptions after the handshake,
-            # we can close the connection more gracefully.
-            self.stream.close()
+            super()._break_cycles()
 
     def get_websocket_protocol(self) -> Optional["WebSocketProtocol"]:
         websocket_version = self.request.headers.get("Sec-WebSocket-Version")
@@ -628,8 +610,7 @@ def _raise_not_supported_for_websockets(*args: Any, **kwargs: Any) -> None:
 
 
 class WebSocketProtocol(abc.ABC):
-    """Base class for WebSocket protocol versions.
-    """
+    """Base class for WebSocket protocol versions."""
 
     def __init__(self, handler: "_WebSocketDelegate") -> None:
         self.handler = handler
@@ -670,7 +651,7 @@ class WebSocketProtocol(abc.ABC):
         self.close()  # let the subclass cleanup
 
     @abc.abstractmethod
-    def close(self, code: int = None, reason: str = None) -> None:
+    def close(self, code: Optional[int] = None, reason: Optional[str] = None) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -683,7 +664,7 @@ class WebSocketProtocol(abc.ABC):
 
     @abc.abstractmethod
     def write_message(
-        self, message: Union[str, bytes], binary: bool = False
+        self, message: Union[str, bytes, Dict[str, Any]], binary: bool = False
     ) -> "Future[None]":
         raise NotImplementedError()
 
@@ -724,7 +705,7 @@ class _PerMessageDeflateCompressor(object):
         self,
         persistent: bool,
         max_wbits: Optional[int],
-        compression_options: Dict[str, Any] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         if max_wbits is None:
             max_wbits = zlib.MAX_WBITS
@@ -773,7 +754,7 @@ class _PerMessageDeflateDecompressor(object):
         persistent: bool,
         max_wbits: Optional[int],
         max_message_size: int,
-        compression_options: Dict[str, Any] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         self._max_message_size = max_message_size
         if max_wbits is None:
@@ -836,7 +817,7 @@ class WebSocketProtocol13(WebSocketProtocol):
         self._masked_frame = None
         self._frame_mask = None  # type: Optional[bytes]
         self._frame_length = None
-        self._fragmented_message_buffer = None  # type: Optional[bytes]
+        self._fragmented_message_buffer = None  # type: Optional[bytearray]
         self._fragmented_message_opcode = None
         self._waiting = None  # type: object
         self._compression_options = params.compression_options
@@ -996,7 +977,7 @@ class WebSocketProtocol13(WebSocketProtocol):
         self,
         side: str,
         agreed_parameters: Dict[str, Any],
-        compression_options: Dict[str, Any] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Converts a websocket agreed_parameters set to keyword arguments
         for our compressor objects.
@@ -1016,7 +997,7 @@ class WebSocketProtocol13(WebSocketProtocol):
         self,
         side: str,
         agreed_parameters: Dict[str, Any],
-        compression_options: Dict[str, Any] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         # TODO: handle invalid parameters gracefully
         allowed_keys = set(
@@ -1075,13 +1056,15 @@ class WebSocketProtocol13(WebSocketProtocol):
         return self.stream.write(frame)
 
     def write_message(
-        self, message: Union[str, bytes], binary: bool = False
+        self, message: Union[str, bytes, Dict[str, Any]], binary: bool = False
     ) -> "Future[None]":
         """Sends the given message to the client of this Web Socket."""
         if binary:
             opcode = 0x2
         else:
             opcode = 0x1
+        if isinstance(message, dict):
+            message = tornado.escape.json_encode(message)
         message = tornado.escape.utf8(message)
         assert isinstance(message, bytes)
         self._message_bytes_out += len(message)
@@ -1189,10 +1172,10 @@ class WebSocketProtocol13(WebSocketProtocol):
                 # nothing to continue
                 self._abort()
                 return
-            self._fragmented_message_buffer += data
+            self._fragmented_message_buffer.extend(data)
             if is_final_frame:
                 opcode = self._fragmented_message_opcode
-                data = self._fragmented_message_buffer
+                data = bytes(self._fragmented_message_buffer)
                 self._fragmented_message_buffer = None
         else:  # start of new data message
             if self._fragmented_message_buffer is not None:
@@ -1201,7 +1184,7 @@ class WebSocketProtocol13(WebSocketProtocol):
                 return
             if not is_final_frame:
                 self._fragmented_message_opcode = opcode
-                self._fragmented_message_buffer = data
+                self._fragmented_message_buffer = bytearray(data)
 
         if is_final_frame:
             handled_future = self._handle_message(opcode, data)
@@ -1259,7 +1242,7 @@ class WebSocketProtocol13(WebSocketProtocol):
             self._abort()
         return None
 
-    def close(self, code: int = None, reason: str = None) -> None:
+    def close(self, code: Optional[int] = None, reason: Optional[str] = None) -> None:
         """Closes the WebSocket connection."""
         if not self.server_terminated:
             if not self.stream.closed():
@@ -1287,6 +1270,9 @@ class WebSocketProtocol13(WebSocketProtocol):
             self._waiting = self.stream.io_loop.add_timeout(
                 self.stream.io_loop.time() + 5, self._abort
             )
+        if self.ping_callback:
+            self.ping_callback.stop()
+            self.ping_callback = None
 
     def is_closing(self) -> bool:
         """Return ``True`` if this connection is closing.
@@ -1365,12 +1351,13 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
     def __init__(
         self,
         request: httpclient.HTTPRequest,
-        on_message_callback: Callable[[Union[None, str, bytes]], None] = None,
-        compression_options: Dict[str, Any] = None,
-        ping_interval: float = None,
-        ping_timeout: float = None,
+        on_message_callback: Optional[Callable[[Union[None, str, bytes]], None]] = None,
+        compression_options: Optional[Dict[str, Any]] = None,
+        ping_interval: Optional[float] = None,
+        ping_timeout: Optional[float] = None,
         max_message_size: int = _default_max_message_size,
         subprotocols: Optional[List[str]] = [],
+        resolver: Optional[Resolver] = None,
     ) -> None:
         self.connect_future = Future()  # type: Future[WebSocketClientConnection]
         self.read_queue = Queue(1)  # type: Queue[Union[None, str, bytes]]
@@ -1408,8 +1395,11 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
                 "Sec-WebSocket-Extensions"
             ] = "permessage-deflate; client_max_window_bits"
 
-        self.tcp_client = TCPClient()
-        super(WebSocketClientConnection, self).__init__(
+        # Websocket connection is currently unable to follow redirects
+        request.follow_redirects = False
+
+        self.tcp_client = TCPClient(resolver=resolver)
+        super().__init__(
             None,
             request,
             lambda: None,
@@ -1420,7 +1410,7 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
             104857600,
         )
 
-    def close(self, code: int = None, reason: str = None) -> None:
+    def close(self, code: Optional[int] = None, reason: Optional[str] = None) -> None:
         """Closes the websocket connection.
 
         ``code`` and ``reason`` are documented under
@@ -1441,10 +1431,10 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
             self.connect_future.set_exception(StreamClosedError())
         self._on_message(None)
         self.tcp_client.close()
-        super(WebSocketClientConnection, self).on_connection_close()
+        super().on_connection_close()
 
     def on_ws_connection_close(
-        self, close_code: int = None, close_reason: str = None
+        self, close_code: Optional[int] = None, close_reason: Optional[str] = None
     ) -> None:
         self.close_code = close_code
         self.close_reason = close_reason
@@ -1466,9 +1456,7 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
     ) -> None:
         assert isinstance(start_line, httputil.ResponseStartLine)
         if start_line.code != 101:
-            await super(WebSocketClientConnection, self).headers_received(
-                start_line, headers
-            )
+            await super().headers_received(start_line, headers)
             return
 
         if self._timeout is not None:
@@ -1492,7 +1480,7 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
         future_set_result_unless_cancelled(self.connect_future, self)
 
     def write_message(
-        self, message: Union[str, bytes], binary: bool = False
+        self, message: Union[str, bytes, Dict[str, Any]], binary: bool = False
     ) -> "Future[None]":
         """Sends a message to the WebSocket server.
 
@@ -1503,10 +1491,13 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
            Exception raised on a closed stream changed from `.StreamClosedError`
            to `WebSocketClosedError`.
         """
+        if self.protocol is None:
+            raise WebSocketClosedError("Client connection has been closed")
         return self.protocol.write_message(message, binary=binary)
 
     def read_message(
-        self, callback: Callable[["Future[Union[None, str, bytes]]"], None] = None
+        self,
+        callback: Optional[Callable[["Future[Union[None, str, bytes]]"], None]] = None,
     ) -> Awaitable[Union[None, str, bytes]]:
         """Reads a message from the WebSocket server.
 
@@ -1585,14 +1576,15 @@ class WebSocketClientConnection(simple_httpclient._HTTPConnection):
 
 def websocket_connect(
     url: Union[str, httpclient.HTTPRequest],
-    callback: Callable[["Future[WebSocketClientConnection]"], None] = None,
-    connect_timeout: float = None,
-    on_message_callback: Callable[[Union[None, str, bytes]], None] = None,
-    compression_options: Dict[str, Any] = None,
-    ping_interval: float = None,
-    ping_timeout: float = None,
+    callback: Optional[Callable[["Future[WebSocketClientConnection]"], None]] = None,
+    connect_timeout: Optional[float] = None,
+    on_message_callback: Optional[Callable[[Union[None, str, bytes]], None]] = None,
+    compression_options: Optional[Dict[str, Any]] = None,
+    ping_interval: Optional[float] = None,
+    ping_timeout: Optional[float] = None,
     max_message_size: int = _default_max_message_size,
-    subprotocols: List[str] = None,
+    subprotocols: Optional[List[str]] = None,
+    resolver: Optional[Resolver] = None,
 ) -> "Awaitable[WebSocketClientConnection]":
     """Client-side websocket support.
 
@@ -1636,6 +1628,9 @@ def websocket_connect(
 
     .. versionchanged:: 5.1
        Added the ``subprotocols`` argument.
+
+    .. versionchanged:: 6.3
+       Added the ``resolver`` argument.
     """
     if isinstance(url, httpclient.HTTPRequest):
         assert connect_timeout is None
@@ -1657,6 +1652,7 @@ def websocket_connect(
         ping_timeout=ping_timeout,
         max_message_size=max_message_size,
         subprotocols=subprotocols,
+        resolver=resolver,
     )
     if callback is not None:
         IOLoop.current().add_future(conn.connect_future, callback)

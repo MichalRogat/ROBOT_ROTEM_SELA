@@ -84,41 +84,53 @@ class HTTPServer(TCPServer, Configurable, httputil.HTTPServerConnectionDelegate)
     `HTTPServer` initialization follows one of three patterns (the
     initialization methods are defined on `tornado.tcpserver.TCPServer`):
 
-    1. `~tornado.tcpserver.TCPServer.listen`: simple single-process::
+    1. `~tornado.tcpserver.TCPServer.listen`: single-process::
 
-            server = HTTPServer(app)
-            server.listen(8888)
-            IOLoop.current().start()
+            async def main():
+                server = HTTPServer()
+                server.listen(8888)
+                await asyncio.Event.wait()
+
+            asyncio.run(main())
 
        In many cases, `tornado.web.Application.listen` can be used to avoid
        the need to explicitly create the `HTTPServer`.
 
-    2. `~tornado.tcpserver.TCPServer.bind`/`~tornado.tcpserver.TCPServer.start`:
-       simple multi-process::
+       While this example does not create multiple processes on its own, when
+       the ``reuse_port=True`` argument is passed to ``listen()`` you can run
+       the program multiple times to create a multi-process service.
 
-            server = HTTPServer(app)
+    2. `~tornado.tcpserver.TCPServer.add_sockets`: multi-process::
+
+            sockets = bind_sockets(8888)
+            tornado.process.fork_processes(0)
+            async def post_fork_main():
+                server = HTTPServer()
+                server.add_sockets(sockets)
+                await asyncio.Event().wait()
+            asyncio.run(post_fork_main())
+
+       The ``add_sockets`` interface is more complicated, but it can be used with
+       `tornado.process.fork_processes` to run a multi-process service with all
+       worker processes forked from a single parent.  ``add_sockets`` can also be
+       used in single-process servers if you want to create your listening
+       sockets in some way other than `~tornado.netutil.bind_sockets`.
+
+       Note that when using this pattern, nothing that touches the event loop
+       can be run before ``fork_processes``.
+
+    3. `~tornado.tcpserver.TCPServer.bind`/`~tornado.tcpserver.TCPServer.start`:
+       simple **deprecated** multi-process::
+
+            server = HTTPServer()
             server.bind(8888)
             server.start(0)  # Forks multiple sub-processes
             IOLoop.current().start()
 
-       When using this interface, an `.IOLoop` must *not* be passed
-       to the `HTTPServer` constructor.  `~.TCPServer.start` will always start
-       the server on the default singleton `.IOLoop`.
-
-    3. `~tornado.tcpserver.TCPServer.add_sockets`: advanced multi-process::
-
-            sockets = tornado.netutil.bind_sockets(8888)
-            tornado.process.fork_processes(0)
-            server = HTTPServer(app)
-            server.add_sockets(sockets)
-            IOLoop.current().start()
-
-       The `~.TCPServer.add_sockets` interface is more complicated,
-       but it can be used with `tornado.process.fork_processes` to
-       give you more flexibility in when the fork happens.
-       `~.TCPServer.add_sockets` can also be used in single-process
-       servers if you want to create your listening sockets in some
-       way other than `tornado.netutil.bind_sockets`.
+       This pattern is deprecated because it requires interfaces in the
+       `asyncio` module that have been deprecated since Python 3.10. Support for
+       creating multiple processes in the ``start`` method will be removed in a
+       future version of Tornado.
 
     .. versionchanged:: 4.0
        Added ``decompress_request``, ``chunk_size``, ``max_header_size``,
@@ -157,16 +169,16 @@ class HTTPServer(TCPServer, Configurable, httputil.HTTPServerConnectionDelegate)
         ],
         no_keep_alive: bool = False,
         xheaders: bool = False,
-        ssl_options: Union[Dict[str, Any], ssl.SSLContext] = None,
-        protocol: str = None,
+        ssl_options: Optional[Union[Dict[str, Any], ssl.SSLContext]] = None,
+        protocol: Optional[str] = None,
         decompress_request: bool = False,
-        chunk_size: int = None,
-        max_header_size: int = None,
-        idle_connection_timeout: float = None,
-        body_timeout: float = None,
-        max_body_size: int = None,
-        max_buffer_size: int = None,
-        trusted_downstream: List[str] = None,
+        chunk_size: Optional[int] = None,
+        max_header_size: Optional[int] = None,
+        idle_connection_timeout: Optional[float] = None,
+        body_timeout: Optional[float] = None,
+        max_body_size: Optional[int] = None,
+        max_buffer_size: Optional[int] = None,
+        trusted_downstream: Optional[List[str]] = None,
     ) -> None:
         # This method's signature is not extracted with autodoc
         # because we want its arguments to appear on the class
@@ -212,7 +224,7 @@ class HTTPServer(TCPServer, Configurable, httputil.HTTPServerConnectionDelegate)
 
         This method does not currently close open websocket connections.
 
-        Note that this method is a coroutine and must be caled with ``await``.
+        Note that this method is a coroutine and must be called with ``await``.
 
         """
         while self._connections:
@@ -289,7 +301,7 @@ class _HTTPRequestContext(object):
         stream: iostream.IOStream,
         address: Tuple,
         protocol: Optional[str],
-        trusted_downstream: List[str] = None,
+        trusted_downstream: Optional[List[str]] = None,
     ) -> None:
         self.address = address
         # Save the socket's address family now so we know how to
@@ -346,7 +358,7 @@ class _HTTPRequestContext(object):
         )
         if proto_header:
             # use only the last proto entry if there is more than one
-            # TODO: support trusting mutiple layers of proxied protocol
+            # TODO: support trusting multiple layers of proxied protocol
             proto_header = proto_header.split(",")[-1].strip()
         if proto_header in ("http", "https"):
             self.protocol = proto_header

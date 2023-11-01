@@ -4,13 +4,16 @@ import queue
 import logging
 import os
 import datetime
-from pwm_rpi import RobotMotor,MotorDriver
+from pwm_rpi import RobotMotor,MotorDriver, LIGHT
 import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
 from enum import Enum
 from minimu import MinIMU_v5_pi
 import serial_a2d
+import RPi.GPIO as GPIO
+import asyncio
+import json
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -19,6 +22,7 @@ IMU1_EXIST = True
 IMU2_EXIST = False
 
 RC = "REMOTE"  # RC=Remote Control
+stopVideo = False
 
 class RobotMain():
 
@@ -26,6 +30,7 @@ class RobotMain():
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
+        self.currentLightLevel=1
         self.activePump = 1
         self.isPumpingNow = 0
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
@@ -72,6 +77,8 @@ class RobotMain():
                 self.comm.start()
         
     def RobotMessageHandler(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         while True:
             event = self.rx_q.get(0.5)
             if event["opcode"] == CommandOpcode.motor.value:
@@ -106,6 +113,7 @@ class RobotMain():
         self.TelemetricInfoSend()
 
     def CameraHandler(self, event):
+        global stopVideo
         if len(event) < 2:
             print("camera arg missing")
             return
@@ -121,8 +129,13 @@ class RobotMain():
             print(f"Flip cameras")
             pass
         if(lightLevel):
-            #toggle light level (off, low, high)
-            pass
+            self.currentLightLevel += 1
+            if (self.currentLightLevel == 4):
+                self.currentLightLevel = 1
+            if (self.currentLightLevel < 3):
+                GPIO.output(LIGHT, not (GPIO.input(LIGHT)))
+            else:
+                stopVideo = True
         
     def PumpHandler(self, event):
         if len(event) < 2:
@@ -152,10 +165,6 @@ class RobotMain():
                 elif self.activePump == 3:
                     self.motors.MotorStop(RobotMotor.Pump3)
 
-            #pump with active pump selected
-            #pass
-        
-
     def RobotMain(self):
         while True:
             # print(self.a2d.values)
@@ -177,7 +186,7 @@ class RobotMain():
         else:
             angle2=[0.0,0.0,0.0]
         info = {
-            "opcode": CommandOpcode.telemetric,
+            "opcode": CommandOpcode.telemetric.name,
             "imu-1" : angle1,
             "imu-2" : angle2,
             "drive1" : self.a2d.values[1],
@@ -208,7 +217,7 @@ class RobotMain():
         }
 
         # print(f"Send telemetry")
-        self.telemetryChannel.send_message(str(info))
+        self.telemetryChannel.send_message(json.dumps(info))
 
 if __name__ == "__main__":
     obj = RobotMain()

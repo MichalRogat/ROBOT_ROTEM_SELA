@@ -20,6 +20,7 @@ import signal
 import socket
 import sys
 import unittest
+import warnings
 
 from tornado import gen
 from tornado.httpclient import AsyncHTTPClient, HTTPResponse
@@ -33,14 +34,10 @@ from tornado.util import raise_exc_info, basestring_type
 from tornado.web import Application
 
 import typing
-from typing import Tuple, Any, Callable, Type, Dict, Union, Optional
+from typing import Tuple, Any, Callable, Type, Dict, Union, Optional, Coroutine
 from types import TracebackType
 
 if typing.TYPE_CHECKING:
-    # Coroutine wasn't added to typing until 3.5.3, so only import it
-    # when mypy is running and use forward references.
-    from typing import Coroutine  # noqa: F401
-
     _ExcInfoTuple = Tuple[
         Optional[Type[BaseException]], Optional[BaseException], Optional[TracebackType]
     ]
@@ -49,7 +46,9 @@ if typing.TYPE_CHECKING:
 _NON_OWNED_IOLOOPS = AsyncIOMainLoop
 
 
-def bind_unused_port(reuse_port: bool = False) -> Tuple[socket.socket, int]:
+def bind_unused_port(
+    reuse_port: bool = False, address: str = "127.0.0.1"
+) -> Tuple[socket.socket, int]:
     """Binds a server socket to an available port on localhost.
 
     Returns a tuple (socket, port).
@@ -57,9 +56,13 @@ def bind_unused_port(reuse_port: bool = False) -> Tuple[socket.socket, int]:
     .. versionchanged:: 4.4
        Always binds to ``127.0.0.1`` without resolving the name
        ``localhost``.
+
+    .. versionchanged:: 6.2
+       Added optional ``address`` argument to
+       override the default "127.0.0.1".
     """
     sock = netutil.bind_sockets(
-        0, "127.0.0.1", family=socket.AF_INET, reuse_port=reuse_port
+        0, address, family=socket.AF_INET, reuse_port=reuse_port
     )[0]
     port = sock.getsockname()[1]
     return sock, port
@@ -93,6 +96,7 @@ class _TestMethodWrapper(object):
 
     def __init__(self, orig_method: Callable) -> None:
         self.orig_method = orig_method
+        self.__wrapped__ = orig_method
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         result = self.orig_method(*args, **kwargs)
@@ -131,7 +135,8 @@ class AsyncTestCase(unittest.TestCase):
 
     By default, a new `.IOLoop` is constructed for each test and is available
     as ``self.io_loop``.  If the code being tested requires a
-    global `.IOLoop`, subclasses should override `get_new_ioloop` to return it.
+    reused global `.IOLoop`, subclasses should override `get_new_ioloop` to return it,
+    although this is deprecated as of Tornado 6.3.
 
     The `.IOLoop`'s ``start`` and ``stop`` methods should not be
     called directly.  Instead, use `self.stop <stop>` and `self.wait
@@ -161,7 +166,7 @@ class AsyncTestCase(unittest.TestCase):
     """
 
     def __init__(self, methodName: str = "runTest") -> None:
-        super(AsyncTestCase, self).__init__(methodName)
+        super().__init__(methodName)
         self.__stopped = False
         self.__running = False
         self.__failure = None  # type: Optional[_ExcInfoTuple]
@@ -178,9 +183,22 @@ class AsyncTestCase(unittest.TestCase):
         self._test_generator = None  # type: Optional[Union[Generator, Coroutine]]
 
     def setUp(self) -> None:
-        super(AsyncTestCase, self).setUp()
+        py_ver = sys.version_info
+        if ((3, 10, 0) <= py_ver < (3, 10, 9)) or ((3, 11, 0) <= py_ver <= (3, 11, 1)):
+            # Early releases in the Python 3.10 and 3.1 series had deprecation
+            # warnings that were later reverted; we must suppress them here.
+            setup_with_context_manager(self, warnings.catch_warnings())
+            warnings.filterwarnings(
+                "ignore",
+                message="There is no current event loop",
+                category=DeprecationWarning,
+                module=r"tornado\..*",
+            )
+        super().setUp()
+        if type(self).get_new_ioloop is not AsyncTestCase.get_new_ioloop:
+            warnings.warn("get_new_ioloop is deprecated", DeprecationWarning)
         self.io_loop = self.get_new_ioloop()
-        self.io_loop.make_current()
+        asyncio.set_event_loop(self.io_loop.asyncio_loop)  # type: ignore[attr-defined]
 
     def tearDown(self) -> None:
         # Native coroutines tend to produce warnings if they're not
@@ -194,7 +212,7 @@ class AsyncTestCase(unittest.TestCase):
             tasks = asyncio.Task.all_tasks(asyncio_loop)
         # Tasks that are done may still appear here and may contain
         # non-cancellation exceptions, so filter them out.
-        tasks = [t for t in tasks if not t.done()]
+        tasks = [t for t in tasks if not t.done()]  # type: ignore
         for t in tasks:
             t.cancel()
         # Allow the tasks to run and finalize themselves (which means
@@ -215,14 +233,14 @@ class AsyncTestCase(unittest.TestCase):
 
         # Clean up Subprocess, so it can be used again with a new ioloop.
         Subprocess.uninitialize()
-        self.io_loop.clear_current()
+        asyncio.set_event_loop(None)
         if not isinstance(self.io_loop, _NON_OWNED_IOLOOPS):
             # Try to clean up any file descriptors left open in the ioloop.
             # This avoids leaks, especially when tests are run repeatedly
             # in the same process with autoreload (because curl does not
             # set FD_CLOEXEC on its file descriptors)
             self.io_loop.close(all_fds=True)
-        super(AsyncTestCase, self).tearDown()
+        super().tearDown()
         # In case an exception escaped or the StackContext caught an exception
         # when there wasn't a wait() to re-raise it, do so here.
         # This is our last chance to raise an exception in a way that the
@@ -239,8 +257,11 @@ class AsyncTestCase(unittest.TestCase):
         singletons using the default `.IOLoop`) or if a per-test event
         loop is being provided by another system (such as
         ``pytest-asyncio``).
+
+        .. deprecated:: 6.3
+           This method will be removed in Tornado 7.0.
         """
-        return IOLoop()
+        return IOLoop(make_current=False)
 
     def _handle_exception(
         self, typ: Type[Exception], value: Exception, tb: TracebackType
@@ -260,8 +281,10 @@ class AsyncTestCase(unittest.TestCase):
             self.__failure = None
             raise_exc_info(failure)
 
-    def run(self, result: unittest.TestResult = None) -> unittest.TestCase:
-        ret = super(AsyncTestCase, self).run(result)
+    def run(
+        self, result: Optional[unittest.TestResult] = None
+    ) -> Optional[unittest.TestResult]:
+        ret = super().run(result)
         # As a last resort, if an exception escaped super.run() and wasn't
         # re-raised in tearDown, raise it here.  This will cause the
         # unittest run to fail messily, but that's better than silently
@@ -288,8 +311,10 @@ class AsyncTestCase(unittest.TestCase):
         self.__stopped = True
 
     def wait(
-        self, condition: Callable[..., bool] = None, timeout: float = None
-    ) -> None:
+        self,
+        condition: Optional[Callable[..., bool]] = None,
+        timeout: Optional[float] = None,
+    ) -> Any:
         """Runs the `.IOLoop` until stop is called or timeout has passed.
 
         In the event of a timeout, an exception will be thrown. The
@@ -375,7 +400,7 @@ class AsyncHTTPTestCase(AsyncTestCase):
     """
 
     def setUp(self) -> None:
-        super(AsyncHTTPTestCase, self).setUp()
+        super().setUp()
         sock, port = bind_unused_port()
         self.__port = port
 
@@ -469,7 +494,7 @@ class AsyncHTTPTestCase(AsyncTestCase):
         self.http_client.close()
         del self.http_server
         del self._app
-        super(AsyncHTTPTestCase, self).tearDown()
+        super().tearDown()
 
 
 class AsyncHTTPSTestCase(AsyncHTTPTestCase):
@@ -508,7 +533,7 @@ class AsyncHTTPSTestCase(AsyncHTTPTestCase):
 
 @typing.overload
 def gen_test(
-    *, timeout: float = None
+    *, timeout: Optional[float] = None
 ) -> Callable[[Callable[..., Union[Generator, "Coroutine"]]], Callable[..., None]]:
     pass
 
@@ -519,7 +544,8 @@ def gen_test(func: Callable[..., Union[Generator, "Coroutine"]]) -> Callable[...
 
 
 def gen_test(  # noqa: F811
-    func: Callable[..., Union[Generator, "Coroutine"]] = None, timeout: float = None
+    func: Optional[Callable[..., Union[Generator, "Coroutine"]]] = None,
+    timeout: Optional[float] = None,
 ) -> Union[
     Callable[..., None],
     Callable[[Callable[..., Union[Generator, "Coroutine"]]], Callable[..., None]],
@@ -585,7 +611,7 @@ def gen_test(  # noqa: F811
         if inspect.iscoroutinefunction(f):
             coro = pre_coroutine
         else:
-            coro = gen.coroutine(pre_coroutine)
+            coro = gen.coroutine(pre_coroutine)  # type: ignore[assignment]
 
         @functools.wraps(coro)
         def post_coroutine(self, *args, **kwargs):
@@ -604,7 +630,7 @@ def gen_test(  # noqa: F811
                 if self._test_generator is not None and getattr(
                     self._test_generator, "cr_running", True
                 ):
-                    self._test_generator.throw(type(e), e)
+                    self._test_generator.throw(e)
                     # In case the test contains an overly broad except
                     # clause, we may get back here.
                 # Coroutine was stopped or didn't raise a useful stack trace,
@@ -652,34 +678,71 @@ class ExpectLog(logging.Filter):
         logger: Union[logging.Logger, basestring_type],
         regex: str,
         required: bool = True,
+        level: Optional[int] = None,
     ) -> None:
         """Constructs an ExpectLog context manager.
 
-        :param logger: Logger object (or name of logger) to watch.  Pass
-            an empty string to watch the root logger.
-        :param regex: Regular expression to match.  Any log entries on
-            the specified logger that match this regex will be suppressed.
-        :param required: If true, an exception will be raised if the end of
-            the ``with`` statement is reached without matching any log entries.
+        :param logger: Logger object (or name of logger) to watch.  Pass an
+            empty string to watch the root logger.
+        :param regex: Regular expression to match.  Any log entries on the
+            specified logger that match this regex will be suppressed.
+        :param required: If true, an exception will be raised if the end of the
+            ``with`` statement is reached without matching any log entries.
+        :param level: A constant from the ``logging`` module indicating the
+            expected log level. If this parameter is provided, only log messages
+            at this level will be considered to match. Additionally, the
+            supplied ``logger`` will have its level adjusted if necessary (for
+            the duration of the ``ExpectLog`` to enable the expected message.
+
+        .. versionchanged:: 6.1
+           Added the ``level`` parameter.
+
+        .. deprecated:: 6.3
+           In Tornado 7.0, only ``WARNING`` and higher logging levels will be
+           matched by default. To match ``INFO`` and lower levels, the ``level``
+           argument must be used. This is changing to minimize differences
+           between ``tornado.testing.main`` (which enables ``INFO`` logs by
+           default) and most other test runners (including those in IDEs)
+           which have ``INFO`` logs disabled by default.
         """
         if isinstance(logger, basestring_type):
             logger = logging.getLogger(logger)
         self.logger = logger
         self.regex = re.compile(regex)
         self.required = required
-        self.matched = False
+        # matched and deprecated_level_matched are a counter for the respective event.
+        self.matched = 0
+        self.deprecated_level_matched = 0
         self.logged_stack = False
+        self.level = level
+        self.orig_level = None  # type: Optional[int]
 
     def filter(self, record: logging.LogRecord) -> bool:
         if record.exc_info:
             self.logged_stack = True
         message = record.getMessage()
         if self.regex.match(message):
-            self.matched = True
+            if self.level is None and record.levelno < logging.WARNING:
+                # We're inside the logging machinery here so generating a DeprecationWarning
+                # here won't be reported cleanly (if warnings-as-errors is enabled, the error
+                # just gets swallowed by the logging module), and even if it were it would
+                # have the wrong stack trace. Just remember this fact and report it in
+                # __exit__ instead.
+                self.deprecated_level_matched += 1
+            if self.level is not None and record.levelno != self.level:
+                app_log.warning(
+                    "Got expected log message %r at unexpected level (%s vs %s)"
+                    % (message, logging.getLevelName(self.level), record.levelname)
+                )
+                return True
+            self.matched += 1
             return False
         return True
 
     def __enter__(self) -> "ExpectLog":
+        if self.level is not None and self.level < self.logger.getEffectiveLevel():
+            self.orig_level = self.logger.level
+            self.logger.setLevel(self.level)
         self.logger.addFilter(self)
         return self
 
@@ -689,9 +752,28 @@ class ExpectLog(logging.Filter):
         value: Optional[BaseException],
         tb: Optional[TracebackType],
     ) -> None:
+        if self.orig_level is not None:
+            self.logger.setLevel(self.orig_level)
         self.logger.removeFilter(self)
         if not typ and self.required and not self.matched:
             raise Exception("did not get expected log message")
+        if (
+            not typ
+            and self.required
+            and (self.deprecated_level_matched >= self.matched)
+        ):
+            warnings.warn(
+                "ExpectLog matched at INFO or below without level argument",
+                DeprecationWarning,
+            )
+
+
+# From https://nedbatchelder.com/blog/201508/using_context_managers_in_test_setup.html
+def setup_with_context_manager(testcase: unittest.TestCase, cm: Any) -> Any:
+    """Use a contextmanager to setUp a test case."""
+    val = cm.__enter__()
+    testcase.addCleanup(cm.__exit__, None, None, None)
+    return val
 
 
 def main(**kwargs: Any) -> None:

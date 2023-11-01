@@ -76,7 +76,6 @@ if __name__ == "__main__":
         del sys.path[0]
 
 import functools
-import logging
 import os
 import pkgutil  # type: ignore
 import sys
@@ -158,8 +157,7 @@ def add_reload_hook(fn: Callable[[], None]) -> None:
 
     Note that for open file and socket handles it is generally
     preferable to set the ``FD_CLOEXEC`` flag (using `fcntl` or
-    ``tornado.platform.auto.set_close_exec``) instead
-    of using a reload hook to close them.
+    `os.set_inheritable`) instead of using a reload hook to close them.
     """
     _reload_hooks.append(fn)
 
@@ -208,7 +206,7 @@ def _reload() -> None:
     _reload_attempted = True
     for fn in _reload_hooks:
         fn()
-    if hasattr(signal, "setitimer"):
+    if sys.platform != "win32":
         # Clear the alarm signal set by
         # ioloop.set_blocking_log_threshold so it doesn't fire
         # after the exec.
@@ -253,8 +251,8 @@ def _reload() -> None:
             # Unfortunately the errno returned in this case does not
             # appear to be consistent, so we can't easily check for
             # this error specifically.
-            os.spawnv(  # type: ignore
-                os.P_NOWAIT, sys.executable, [sys.executable] + argv
+            os.spawnv(
+                os.P_NOWAIT, sys.executable, [sys.executable] + argv  # type: ignore
             )
             # At this point the IOLoop has been closed and finally
             # blocks will experience errors if we allow the stack to
@@ -326,10 +324,8 @@ def main() -> None:
                 del __package__
                 exec_in(f.read(), globals(), globals())
     except SystemExit as e:
-        logging.basicConfig()
         gen_log.info("Script exited with status %s", e.code)
     except Exception as e:
-        logging.basicConfig()
         gen_log.warning("Script exited with uncaught exception", exc_info=True)
         # If an exception occurred at import time, the file with the error
         # never made it into sys.modules and so we won't know to watch it.
@@ -341,9 +337,9 @@ def main() -> None:
             # SyntaxErrors are special:  their innermost stack frame is fake
             # so extract_tb won't see it and we have to get the filename
             # from the exception object.
-            watch(e.filename)
+            if e.filename is not None:
+                watch(e.filename)
     else:
-        logging.basicConfig()
         gen_log.info("Script exited normally")
     # restore sys.argv so subsequent executions will include autoreload
     sys.argv = original_argv
