@@ -23,7 +23,7 @@ class MinIMU_v5_pi:
 		#Accelerometer and Gyro Register addresses
 		self.Accel_Gyro_REG = dict(
 			FUNC_CFG_ACCESS     = 0x01,
-								\
+								
 			FIFO_CTRL1          = 0x06,
 			FIFO_CTRL2          = 0x07,
 			FIFO_CTRL3          = 0x08,

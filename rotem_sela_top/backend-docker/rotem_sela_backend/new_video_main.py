@@ -9,7 +9,7 @@ from tornado.web import RequestHandler, Application
 import asyncio
 import sys
 import v4l2py
-from robot_main import RobotMain, stopVideo
+from robot_main import RobotMain, stopVideo, RobotMotor
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -229,6 +229,8 @@ if __name__ == "__main__":
    
     obj = RobotMain()
     obj.setTelemetryChannel(ChannelHandler)
+
+    # obj.motors.MotorRun(RobotMotor.Drive2, 10)
 
     tornado.ioloop.IOLoop.instance().start()
 

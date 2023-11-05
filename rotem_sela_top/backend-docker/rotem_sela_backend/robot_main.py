@@ -97,6 +97,19 @@ class RobotMain():
             return
         speed = event["value"]
         motor = RobotMotor(event["motor"])
+
+        if motor == RobotMotor.Turn1:
+            motor = RobotMotor.Turn2
+        elif motor == RobotMotor.Turn2:
+            motor = RobotMotor.Turn1
+        elif motor == RobotMotor.Elev1:
+            motor = RobotMotor.Joint1
+           
+           
+        elif motor == RobotMotor.Joint1:
+            motor = RobotMotor.Elev1
+            
+
         if speed == 0:
             self.motors.MotorStop(motor)
         else:
@@ -216,10 +229,13 @@ class RobotMain():
             
         }
 
-        # print(f"Send telemetry")
-        self.telemetryChannel.send_message(json.dumps(info))
+        print(f"Send telemetry ")
+        print(str(info))
+        if self.telemetryChannel is not None:
+            self.telemetryChannel.send_message(json.dumps(info))
 
 if __name__ == "__main__":
     obj = RobotMain()
-    obj.motors.MotorRun(RobotMotor.Joint1, -90)
+    obj.motors.MotorRun(RobotMotor.Pump3, 10)
+    obj.motors.MotorStop(RobotMotor.Pump3)
     time.sleep(1000000)
