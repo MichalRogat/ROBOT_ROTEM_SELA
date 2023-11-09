@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/opt/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/.venv"
+set -gx VIRTUAL_ENV "/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/.venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

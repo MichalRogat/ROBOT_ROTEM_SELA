@@ -14,6 +14,7 @@ import serial_a2d
 import RPi.GPIO as GPIO
 import asyncio
 import json
+import numpy as np
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -27,6 +28,10 @@ stopVideo = False
 class RobotMain():
 
     telemetryChannel = None
+    angle1 = [0,0,0]
+    angle2 = [0,0,0]
+    offset1 = [0,0,0]
+    offset2 = [0,0,0]
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
@@ -80,15 +85,20 @@ class RobotMain():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         while True:
-            event = self.rx_q.get(0.5)
-            if event["opcode"] == CommandOpcode.motor.value:
-                self.MotorHandler(event)
-            if event["opcode"] == CommandOpcode.keep_alive.value:
-                self.KeepAliveHandler()
-            if event["opcode"] == CommandOpcode.camera.value:
-                self.CameraHandler(event)
-            if event["opcode"] == CommandOpcode.pump.value:
-                self.PumpHandler(event)
+            try:
+                event = self.rx_q.get(0.5)
+                if event["opcode"] == CommandOpcode.motor.value:
+                    self.MotorHandler(event)
+                if event["opcode"] == CommandOpcode.keep_alive.value:
+                    self.KeepAliveHandler()
+                if event["opcode"] == CommandOpcode.camera.value:
+                    self.CameraHandler(event)
+                if event["opcode"] == CommandOpcode.pump.value:
+                    self.PumpHandler(event)
+                if event["opcode"] == CommandOpcode.acc_calib.value:
+                    self.CalibrationHandler(event)
+            except Exception as e:
+                pass
 
 
     def MotorHandler(self,event):
@@ -178,6 +188,10 @@ class RobotMain():
                     self.motors.MotorStop(RobotMotor.Pump3)
         self.telemetryChannel.send_message(json.dumps(event))
 
+    def CalibrationHandler(self, event):
+        self.offset1 = self.angle1
+        self.offset2 = self.angle2
+
     def RobotMain(self):
         while True:
             # print(self.a2d.values)
@@ -191,17 +205,17 @@ class RobotMain():
 
     def TelemetricInfoSend(self):
         if IMU1_EXIST:
-            angle1=self.imu_1.prevAngle[0]
+            self.angle1=self.imu_1.prevAngle[0]
         else:
-            angle1=[0.0,0.0,0.0]
+            self.angle1=[0.0,0.0,0.0]
         if IMU2_EXIST:
-            angle2=self.imu_2.prevAngle[0]
+            self.angle2=self.imu_2.prevAngle[0]
         else:
-            angle2=[0.0,0.0,0.0]
+            self.angle2=[0.0,0.0,0.0]
         info = {
             "opcode": CommandOpcode.telemetric.name,
-            "imu-1" : angle1,
-            "imu-2" : angle2,
+            "imu-1" : np.subtract(np.array(self.angle1) , np.array(self.offset1)).tolist(),
+            "imu-2" : np.subtract(np.array(self.angle2) , np.array(self.offset2)).tolist(),
             "drive1" : self.a2d.values[1],
             "drive2" : self.a2d.values[2],
             "elev"   : self.a2d.values[4],
@@ -212,6 +226,7 @@ class RobotMain():
             "FullTank2" : self.a2d.values[8],
             "FullTank3" : self.a2d.values[9],
             "activePump"    : self.activePump,
+            "pumpingNow"    : self.isPumpingNow,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
             "Spare4"    : 4096,
@@ -229,8 +244,8 @@ class RobotMain():
             
         }
 
-        print(f"Send telemetry ")
-        print(str(info))
+        # print(f"Send telemetry ")
+        # print(str(info))
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
 

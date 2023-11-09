@@ -193,7 +193,7 @@ class MotorDriver:
             self.MotorStop(RobotMotor.Elev1)
             self.motor_speed[RobotMotor.Turn1.value]=speed
             GPIO.output(TURN1_EN, GPIO.HIGH)
-            if dir=='f':
+            if dir =='f':
                 
                 self.pwmC.ChangeDutyCycle(abs(100-speed))
                 GPIO.output(TURN1_DIR, GPIO.HIGH)
@@ -225,7 +225,7 @@ class MotorDriver:
             self.MotorStop(RobotMotor.Joint1)
             self.motor_speed[RobotMotor.Turn2.value]=speed
             GPIO.output(PWMD_EN, GPIO.HIGH)
-            if dir=='f':
+            if dir!='f':
                
                 self.pwmD.ChangeDutyCycle(abs(100-speed))
                 GPIO.output(PWMD_DIR, GPIO.HIGH)
