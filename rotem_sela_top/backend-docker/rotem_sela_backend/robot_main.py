@@ -32,6 +32,7 @@ class RobotMain():
     angle2 = [0,0,0]
     offset1 = [0,0,0]
     offset2 = [0,0,0]
+    isFlip = False
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
@@ -142,6 +143,8 @@ class RobotMain():
             return
         isToggle = event["isToggle"]
         isFlip = event["isFlip"]
+        if isFlip:
+            self.isFlip = not self.isFlip
         lightLevel = event["lightLevel"]
         if(isToggle):
             #toggle cameras (left / right)
