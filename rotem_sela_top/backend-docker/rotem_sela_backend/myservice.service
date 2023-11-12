@@ -1,4 +1,7 @@
-#put this file under /etc/systemd/system/myservice.service
+#put this file under /etc/systemd/system/myservice.service (without note lines)
+#sudo systemctl enable my_app.service
+#sudo systemctl start my_app.service
+
 
 [Unit]
 Description=Rotem Sela
