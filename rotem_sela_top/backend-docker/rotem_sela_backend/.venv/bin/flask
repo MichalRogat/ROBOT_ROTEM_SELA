@@ -1,4 +1,4 @@
-#!/opt/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/.venv/bin/python3
+#!/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

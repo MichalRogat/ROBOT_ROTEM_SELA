@@ -7,7 +7,7 @@ from time import sleep
 class SerialA2D():
     def __init__(self):
         self.ser = serial.Serial ("/dev/ttyS0", 115200)    #Open port with baud rate
-        self.values = [0,0,0,0,0,0,0,0,0]
+        self.values = [0,0,0,0,0,0,0,0,0,0]
 
     def listen(self):    
         while True:

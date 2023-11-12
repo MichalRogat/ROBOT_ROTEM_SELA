@@ -13,6 +13,7 @@ class CommandOpcode(Enum):
     camera = 3
     telemetric = 4
     pump = 5
+    acc_calib = 6
     
 class RobotRemoteControl():
     def __init__(self, control_q):
