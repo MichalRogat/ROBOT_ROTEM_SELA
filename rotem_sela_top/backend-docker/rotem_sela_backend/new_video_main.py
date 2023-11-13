@@ -25,7 +25,7 @@ CAM_PORTS = {
 # Dictionary of cameras; the key is an identifier, the value is the OpenCV VideoCapture object
 cameras = {
 }
-
+devices = {}
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
@@ -61,7 +61,7 @@ class VideoFeedHandler(CorsHandler):
     async def get(self, cam_id):
         res = map_cams()
         global cameras
-
+        global devices
         if stopVideo:
             self.set_status(404)
             self.write("Camera stopped")
@@ -94,6 +94,7 @@ class VideoFeedHandler(CorsHandler):
         else:
             print(f"Open video device {video_dev}")
             with v4l2py.Device(video_dev) as device:
+                devices[cam_id] = device
                 device.set_format(buffer_type=1, width=res[cam_id]['width'], height=res[cam_id]['height'], pixel_format='MJPG')
                 device.set_fps(buffer_type=1, fps=10)
                 for frame in device:
@@ -101,7 +102,7 @@ class VideoFeedHandler(CorsHandler):
                         # if video_dev not in cameras:
                         #     print("!!!!exit")
                         #     break 
-                        if stopVideo:
+                        if stopVideo or devices[cam_id] is None:
                             break
                         self.write(b'--frame\r\n')
                         self.write(b'Content-Type: image/jpeg\r\n\r\n')
@@ -137,10 +138,12 @@ class TurnOnHandler(CorsHandler):
 class TurnOffHandler(CorsHandler):
     def post(self, cam_id):
         global cameras
+        global devices
         print(f"{cam_id} turn off")
         if cam_id in cameras:
-            if sys.platform == 'win32':
-                cameras[cam_id].release()
+           
+            devices[cam_id].close()
+            del devices[cam_id]
             del cameras[cam_id]
             self.write(json.dumps({'success': True, 'message': f'{cam_id} turned off'}))
         else:
@@ -179,19 +182,13 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def send_message(cls, message: str):
         # print(f"Sending message {message} to {len(cls.clients)} client(s).")
-        try:
+        
             for client in cls.clients:
-           
-                client.write_message(message)
-        except Exception as e:
-            print(str(e))
-            # if client.get_status() == 101:
-            #     try:
-            #         cls.clients.remove(client)
-            #     except Exception as e:
-            #         print(str(e))
-            #     break
-
+                try:
+                    client.write_message(message)
+                except Exception as e:
+                    print(str(e))
+          
     """
     Handler that handles a websocket channel
     """
