@@ -10,6 +10,9 @@ import asyncio
 import sys
 import v4l2py
 from robot_main import RobotMain, stopVideo, RobotMotor
+import os
+import numpy as np
+import datetime
 
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -104,6 +107,14 @@ class VideoFeedHandler(CorsHandler):
                         #     break 
                         if stopVideo or devices[cam_id] is None:
                             break
+                        
+                        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                        save_path = f"/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/video_frames"
+                        cam_path = os.path.join(save_path, str(cam_id))
+                        filename = os.path.join(cam_path, f"{cam_id}_{timestamp}.jpg")
+                        with open(filename, 'wb') as file:
+                            file.write(frame.data)
+
                         self.write(b'--frame\r\n')
                         self.write(b'Content-Type: image/jpeg\r\n\r\n')
                         self.write(frame.data)  # Assuming frame data is already in MJPEG format
