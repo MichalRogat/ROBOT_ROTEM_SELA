@@ -1,10 +1,36 @@
 import smbus2
 import time
 
+# motor 1
+# Set GPIO on pin 2 to high (low to shut down)
+# Set PWM on pin 5 to 0
+# Set PWM on pin 3 to 50%
+# flip direction by fliping pin 5 and 3 role
+
+# motor 2
+# Set GPIO on pin 7 to high (low to shut down)
+# Set PWM on pin 6 to 0
+# Set PWM on pin 9 to 50%
+# flip direction by fliping pin 6 and 9 role
+
+
+#motor 3 big driver
+# set GPIO 12 to 1
+# set pin 11 pwm 50%
+# set GPIO 10 to 0
+
+SET_PWM = 0
+STOP_PWM = 1
+SET_GPIO = 2
+READ_ADC = 3
+
+#this way we have the pins of motor 1 in place[1] etc.
+motors_pins = [[0, 0, 0], [2, 5, 3], [7, 6, 9], [12, 11, 10]]
+
 # Define I2C address and other parameters
 arduino_address = 0x55
 start_byte = 0xAA
-opcode = 0x01
+opcode = 0x00
 payload = []
 checksum = 0
 
@@ -22,20 +48,60 @@ def calculate_checksum(packet):
         checksum += data
     return (~checksum) & 0xFF
 
+def startMotor(motor_num):
+    opcode = SET_GPIO
+    payload = [motors_pins[motor_num][0], 1]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+    opcode = SET_PWM
+    payload = [motors_pins[motor_num][1], 50]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+    opcode = SET_PWM
+    payload = [motors_pins[motor_num][2], 0]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+def stopMotor(motor_num):
+    opcode = SET_GPIO
+    payload = [motors_pins[motor_num][0], 0]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+    opcode = SET_PWM
+    payload = [motors_pins[motor_num][1], 0]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+    opcode = SET_PWM
+    payload = [motors_pins[motor_num][2], 0]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
 try:
     while True:
-        # Calculate the checksum for the current payload
-        calculated_checksum = calculate_checksum(payload)
+        startMotor(1)
+        time.sleep(10)
+        stopMotor(1)
+        startMotor(2)
+        time.sleep(10)
+        stopMotor(2)
+        startMotor(3)
+        time.sleep(10)
+        stopMotor(3)
         
-        # Send the packet to the Arduino
-        packet = [start_byte, opcode, 0, 0] + payload + [calculated_checksum]
-        bus.write_i2c_block_data(arduino_address, 0x01, packet)
         
-        # Print the sent packet
-        print("Sent packet:", packet)
+        #########################################################
         
-        # Delay for a while before sending the next packet
-        time.sleep(1)
+        
 
 except KeyboardInterrupt:
     print("Stopped sending packets.")
