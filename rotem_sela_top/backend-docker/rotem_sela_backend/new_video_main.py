@@ -109,9 +109,9 @@ class VideoFeedHandler(CorsHandler):
                             break
                         
                         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                        save_path = f"/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/video_frames"
+                        save_path = f"/home/rogat/video_frames"
                         cam_path = os.path.join(save_path, str(cam_id))
-                        filename = os.path.join(cam_path, f"{cam_id}_{timestamp}.jpg")
+                        filename = os.path.join(cam_path, f"{timestamp}.jpg")
                         with open(filename, 'wb') as file:
                             file.write(frame.data)
 

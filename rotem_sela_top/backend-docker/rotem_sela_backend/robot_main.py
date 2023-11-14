@@ -101,6 +101,8 @@ class RobotMain():
                     self.PumpHandler(event)
                 if event["opcode"] == CommandOpcode.acc_calib.value:
                     self.CalibrationHandler(event)
+                if event['opcode'] == CommandOpcode.stop_all.value:
+                    self.motors.StopAllMotors()
             except Exception as e:
                 pass
 
