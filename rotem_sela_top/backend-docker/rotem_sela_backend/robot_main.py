@@ -33,12 +33,15 @@ class RobotMain():
     offset1 = [0,0,0]
     offset2 = [0,0,0]
     isFlip = False
+    toggleState = 1
+    toggleDevices = ['2', '3', '6', '7'] #front cameras by deafult
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
         self.currentLightLevel=1
         self.activePump = 1
         self.isPumpingNow = 0
+  
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.tx_q = queue.Queue()
@@ -98,6 +101,8 @@ class RobotMain():
                     self.PumpHandler(event)
                 if event["opcode"] == CommandOpcode.acc_calib.value:
                     self.CalibrationHandler(event)
+                if event['opcode'] == CommandOpcode.stop_all.value:
+                    self.motors.StopAllMotors()
             except Exception as e:
                 pass
 
@@ -147,11 +152,13 @@ class RobotMain():
             self.isFlip = not self.isFlip
         lightLevel = event["lightLevel"]
         if(isToggle):
-            #toggle cameras (left / right)
-            print(f"Toggle cameras")
-        if(isFlip):
-            #flip cameras (front / back)
-            print(f"Flip cameras")
+            if (self.toggleState==1): #1 is deafult-front camera
+                self.toggleDevices=['1', '4', '5', '8'] #side cameras
+                
+                self.toggleState=2
+            elif (self.toggleState==2): #2 is side camera
+                self.toggleDevices=['2', '3', '6', '7']
+                self.toggleState=1       
         if(lightLevel):
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
@@ -215,6 +222,7 @@ class RobotMain():
             self.angle2=self.imu_2.prevAngle[0]
         else:
             self.angle2=[0.0,0.0,0.0]
+            
         info = {
             "opcode": CommandOpcode.telemetric.name,
             "imu-1" : np.subtract(np.array(self.angle1) , np.array(self.offset1)).tolist(),
@@ -230,6 +238,8 @@ class RobotMain():
             "FullTank3" : self.a2d.values[9],
             "activePump"    : self.activePump,
             "pumpingNow"    : self.isPumpingNow,
+            "isFlipped"     : self.isFlip,
+            "toggleDevices"   : self.toggleDevices,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
             "Spare4"    : 4096,
@@ -249,6 +259,7 @@ class RobotMain():
 
         # print(f"Send telemetry ")
         # print(str(info))
+
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
 

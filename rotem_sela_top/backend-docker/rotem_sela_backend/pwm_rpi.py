@@ -255,7 +255,7 @@ class MotorDriver:
 
         elif motor == RobotMotor.Pump1:
             # print(f"Run motor drvie1 {speed}")
-            self.motor_speed[RobotMotor.Pump1.value]=speed
+            self.motor_speed[RobotMotor.Pump1.value]=1
           
             GPIO.output(PUMP1_EN, GPIO.HIGH)
             GPIO.output(PUMP1_ON, GPIO.HIGH)

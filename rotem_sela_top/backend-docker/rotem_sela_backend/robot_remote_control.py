@@ -14,6 +14,7 @@ class CommandOpcode(Enum):
     telemetric = 4
     pump = 5
     acc_calib = 6
+    stop_all = 7
     
 class RobotRemoteControl():
     def __init__(self, control_q):
@@ -29,6 +30,7 @@ class RobotRemoteControl():
         self.server.listen(0)
         # accept incoming connections
         self.client_socket, self.client_address = self.server.accept()
+        self.client_socket.settimeout(1)
         print(f"Accepted connection from {self.client_address[0]}:{self.client_address[1]}")
         while True:
             try:
@@ -43,6 +45,7 @@ class RobotRemoteControl():
             except Exception as e :
                 print(str(e))
                 self.client_socket.close() #close connection to client
+                self.control_q.put({'opcode':CommandOpcode.stop_all.value})
                 self.client_socket, self.client_address = self.server.accept()
                 continue
            
