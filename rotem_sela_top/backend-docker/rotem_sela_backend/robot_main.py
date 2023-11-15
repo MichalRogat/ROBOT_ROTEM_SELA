@@ -58,6 +58,8 @@ class RobotMain():
         self.main_thread = threading.Thread(target=self.RobotMain)
         self.last_keep_alive = datetime.datetime.now()
         self.motors = MotorDriver()
+        
+        
         if IMU1_EXIST:
             self.imu_1 = MinIMU_v5_pi(0, self.i2c_lock)
             self.imu_1.trackAngle()
@@ -103,6 +105,9 @@ class RobotMain():
                     self.CalibrationHandler(event)
                 if event['opcode'] == CommandOpcode.stop_all.value:
                     self.motors.StopAllMotors()
+                
+
+                
             except Exception as e:
                 pass
 
@@ -139,7 +144,7 @@ class RobotMain():
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
         self.motors.disable_motors = False
-        self.TelemetricInfoSend()
+        
 
     def CameraHandler(self, event):
         global stopVideo
@@ -203,12 +208,15 @@ class RobotMain():
         self.offset2 = self.angle2
 
     def RobotMain(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         while True:
             # print(self.a2d.values)
             delta = datetime.datetime.now() - self.last_keep_alive
             # if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
             #     self.motors.StopAllMotors()
-
+            self.TelemetricInfoSend()
+            time.sleep(0.1)
             #read current of motors
             if A2D_EXISTS:
                 self.motors.MotorTestCurrentOverload(self.a2d.values) #this function take time i2c a2d issue to solve

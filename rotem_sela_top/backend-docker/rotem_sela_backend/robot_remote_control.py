@@ -15,6 +15,7 @@ class CommandOpcode(Enum):
     pump = 5
     acc_calib = 6
     stop_all = 7
+    frame_data = 8
     
 class RobotRemoteControl():
     def __init__(self, control_q):
