@@ -46,9 +46,11 @@ def calculate_checksum(packet):
 
     for data in packet:
         checksum += data
-    return (~checksum) & 0xFF
+    print("calculated checksum: ", checksum%255)
+    return (checksum%255) 
 
 def startMotor(motor_num):
+    global opcode 
     opcode = SET_GPIO
     payload = [motors_pins[motor_num][0], 1]
     calculated_checksum = calculate_checksum(payload)
@@ -76,6 +78,7 @@ def startMotor(motor_num):
     print("started motor", motor_num)
 
 def stopMotor(motor_num):
+    global opcode 
     opcode = SET_GPIO
     payload = [motors_pins[motor_num][0], 0]
     calculated_checksum = calculate_checksum(payload)
