@@ -30,14 +30,9 @@ class Packet:
         for data in self.payload:
             checksum += data
         return checksum%255
-
-    def to_bytes_array(self):
-        # Serialize each attribute of the Packet struct
-        self.SOT = self.SOT.to_bytes(1, 'little')
-        self.opcode = self.opcode.to_bytes(1, 'little')
-        self.payload_length = self.payload_length.to_bytes(1, 'little')
-        self.payload = bytearray(self.payload)
-        self.checksum = self.checksum.to_bytes(1, 'little')
+    
+    def to_array(self):
+        return [self.SOT, self.opcode, self.payload_length] + self.payload + [self.checksum]
 
     def __repr__(self) -> str:
         return f"SOT:{self.SOT},\t opcode:{self.opcode},\t payload_length:{self.payload_length},\t payload:{self.payload},\t checksum:{self.checksum}"
@@ -91,7 +86,7 @@ class MotorDriver:
             print(packet)
             return packet
         else:
-            bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array())
+            bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0.value, register=1, data=packet.to_array())
 
     @classmethod
     def callFunction(self, func, motorNum, bus):
