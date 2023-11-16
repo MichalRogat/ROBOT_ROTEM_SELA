@@ -12,7 +12,7 @@ GETGPIO = 4
 HIGH = 1
 LOW = 0
 
-DEBUG = True
+DEBUG = False
 
 class Packet:
     def __init__(self, opcode, payload:list):
@@ -65,14 +65,14 @@ class MotorNumbers(Enum):
 class Functions():
 
     class StartMotor():
-        gpio1Value = HIGH
-        pwm1Speed = 90
+        gpioValue = HIGH
+        pwmSpeed = 90
         pwm2Value = LOW
         gpio2Value = HIGH
     class StopMotor():
-        gpio1Value = LOW
-        pwd1Speed = 0
-        pwm2Speed = LOW
+        gpioValue = LOW
+        pwmSpeed = 0
+        pwm2Value = LOW
         gpio2Value = LOW
     class ReadADC():
         pass
@@ -94,19 +94,19 @@ class MotorDriver:
             bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array())
 
     @classmethod
-    def callFunction(self, func, motorNum):
+    def callFunction(self, func, motorNum, bus):
         gpioPacket = Packet(SETGPIO, payload=[motorPins[motorNum][0] ,func.gpioValue])
-        self.sendPacketOrDebug(gpioPacket, bus)
+        self.sendPacketOrDebug(self, gpioPacket, bus)
 
         pwmPacket = Packet(STARTPWM, [motorPins[motorNum][1], func.pwmSpeed])
-        self.sendPacketOrDebug(pwmPacket, bus)
+        self.sendPacketOrDebug(self, pwmPacket, bus)
 
         if (motorNum != 3):
-            pwm2Packet = Packet(STARTPWM, [motorPins[motorNum][2], func.pwd2Speed])
-            self.sendPacketOrDebug(pwm2Packet, bus)
+            pwm2Packet = Packet(STARTPWM, [motorPins[motorNum][2], func.pwm2Value])
+            self.sendPacketOrDebug(self, pwm2Packet, bus)
         else:
             gpio2Packet = Packet(SETGPIO, [motorPins[motorNum][2], func.gpio2Value])
-            self.sendPacketOrDebug(gpio2Packet, bus)
+            self.sendPacketOrDebug(self, gpio2Packet, bus)
         print(f"Started motor {motorNum}")
 
     @classmethod
@@ -119,7 +119,7 @@ class MotorDriver:
         for robotPinNumber in MotorNumbers:
             MotorDriver.callFunction(Functions.StopMotor, motorNum=robotPinNumber)
 
-    @classmethod
+    # @classmethod
     # def getMotorCurrent(self, motor:NanoPins, bus:smbus2.SMBus=None):
     #     packet = Packet(Opcodes.readAdc, payload=[motor.value])
     #     if bus is not None:
@@ -177,11 +177,10 @@ class MotorDriver:
 
 if __name__ == "__main__":
     bus = smbus2.SMBus(1)
-    MotorDriver.callFunction(Functions.StartMotor, motorNum=0)
-    MotorDriver.callFunction(Functions.StartMotor, motorNum=1)
-    MotorDriver.callFunction(Functions.StartMotor, motorNum=2)
-
-    MotorDriver.callFunction(Functions.StopMotor, motorNum=0)
-    MotorDriver.callFunction(Functions.StopMotor, motorNum=1)
-    MotorDriver.callFunction(Functions.StopMotor, motorNum=2)
+    MotorDriver.callFunction(Functions.StartMotor, 1,bus)
+    MotorDriver.callFunction(Functions.StartMotor,2,bus)
+    MotorDriver.callFunction(Functions.StartMotor,3,bus)
+    MotorDriver.callFunction(Functions.StopMotor, 1,bus)
+    MotorDriver.callFunction(Functions.StopMotor, 2,bus)
+    MotorDriver.callFunction(Functions.StopMotor, 3,bus)
     
