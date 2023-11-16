@@ -28,12 +28,13 @@ stopVideo = False
 class RobotMain():
 
     telemetryChannel = None
+    flipCb = None
+    toggleCb = None
     angle1 = [0,0,0]
     angle2 = [0,0,0]
     offset1 = [0,0,0]
     offset2 = [0,0,0]
-    isFlip = False
-    toggleState = 1
+    
     toggleDevices = ['2', '3', '6', '7'] #front cameras by deafult
     
     def __init__(self) -> None:
@@ -77,6 +78,12 @@ class RobotMain():
     def setTelemetryChannel(self, channel):
         self.telemetryChannel = channel
 
+    def setFlipCallback(self, flipCb):
+        self.flipCb = flipCb
+    
+    def setToggleCallback(self, toggleCb):
+        self.toggleCb = toggleCb
+
     def A2dHandler(self):
         self.a2d.listen()
        
@@ -106,11 +113,8 @@ class RobotMain():
                 if event['opcode'] == CommandOpcode.stop_all.value:
                     self.motors.StopAllMotors()
                 
-
-                
             except Exception as e:
                 pass
-
 
     def MotorHandler(self,event):
         if len(event)< 2:
@@ -153,17 +157,13 @@ class RobotMain():
             return
         isToggle = event["isToggle"]
         isFlip = event["isFlip"]
-        if isFlip:
-            self.isFlip = not self.isFlip
+        if isFlip and self.flipCb is not None:
+            self.flipCb()
+           
         lightLevel = event["lightLevel"]
-        if(isToggle):
-            if (self.toggleState==1): #1 is deafult-front camera
-                self.toggleDevices=['1', '4', '5', '8'] #side cameras
-                
-                self.toggleState=2
-            elif (self.toggleState==2): #2 is side camera
-                self.toggleDevices=['2', '3', '6', '7']
-                self.toggleState=1       
+        if isToggle and self.toggleCb is not None:
+           self.toggleCb()
+
         if(lightLevel):
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
@@ -246,8 +246,6 @@ class RobotMain():
             "FullTank3" : self.a2d.values[9],
             "activePump"    : self.activePump,
             "pumpingNow"    : self.isPumpingNow,
-            "isFlipped"     : self.isFlip,
-            "toggleDevices"   : self.toggleDevices,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
             "Spare4"    : 4096,
