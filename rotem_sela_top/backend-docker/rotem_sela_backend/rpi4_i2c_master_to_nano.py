@@ -104,19 +104,17 @@ def stopMotor(motor_num):
     print("stopped motor", motor_num)
 
 try:
-    #while True:
-    #startMotor(3)
+    
+    startMotor(3)
     startMotor(2)
-    #startMotor(1)
-    time.sleep(50)
-    #stopMotor(3)
+    startMotor(1)
+    time.sleep(10)
+
+    
+    stopMotor(3)
     stopMotor(2)
-    #stopMotor(1)
-        #time.sleep(3)
-        #stopMotor(2)
-        #time.sleep(3)
-        #stopMotor(3)
-        
+    stopMotor(1)
+    
         
         #########################################################
         
