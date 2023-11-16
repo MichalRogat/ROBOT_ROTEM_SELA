@@ -62,10 +62,8 @@ class ArduinoAddress(Enum):
 #     E3, E4 = 8, 9
 #     P2, T4, D2 = 10, 11, 12
 
-import abc
-@abc
-class Functions(abc):
-    class StartMotor(abc):
+class Functions():
+    class StartMotor():
         gpio1Value = HIGH
         pwm1Speed = 90
         pwm2Value = LOW
