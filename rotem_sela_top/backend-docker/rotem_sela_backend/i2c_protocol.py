@@ -51,18 +51,19 @@ class ArduinoAddress(Enum):
     # Arduino4 = 4
 
 # These pins are outdated
-# class PumpMotors(Enum):
-#     P1, P2 = 0, 10 
+class PumpMotors(Enum):
+    P1, P2 = 0, 10 
 
 # These pins are currently outdated
-# class RobotPinNumbers(Enum):
-#     P1, T1, D1 = 0, 1, 2
-#     E1, E2 = 3, 4
-#     T2, D3, T3 = 5, 6, 7
-#     E3, E4 = 8, 9
-#     P2, T4, D2 = 10, 11, 12
+class MotorNumbers(Enum):
+    P1, T1, D1 = 0, 1, 2
+    E1, E2 = 3, 4
+    T2, D3, T3 = 5, 6, 7
+    E3, E4 = 8, 9
+    P2, T4, D2 = 10, 11, 12
 
 class Functions():
+
     class StartMotor():
         gpio1Value = HIGH
         pwm1Speed = 90
@@ -73,6 +74,10 @@ class Functions():
         pwd1Speed = 0
         pwm2Speed = LOW
         gpio2Value = LOW
+    class ReadADC():
+        pass
+    class ReadAnalog():
+        pass
 
 
 
@@ -103,6 +108,25 @@ class MotorDriver:
             gpio2Packet = Packet(SETGPIO, [motorPins[motorNum][2], func.gpio2Value])
             self.sendPacketOrDebug(gpio2Packet, bus)
         print(f"Started motor {motorNum}")
+
+    @classmethod
+    def stopPumps(self, bus:smbus2.SMBus=None):
+        for pumpMotor in PumpMotors:
+            MotorDriver.callFunction(Functions.StopMotor, motorNum=pumpMotor)
+
+    @classmethod
+    def stopAllMotors(self, bus:smbus2.SMBus=None):
+        for robotPinNumber in MotorNumbers:
+            MotorDriver.callFunction(Functions.StopMotor, motorNum=robotPinNumber)
+
+    @classmethod
+    # def getMotorCurrent(self, motor:NanoPins, bus:smbus2.SMBus=None):
+    #     packet = Packet(Opcodes.readAdc, payload=[motor.value])
+    #     if bus is not None:
+    #         bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array())
+    #     else:
+    #         warnings.warn("smbus is not instanitiated")
+    #         return packet
 
     # @classmethod
     # def startMotor(self, motorNum, speed:int, bus:smbus2.SMBus):
@@ -139,25 +163,7 @@ class MotorDriver:
     #             warnings.warn("smbus is not instanitiated")
     #             return packet
 
-    # @classmethod
-    # def disablePumps(self, bus:smbus2.SMBus=None):
-    #     for pumpMotor in PumpMotors:
-    #         packet = Packet(opcode=Opcodes.stopPwm, payload=[pumpMotor.value])
-    #         if bus is not None:
-    #             bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array())
-    #         else:
-    #             warnings.warn("smbus is not instanitiated")
-    #             return packet
 
-
-    # @classmethod
-    # def getMotorCurrent(self, motor:NanoPins, bus:smbus2.SMBus=None):
-    #     packet = Packet(Opcodes.readAdc, payload=[motor.value])
-    #     if bus is not None:
-    #         bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array())
-    #     else:
-    #         warnings.warn("smbus is not instanitiated")
-    #         return packet
 
     # @classmethod
     # def getMotorFault(self, motor:NanoPins, bus:smbus2.SMBus=None):
@@ -171,11 +177,11 @@ class MotorDriver:
 
 if __name__ == "__main__":
     bus = smbus2.SMBus(1)
-    MotorDriver.callFunction(Functions.StartMotor, 0)
-    MotorDriver.callFunction(Functions.StartMotor, 1)
-    MotorDriver.callFunction(Functions.StartMotor, 2)
+    MotorDriver.callFunction(Functions.StartMotor, motorNum=0)
+    MotorDriver.callFunction(Functions.StartMotor, motorNum=1)
+    MotorDriver.callFunction(Functions.StartMotor, motorNum=2)
 
-    MotorDriver.callFunction(Functions.StopMotor, 0)
-    MotorDriver.callFunction(Functions.StopMotor, 1)
-    MotorDriver.callFunction(Functions.StopMotor, 2)
+    MotorDriver.callFunction(Functions.StopMotor, motorNum=0)
+    MotorDriver.callFunction(Functions.StopMotor, motorNum=1)
+    MotorDriver.callFunction(Functions.StopMotor, motorNum=2)
     
