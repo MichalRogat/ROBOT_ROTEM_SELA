@@ -23,9 +23,10 @@ SET_PWM = 0
 STOP_PWM = 1
 SET_GPIO = 2
 READ_ADC = 3
+READ_GPIO = 4
 
 #this way we have the pins of motor 1 in place[1] etc.
-motors_pins = [[0, 0, 0], [2, 5, 3], [7, 6, 9], [12, 11, 10]]
+motors_pins = [[0, 0, 0], [2, 5, 3], [7, 9, 6], [12, 11, 10]]
 
 # Define I2C address and other parameters
 arduino_address = 0x55
@@ -46,7 +47,7 @@ def calculate_checksum(packet):
 
     for data in packet:
         checksum += data
-    print("calculated checksum: ", checksum%255)
+    #print("calculated checksum: ", checksum%255)
     return (checksum%255) 
 
 def startMotor(motor_num):
@@ -89,7 +90,7 @@ def stopMotor(motor_num):
     payload = [motors_pins[motor_num][1], 0]
     calculated_checksum = calculate_checksum(payload)
     packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
-    print(packet)
+    #print(packet)
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
 
     if(motor_num != 3):
@@ -111,7 +112,7 @@ try:
     startMotor(3)
     startMotor(2)
     startMotor(1)
-    time.sleep(10)
+    time.sleep(3)
 
     
     stopMotor(3)
