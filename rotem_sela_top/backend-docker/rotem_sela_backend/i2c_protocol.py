@@ -1,6 +1,7 @@
 from enum import Enum
 import smbus2
 import warnings
+import Entity
 
 # OPCODES
 STARTPWM = 0
@@ -49,19 +50,11 @@ class ArduinoAddress(Enum):
 class PumpMotors(Enum):
     P1, P2 = 0, 10 
 
-# These pins are currently outdated
-class MotorNumbers(Enum):
-    P1, T1, D1 = 0, 1, 2
-    E1, E2 = 3, 4
-    T2, D3, T3 = 5, 6, 7
-    E3, E4 = 8, 9
-    P2, T4, D2 = 10, 11, 12
-
 class Functions():
-
-    class StartMotor():
+    # First in counter clock
+    class MotorRun():
         gpioValue = HIGH
-        pwmSpeed = 90
+        pwmSpeed = 50
         pwm2Value = LOW
         gpio2Value = HIGH
     class StopMotor():
@@ -73,10 +66,23 @@ class Functions():
         pass
     class ReadAnalog():
         pass
+    class StopAllMotors():
+        pass
+    class StartPump():
+        pass
+    class StopPump():
+        pass
+    class ReadTank():
+        pass
+    class ReadBattery():
+        pass
+    class ReadOverCurrent():
+        pass
 
-
-
-motorPins = [[0, 0, 0], [2, 5, 3], [7, 6, 9], [12, 11, 10]]
+motor1 = 1
+motor2 = 2
+motor3 = 3
+# motorPins = [[0, 0, 0], [2, 5, 3], [7, 9, 6], [12, 11, 10]]
 
 class MotorDriver:
 
@@ -89,30 +95,30 @@ class MotorDriver:
             bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0.value, register=1, data=packet.to_array())
 
     @classmethod
-    def callFunction(self, func, motorNum, bus):
-        gpioPacket = Packet(SETGPIO, payload=[motorPins[motorNum][0] ,func.gpioValue])
+    def callMotorFunction(self, func, motor:Entity.IMotor, bus):
+        gpioPacket = Packet(SETGPIO, payload=[motor.pins[0] ,func.gpioValue])
         self.sendPacketOrDebug(self, gpioPacket, bus)
 
-        pwmPacket = Packet(STARTPWM, [motorPins[motorNum][1], func.pwmSpeed])
+        pwmPacket = Packet(STARTPWM, [motor.pins[1], func.pwmSpeed])
         self.sendPacketOrDebug(self, pwmPacket, bus)
 
-        if (motorNum != 3):
-            pwm2Packet = Packet(STARTPWM, [motorPins[motorNum][2], func.pwm2Value])
+        if (motor.isUglyFlag is True):
+            pwm2Packet = Packet(STARTPWM, [motor.pins[2], func.pwm2Value])
             self.sendPacketOrDebug(self, pwm2Packet, bus)
         else:
-            gpio2Packet = Packet(SETGPIO, [motorPins[motorNum][2], func.gpio2Value])
+            gpio2Packet = Packet(SETGPIO, [motor.pins[2], func.gpio2Value])
             self.sendPacketOrDebug(self, gpio2Packet, bus)
-        print(f"Started motor {motorNum}")
+        print(f"Started motor")
 
     @classmethod
     def stopPumps(self, bus:smbus2.SMBus=None):
         for pumpMotor in PumpMotors:
-            MotorDriver.callFunction(Functions.StopMotor, motorNum=pumpMotor)
+            MotorDriver.callMotorFunction(Functions.StopMotor, motorNum=pumpMotor)
 
-    @classmethod
-    def stopAllMotors(self, bus:smbus2.SMBus=None):
-        for robotPinNumber in MotorNumbers:
-            MotorDriver.callFunction(Functions.StopMotor, motorNum=robotPinNumber)
+    # @classmethod
+    # def stopAllMotors(self, bus:smbus2.SMBus=None):
+    #     for robotPinNumber in MotorNumbers:
+    #         MotorDriver.callMotorFunction(Functions.StopMotor, motorNum=robotPinNumber)
 
     # @classmethod
     # def getMotorCurrent(self, motor:NanoPins, bus:smbus2.SMBus=None):
@@ -122,43 +128,6 @@ class MotorDriver:
     #     else:
     #         warnings.warn("smbus is not instanitiated")
     #         return packet
-
-    # @classmethod
-    # def startMotor(self, motorNum, speed:int, bus:smbus2.SMBus):
-    #     gpioPacket = Packet(SETGPIO, payload=[motorPins[motorNum][0] ,HIGH])
-    #     self.sendPacketOrDebug(gpioPacket, bus)
-
-    #     pwmPacket = Packet(STARTPWM, [motorPins[motorNum][1], speed])
-    #     self.sendPacketOrDebug(pwmPacket, bus)
-
-    #     if (motorNum != 3):
-    #         pwm2Packet = Packet(STARTPWM, [motorPins[motorNum][2], LOW])
-    #         self.sendPacketOrDebug(pwm2Packet, bus)
-    #     else:
-    #         gpio2Packet = Packet(SETGPIO, [motorPins[motorNum][2], HIGH])
-    #         self.sendPacketOrDebug(gpio2Packet, bus)
-    #     print(f"Started motor {motorNum}")
-
-    # @classmethod    
-    # def stopMotor(self, motorNum, bus:smbus2.SMBus=None):
-    #     gpioPacket = Packet(opcode = SETGPIO, payload=[motorPins[motorNum][0], LOW])
-    #     self.sendPacketOrDebug(gpioPacket, bus)
-        
-    #     pwmPacket = Packet(STARTPWM, [motorPins[motorNum][1], LOW])
-    #     self.sendPacketOrDebug(pwmPacket, bus)
-        
-
-    # @classmethod
-    # def stopAllMotors(self, bus:smbus2.SMBus=None):
-    #     for robotPinNumber in NanoPins:
-    #         packet = Packet(opcode=Opcodes.stopPwm, payload=[robotPinNumber.value])
-    #         if bus is not None:
-    #             bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0, register=0x01, data=packet.to_bytes_array().to_bytes_array())
-    #         else:
-    #             warnings.warn("smbus is not instanitiated")
-    #             return packet
-
-
 
     # @classmethod
     # def getMotorFault(self, motor:NanoPins, bus:smbus2.SMBus=None):
@@ -172,10 +141,6 @@ class MotorDriver:
 
 if __name__ == "__main__":
     bus = smbus2.SMBus(1)
-    MotorDriver.callFunction(Functions.StartMotor, 1,bus)
-    MotorDriver.callFunction(Functions.StartMotor,2,bus)
-    MotorDriver.callFunction(Functions.StartMotor,3,bus)
-    MotorDriver.callFunction(Functions.StopMotor, 1,bus)
-    MotorDriver.callFunction(Functions.StopMotor, 2,bus)
-    MotorDriver.callFunction(Functions.StopMotor, 3,bus)
+    MotorDriver.callMotorFunction(Functions.MotorRun, motor=Entity.D1Motor, bus = bus)
+    MotorDriver.callMotorFunction(Functions.StopMotor, motor=Entity.D1Motor, bus = bus)
     
