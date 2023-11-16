@@ -42,8 +42,8 @@ def calculate_checksum(packet):
     checksum = 0
     checksum += start_byte
     checksum += opcode
-    checksum += (len(packet) & 0xFF)  # LSB of length
-    checksum += (len(packet) >> 8)  # MSB of length
+    checksum += (len(packet))
+
     for data in packet:
         checksum += data
     return (~checksum) & 0xFF

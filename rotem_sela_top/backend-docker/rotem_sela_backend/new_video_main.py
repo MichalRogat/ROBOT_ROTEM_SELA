@@ -9,26 +9,34 @@ from tornado.web import RequestHandler, Application
 import asyncio
 import sys
 import v4l2py
-from robot_main import RobotMain, stopVideo, RobotMotor
+from robot_main import RobotMain, stopVideo
+import threading
 import os
 import numpy as np
 import datetime
+import os
+import subprocess
+import ffmpeg
+import base64
+import json
+from robot_remote_control import CommandOpcode
 
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 import multiprocessing
+import time
 
-CAM_PORTS = {
-    'cam1': 5000,
-    'cam2': 5001,
-    'cam3': 5002,
-    'cam4': 5003
-}
+CAM_PORTS = [
+    ([['2','1'],['7','8']], 5000),
+    ([['3','4'], ['6','5']], 5001),
+    ([['6','5'],['3','4']], 5002),
+    ([['7','8'],['2','1']], 5003)
+]
 
 # Dictionary of cameras; the key is an identifier, the value is the OpenCV VideoCapture object
 cameras = {
 }
 devices = {}
+isMain = True
+subQueues = []
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
@@ -60,122 +68,86 @@ class IndexHandler(CorsHandler):
         self.write(json.dumps('backend only'))
 
 
-class VideoFeedHandler(CorsHandler):
-    async def get(self, cam_id):
+def websocket_server(port):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        app = tornado.web.Application(ChannelHandler.urls())
+        # Setup HTTP Server
+        http_server = tornado.httpserver.HTTPServer(app)
+        http_server.listen(port, '0.0.0.0')
+        tornado.ioloop.IOLoop.instance().start()
+       
+def flipCams():
+    for q in subQueues:
+        q.put({'opcode':'flip'})
+
+def toggleCams():
+    for q in subQueues:
+        q.put({'opcode':'toggle'})
+
+def videoFeedHandler(port, cam_id, queue):
+        global isMain
+        isMain = False
+        webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
+        webSocket_thread.start()
+
         res = map_cams()
         global cameras
         global devices
-        if stopVideo:
-            self.set_status(404)
-            self.write("Camera stopped")
-       
-        video_dev = res[cam_id]['dev']
-        if video_dev not in cameras:
-            cameras[cam_id] = video_dev
+        camIdx = 0
+        sideIdx = 0
 
-        self.set_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
-        print(f"{cam_id} start feed")
+        while True:
+            video_dev = res[cam_id[sideIdx][camIdx]]['dev']
+            if video_dev not in cameras:
+                cameras[cam_id[sideIdx][camIdx]] = video_dev
 
-        if sys.platform == 'win32':
-            while True:
-                if cam_id not in cameras:
-                    break
-                try:
-                    ret, frame = cameras[cam_id].read()
-                    if not ret:
-                        break
-                    _, jpeg = cv2.imencode('.jpg', frame)
-                    img_data = jpeg.tobytes()
-                    self.write(b'--frame\r\n')
-                    self.write(b'Content-Type: image/jpeg\r\n\r\n')
-                    self.write(img_data)
-                    self.write(b'\r\n')
-                    await self.flush()
-                except Exception as e:
-                    print(f"video feeding error: {e}")
-                await tornado.gen.sleep(0.01)  # Sleep for 10ms
-        else:
+            # set_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+            print(f"{cam_id} start feed")
             print(f"Open video device {video_dev}")
+            time.sleep(2)
+            startTS = time.time()
+            
             with v4l2py.Device(video_dev) as device:
-                devices[cam_id] = device
-                device.set_format(buffer_type=1, width=res[cam_id]['width'], height=res[cam_id]['height'], pixel_format='MJPG')
+                devices[cam_id[sideIdx][camIdx]] = device
+                device.set_format(buffer_type=1, width=res[cam_id[sideIdx][camIdx]]['width'], height=res[cam_id[sideIdx][camIdx]]['height'], pixel_format='MJPG')
                 device.set_fps(buffer_type=1, fps=10)
                 for frame in device:
                     try:
-                        # if video_dev not in cameras:
-                        #     print("!!!!exit")
-                        #     break 
-                        if stopVideo or devices[cam_id] is None:
+                        if stopVideo:
                             break
                         
-                        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                        save_path = f"/home/rogat/video_frames"
-                        cam_path = os.path.join(save_path, str(cam_id))
-                        filename = os.path.join(cam_path, f"{timestamp}.jpg")
-                        with open(filename, 'wb') as file:
-                            file.write(frame.data)
+                        ChannelHandler.send_message(frame.data)
+                        try:
+                            item = queue.get(block=False)
 
-                        self.write(b'--frame\r\n')
-                        self.write(b'Content-Type: image/jpeg\r\n\r\n')
-                        self.write(frame.data)  # Assuming frame data is already in MJPEG format
-                        self.write(b'\r\n')
-                        await self.flush()
+                            if item['opcode'] == 'toggle':
+                                camIdx = camIdx+1
+                                if camIdx > 1:
+                                    camIdx = 0
+                            else:
+                                sideIdx = sideIdx+1
+                                if sideIdx > 1:
+                                    sideIdx = 0
+                            
+                            break
+                        except Exception as e:
+                            # currTime = time.time()
+                            # if currTime - startTS > 10:
+                            #     sideIdx = sideIdx+1
+                            #     if sideIdx > 1:
+                            #         sideIdx = 0
+                            #     break
+                            pass
                     except Exception as e:
                         print(f"video feeding error: {e}")
                         break
-                    await tornado.gen.sleep(0.01)  # Sleep for 10ms
-
-
-class TurnOnHandler(CorsHandler):
-    def post(self, cam_id):
-        print(f"{cam_id} turn on")
-        global cameras
-        if  sys.platform == 'win32':
-            if cam_id not in cameras:
-                index = int(cam_id[-1]) - 1
-                self.write(json.dumps({'success': True, 'message': f'{cam_id} turned on'}))
-            else:
-                self.write(json.dumps({'success': False, 'message': 'Camera already on'}))
-        else:
-            video_dev = f"/dev/{cam_id}"
-            if video_dev not in cameras:
-                cameras[video_dev] = video_dev
-                self.write(json.dumps({'success': True, 'message': f'{cam_id} turned on'}))
-            else:
-                self.write(json.dumps({'success': False, 'message': 'Camera already on'}))
-
-
-
-class TurnOffHandler(CorsHandler):
-    def post(self, cam_id):
-        global cameras
-        global devices
-        print(f"{cam_id} turn off")
-        if cam_id in cameras:
-           
-            devices[cam_id].close()
-            del devices[cam_id]
-            del cameras[cam_id]
-            self.write(json.dumps({'success': True, 'message': f'{cam_id} turned off'}))
-        else:
-            self.write(json.dumps({'success': False, 'message': 'Camera not found'}))
-
+                  
 
 def make_app():
     return Application([
-        (r"/", IndexHandler),
-        (r"/video_feed/(.*)", VideoFeedHandler),
-        (r"/turn_on/(.*)", TurnOnHandler),
-        (r"/turn_off/(.*)", TurnOffHandler),
+        (r"/", IndexHandler)
     ])
-
-
-def run_server(port, cam):
-    print(f"start {cam}, port {port}")
-    app = make_app()
-    app.listen(port, address="0.0.0.0")
-    tornado.ioloop.IOLoop.current().start()
-
 
 class ChannelHandler(tornado.websocket.WebSocketHandler):
     
@@ -194,11 +166,17 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
     def send_message(cls, message: str):
         # print(f"Sending message {message} to {len(cls.clients)} client(s).")
         
+        try:
             for client in cls.clients:
                 try:
-                    client.write_message(message)
+                    if isMain:
+                        client.write_message(message, binary=False)
+                    else:
+                        client.write_message(message, binary=True)
                 except Exception as e:
                     print(str(e))
+        except Exception as e:
+            print(str(e))
           
     """
     Handler that handles a websocket channel
@@ -219,12 +197,15 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
         return True
     
 
+
 if __name__ == "__main__":
     processes = []
     
-    for cam, port in CAM_PORTS.items():
-        process = multiprocessing.Process(target=run_server, args=(port, cam))
+    for item in CAM_PORTS:
+        queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue))
         processes.append(process)
+        subQueues.append(queue)
         process.start()
 
     app = tornado.web.Application(ChannelHandler.urls())
@@ -237,13 +218,11 @@ if __name__ == "__main__":
    
     obj = RobotMain()
     obj.setTelemetryChannel(ChannelHandler)
-
-    # obj.motors.MotorRun(RobotMotor.Drive2, 10)
+    obj.setFlipCallback(flipCams)
+    obj.setToggleCallback(toggleCams)
 
     tornado.ioloop.IOLoop.instance().start()
-
     for process in processes:
         process.join()
-
  
 

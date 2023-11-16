@@ -28,12 +28,13 @@ stopVideo = False
 class RobotMain():
 
     telemetryChannel = None
+    flipCb = None
+    toggleCb = None
     angle1 = [0,0,0]
     angle2 = [0,0,0]
     offset1 = [0,0,0]
     offset2 = [0,0,0]
-    isFlip = False
-    toggleState = 1
+    
     toggleDevices = ['2', '3', '6', '7'] #front cameras by deafult
     
     def __init__(self) -> None:
@@ -58,6 +59,8 @@ class RobotMain():
         self.main_thread = threading.Thread(target=self.RobotMain)
         self.last_keep_alive = datetime.datetime.now()
         self.motors = MotorDriver()
+        
+        
         if IMU1_EXIST:
             self.imu_1 = MinIMU_v5_pi(0, self.i2c_lock)
             self.imu_1.trackAngle()
@@ -74,6 +77,12 @@ class RobotMain():
     
     def setTelemetryChannel(self, channel):
         self.telemetryChannel = channel
+
+    def setFlipCallback(self, flipCb):
+        self.flipCb = flipCb
+    
+    def setToggleCallback(self, toggleCb):
+        self.toggleCb = toggleCb
 
     def A2dHandler(self):
         self.a2d.listen()
@@ -103,9 +112,9 @@ class RobotMain():
                     self.CalibrationHandler(event)
                 if event['opcode'] == CommandOpcode.stop_all.value:
                     self.motors.StopAllMotors()
+                
             except Exception as e:
                 pass
-
 
     def MotorHandler(self,event):
         if len(event)< 2:
@@ -139,7 +148,7 @@ class RobotMain():
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
         self.motors.disable_motors = False
-        self.TelemetricInfoSend()
+        
 
     def CameraHandler(self, event):
         global stopVideo
@@ -148,17 +157,13 @@ class RobotMain():
             return
         isToggle = event["isToggle"]
         isFlip = event["isFlip"]
-        if isFlip:
-            self.isFlip = not self.isFlip
+        if isFlip and self.flipCb is not None:
+            self.flipCb()
+           
         lightLevel = event["lightLevel"]
-        if(isToggle):
-            if (self.toggleState==1): #1 is deafult-front camera
-                self.toggleDevices=['1', '4', '5', '8'] #side cameras
-                
-                self.toggleState=2
-            elif (self.toggleState==2): #2 is side camera
-                self.toggleDevices=['2', '3', '6', '7']
-                self.toggleState=1       
+        if isToggle and self.toggleCb is not None:
+           self.toggleCb()
+
         if(lightLevel):
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
@@ -203,12 +208,15 @@ class RobotMain():
         self.offset2 = self.angle2
 
     def RobotMain(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         while True:
             # print(self.a2d.values)
             delta = datetime.datetime.now() - self.last_keep_alive
             # if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
             #     self.motors.StopAllMotors()
-
+            self.TelemetricInfoSend()
+            time.sleep(0.1)
             #read current of motors
             if A2D_EXISTS:
                 self.motors.MotorTestCurrentOverload(self.a2d.values) #this function take time i2c a2d issue to solve
@@ -238,8 +246,6 @@ class RobotMain():
             "FullTank3" : self.a2d.values[9],
             "activePump"    : self.activePump,
             "pumpingNow"    : self.isPumpingNow,
-            "isFlipped"     : self.isFlip,
-            "toggleDevices"   : self.toggleDevices,
             "Spare2"    : 4096,
             "Spare3"    : 4096,
             "Spare4"    : 4096,
