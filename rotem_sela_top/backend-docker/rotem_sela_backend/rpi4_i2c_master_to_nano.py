@@ -59,7 +59,7 @@ def startMotor(motor_num):
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
 
     opcode = SET_PWM
-    payload = [motors_pins[motor_num][1], 100]
+    payload = [motors_pins[motor_num][1], 50]
     calculated_checksum = calculate_checksum(payload)
     packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
@@ -77,6 +77,42 @@ def startMotor(motor_num):
         packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
         bus.write_i2c_block_data(arduino_address, 0x01, packet)
     print("started motor", motor_num)
+
+def startMotorReverseDirection(motor_num):
+    global opcode 
+    opcode = SET_GPIO
+    payload = [motors_pins[motor_num][0], 1]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+
+    if(motor_num != 3):
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][1], 0]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][2], 50]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+    else:
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][1], 50]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+        opcode = SET_GPIO
+        payload = [motors_pins[motor_num][2], 0]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+    print("started motor", motor_num)
+
 
 def stopMotor(motor_num):
     global opcode 
@@ -112,8 +148,14 @@ try:
     startMotor(3)
     startMotor(2)
     startMotor(1)
-    time.sleep(3)
 
+    time.sleep(5)
+
+    startMotorReverseDirection(3)
+    startMotorReverseDirection(2)
+    startMotorReverseDirection(1)
+    
+    time.sleep(5)
     
     stopMotor(3)
     stopMotor(2)
