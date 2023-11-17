@@ -2,6 +2,7 @@ import smbus
 import time
 import math
 import _thread
+import threading
 
 class MinIMU_v5_pi:
 	"""
@@ -450,14 +451,16 @@ class MinIMU_v5_pi:
 
 			
 def main():
-		IMU = MinIMU_v5_pi()
+		i2c_lock = threading.Lock()
+		
+		IMU = MinIMU_v5_pi(0, i2c_lock)
 
-		#IMU.trackYaw()
-		IMU.trackAngle()
+		IMU.trackYaw()
+		# IMU.trackAngle()
 		while True:
-				#print(IMU.prevYaw[0])
-				print(IMU.prevAngle[0])
-				time.sleep(0.1)
+				print(IMU.prevYaw[0])
+				# print(IMU.prevAngle[0])
+				time.sleep(0.04)
 
 		"""while True:
 				i = 0

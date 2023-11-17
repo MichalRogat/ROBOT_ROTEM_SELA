@@ -15,6 +15,7 @@ import RPi.GPIO as GPIO
 import asyncio
 import json
 import numpy as np
+import math
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -30,12 +31,13 @@ class RobotMain():
     telemetryChannel = None
     flipCb = None
     toggleCb = None
+    isFlip = False
+    isToggle = False
     angle1 = [0,0,0]
     angle2 = [0,0,0]
     offset1 = [0,0,0]
     offset2 = [0,0,0]
-    
-    toggleDevices = ['2', '3', '6', '7'] #front cameras by deafult
+
     
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
@@ -64,10 +66,13 @@ class RobotMain():
         if IMU1_EXIST:
             self.imu_1 = MinIMU_v5_pi(0, self.i2c_lock)
             self.imu_1.trackAngle()
+            # self.imu_1.trackYaw()
+            
 
         if IMU2_EXIST:
-            self.imu_2 = MinIMU_v5_pi(1, self.i2c_lock)
+            self.imu_2 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
             self.imu_2.trackAngle()
+            # self.imu_2.trackYaw()
 
         self.comm_thread.start()
         self.message_handler_thread.start()
@@ -123,6 +128,15 @@ class RobotMain():
         speed = event["value"]
         motor = RobotMotor(event["motor"])
 
+        if self.isFlip:
+            if motor == RobotMotor.Turn1:
+               motor = RobotMotor.Turn2
+            elif motor == RobotMotor.Turn2:
+                motor = RobotMotor.Turn1
+            elif motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
+                speed = -speed
+
+
         if motor == RobotMotor.Turn1:
             motor = RobotMotor.Turn2
         elif motor == RobotMotor.Turn2:
@@ -157,11 +171,14 @@ class RobotMain():
             return
         isToggle = event["isToggle"]
         isFlip = event["isFlip"]
+        
         if isFlip and self.flipCb is not None:
+            self.isFlip = not self.isFlip
             self.flipCb()
            
         lightLevel = event["lightLevel"]
         if isToggle and self.toggleCb is not None:
+           self.isToggle = not self.isToggle
            self.toggleCb()
 
         if(lightLevel):
@@ -260,7 +277,9 @@ class RobotMain():
             "Camera-S3" : True,
             "Camera-F4" : True,
             "Camera-S4" : True,
-            
+            "isFlip"    : self.isFlip,
+            "isToggle"  : self.isToggle
+             
         }
 
         # print(f"Send telemetry ")

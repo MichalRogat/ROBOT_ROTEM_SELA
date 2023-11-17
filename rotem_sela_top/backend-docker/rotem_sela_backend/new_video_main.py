@@ -37,6 +37,8 @@ cameras = {
 devices = {}
 isMain = True
 subQueues = []
+barrier = multiprocessing.Barrier(4)
+
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
@@ -85,7 +87,7 @@ def toggleCams():
     for q in subQueues:
         q.put({'opcode':'toggle'})
 
-def videoFeedHandler(port, cam_id, queue):
+def videoFeedHandler(port, cam_id, queu, barrier):
         global isMain
         isMain = False
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
@@ -102,10 +104,10 @@ def videoFeedHandler(port, cam_id, queue):
             if video_dev not in cameras:
                 cameras[cam_id[sideIdx][camIdx]] = video_dev
 
-            # set_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
             print(f"{cam_id} start feed")
             print(f"Open video device {video_dev}")
-            time.sleep(2)
+            barrier.wait();
+            
             startTS = time.time()
             
             with v4l2py.Device(video_dev) as device:
@@ -120,7 +122,6 @@ def videoFeedHandler(port, cam_id, queue):
                         ChannelHandler.send_message(frame.data)
                         try:
                             item = queue.get(block=False)
-
                             if item['opcode'] == 'toggle':
                                 camIdx = camIdx+1
                                 if camIdx > 1:
@@ -129,15 +130,9 @@ def videoFeedHandler(port, cam_id, queue):
                                 sideIdx = sideIdx+1
                                 if sideIdx > 1:
                                     sideIdx = 0
-                            
+                    
                             break
                         except Exception as e:
-                            # currTime = time.time()
-                            # if currTime - startTS > 10:
-                            #     sideIdx = sideIdx+1
-                            #     if sideIdx > 1:
-                            #         sideIdx = 0
-                            #     break
                             pass
                     except Exception as e:
                         print(f"video feeding error: {e}")
@@ -203,7 +198,7 @@ if __name__ == "__main__":
     
     for item in CAM_PORTS:
         queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue))
+        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier))
         processes.append(process)
         subQueues.append(queue)
         process.start()
