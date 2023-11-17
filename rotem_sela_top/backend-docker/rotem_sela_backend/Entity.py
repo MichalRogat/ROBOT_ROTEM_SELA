@@ -5,41 +5,49 @@
 # A0-read motor1 current sense
 # A1-read motor 2 current sense
 # A2-read motor 3 current sense 
-from abc import ABC
+
+from abc import ABC, abstractmethod
+from functions import GenericFunctions
+import MotorDriver
+
+HIGH = 1
+LOW = 0
 
 class ITrailer(ABC):
     I2CAddress = 0
-    checkFullTankPin = 0
-    activatePumpPin = 0
-    readBatteryPin = 0
-    readIMUPin = 0
+    checkFullTankPin = 0    # - readADC
+    pumpPin = 0     # - digital output (High or Low)
+    readBatteryPin = 0      # - readADC
+    readIMUPin = 0          # - software I2C
 
 class IMotor(ITrailer):
-    isUglyFlag = False
+    isUglyDriver = False
     pins = []
     chekOverCurrent = 0
 
-class Trailer1():
-    I2CAddress = 0x1
-    checkFullTankPin = 20 #A6 - readADC
-    activatePumpPin = 17 #A3 - digitalOutput (High or Low)
-    readBatteryPin = None 
-    readIMUPin = (None,None) # Software I2C
 
-class D1Motor(Trailer1, IMotor):
-    isUglyDriver = True
-    pins = [2, 5, 3]
-    checkOverCurrent = 14 #A0 - readADC
+class Driver():
+        
+    def __init__(self, isUglyDriver, pins, checkOverCurrent):
+        self.isUglyDriver = isUglyDriver
+        self.pins = pins
+        self.checkOverCurrent = checkOverCurrent
 
-class T1Motor(Trailer1):
-    isUglyDriver = False
-    pins = [7, 9, 6]
-    checkOverCurrent = 15 #A1 - readADC
+    def stopDriver(self):
+        self.gpio = LOW
+        self.pwm = 0
+        self.extra = LOW
+        GenericFunctions.callDriverFunction(self)
 
-class Trailer2():
+class Motor():
+    
+    def __init__(self, pin, gpio):
+        self.pin = pin
+        self.gpio = gpio
 
-    class E1():
-        isUglyDriver = True
+    def startMotor(self):
+        GenericFunctions.callDigitalGpioFunction(self)
 
-myMotor = D1Motor()
-print(myMotor.pins)
+
+pumpMotor = Motor(pin=17, gpio=LOW) # A3
+pumpMotor.startMotor()

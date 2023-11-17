@@ -142,8 +142,8 @@ class MotorDriver:
             
         
     def MotorRun(self, motor, speed):
-        ELEV_TIME = 10
-        JOINT_TIME = 10
+        # ELEV_TIME = 10
+        # JOINT_TIME = 10
         if speed > 100 or speed < -100:
             return
         
