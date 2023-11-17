@@ -26,6 +26,14 @@ class IMotor(ITrailer):
     chekOverCurrent = 0
 
 
+class Trailer1():
+    I2CAddress = 0x1
+    checkFullTankPin = 20 #A6 - readADC
+    activatePumpPin = 17 #A3 - digitalOutput (High or Low)
+    readBatteryPin = None 
+    IMU_SCL_pin = 8 # D8 on nano - Software I2C
+    IMU_SDA_pin = 4 # D4 on nano - Software I2C
+
 class Driver():
         
     def __init__(self, isUglyDriver, pins, checkOverCurrent):
