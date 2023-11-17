@@ -23,9 +23,10 @@ SET_PWM = 0
 STOP_PWM = 1
 SET_GPIO = 2
 READ_ADC = 3
+READ_GPIO = 4
 
 #this way we have the pins of motor 1 in place[1] etc.
-motors_pins = [[0, 0, 0], [2, 5, 3], [7, 6, 9], [12, 11, 10]]
+motors_pins = [[0, 0, 0], [2, 5, 3], [7, 9, 6], [12, 11, 10]]
 
 # Define I2C address and other parameters
 arduino_address = 0x55
@@ -42,13 +43,15 @@ def calculate_checksum(packet):
     checksum = 0
     checksum += start_byte
     checksum += opcode
-    checksum += (len(packet) & 0xFF)  # LSB of length
-    checksum += (len(packet) >> 8)  # MSB of length
+    checksum += (len(packet))
+
     for data in packet:
         checksum += data
-    return (~checksum) & 0xFF
+    #print("calculated checksum: ", checksum%255)
+    return (checksum%255) 
 
 def startMotor(motor_num):
+    global opcode 
     opcode = SET_GPIO
     payload = [motors_pins[motor_num][0], 1]
     calculated_checksum = calculate_checksum(payload)
@@ -56,7 +59,7 @@ def startMotor(motor_num):
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
 
     opcode = SET_PWM
-    payload = [motors_pins[motor_num][1], 100]
+    payload = [motors_pins[motor_num][1], 50]
     calculated_checksum = calculate_checksum(payload)
     packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
@@ -75,7 +78,44 @@ def startMotor(motor_num):
         bus.write_i2c_block_data(arduino_address, 0x01, packet)
     print("started motor", motor_num)
 
+def startMotorReverseDirection(motor_num):
+    global opcode 
+    opcode = SET_GPIO
+    payload = [motors_pins[motor_num][0], 1]
+    calculated_checksum = calculate_checksum(payload)
+    packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+    bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+
+    if(motor_num != 3):
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][1], 0]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][2], 50]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+    else:
+        opcode = SET_PWM
+        payload = [motors_pins[motor_num][1], 50]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+
+        opcode = SET_GPIO
+        payload = [motors_pins[motor_num][2], 0]
+        calculated_checksum = calculate_checksum(payload)
+        packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
+        bus.write_i2c_block_data(arduino_address, 0x01, packet)
+    print("started motor", motor_num)
+
+
 def stopMotor(motor_num):
+    global opcode 
     opcode = SET_GPIO
     payload = [motors_pins[motor_num][0], 0]
     calculated_checksum = calculate_checksum(payload)
@@ -86,7 +126,7 @@ def stopMotor(motor_num):
     payload = [motors_pins[motor_num][1], 0]
     calculated_checksum = calculate_checksum(payload)
     packet = [start_byte, opcode, 2] + payload + [calculated_checksum]
-    print(packet)
+    #print(packet)
     bus.write_i2c_block_data(arduino_address, 0x01, packet)
 
     if(motor_num != 3):
@@ -104,19 +144,23 @@ def stopMotor(motor_num):
     print("stopped motor", motor_num)
 
 try:
-    #while True:
-    #startMotor(3)
+    
+    startMotor(3)
     startMotor(2)
-    #startMotor(1)
-    time.sleep(50)
-    #stopMotor(3)
+    startMotor(1)
+
+    time.sleep(5)
+
+    startMotorReverseDirection(3)
+    startMotorReverseDirection(2)
+    startMotorReverseDirection(1)
+    
+    time.sleep(5)
+    
+    stopMotor(3)
     stopMotor(2)
-    #stopMotor(1)
-        #time.sleep(3)
-        #stopMotor(2)
-        #time.sleep(3)
-        #stopMotor(3)
-        
+    stopMotor(1)
+    
         
         #########################################################
         
