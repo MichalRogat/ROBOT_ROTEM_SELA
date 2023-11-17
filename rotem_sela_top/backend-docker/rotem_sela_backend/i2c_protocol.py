@@ -79,9 +79,7 @@ class Functions():
     class ReadOverCurrent():
         pass
 
-motor1 = 1
-motor2 = 2
-motor3 = 3
+
 # motorPins = [[0, 0, 0], [2, 5, 3], [7, 9, 6], [12, 11, 10]]
 
 class MotorDriver:
