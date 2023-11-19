@@ -2,7 +2,7 @@
 # Each of the motors has 3 pins
 # A3 is pump gpio P1 (digital write)
 # A6 for readADC(full tank)
-# A0-read motor1 current sense
+# A0-read motor 1 current sense
 # A1-read motor 2 current sense
 # A2-read motor 3 current sense 
 
@@ -31,6 +31,10 @@ class IMotor(ITrailer):
 
     @abstractmethod
     def MotorRun():
+        pass
+
+    @abstractmethod
+    def get_a2d_mot_value():
         pass
 
 
@@ -89,13 +93,18 @@ class Driver(IMotor):
 
         GenericFunctions.callDriverFunction(self)
 
+    def get_a2d_mot_value(self):
+        self.adcPin = self.checkOverCurrent
+        GenericFunctions.callReadADC(self)
+
 class Pump(IMotor):
     pumpInstances = []
     
-    def __init__(self, pin):
+    def __init__(self, pin, a2dPin):
         super().__init__()
         Pump.instances.append(self)
         self.pin = pin
+        self.a2dPin = a2dPin
 
     def MotorRun(self, speed):
         self.gpio = HIGH
@@ -104,3 +113,6 @@ class Pump(IMotor):
     def stopMotor(self):
         self.gpio = LOW
         GenericFunctions.callDigitalGpioFunction(self)
+
+    def get_a2d_mot_value(self):
+        GenericFunctions.callReadADC(self)
