@@ -27,8 +27,18 @@ class MotorDriver():
 
     @classmethod
     def StopAllMotors(self):
-        for instance in IMotor.instances:
-            instance.stopMotor()
+        print("Disable Motors")
+        if not self.disable_motors():
+            for instance in IMotor.instances:
+                instance.stopMotor()
+
+        self.disable_motors = False
+
+    @classmethod
+    def DisablePumps(self):
+        print("Disable Pumps")
+        for pumpInstacne in Entity.Pump.instances:
+            pumpInstacne.stopMotor()
 
         
 motorDriver = MotorDriver()
@@ -38,7 +48,8 @@ D1 = Entity.Driver(True, [12,11,10], 0)
 motorDriver.motorRun(motor=D1, speed=50)
 
 # Example with without driver
-pumpMotor = Entity.Motor(pin=17) # A3
-motorDriver.motorRun(motor=pumpMotor)
+pumpMotor = Entity.Pump(pin=17) # A3
+# motorDriver.motorRun(motor=pumpMotor)
 
-motorDriver.StopAllMotors()
+# motorDriver.StopAllMotors()
+motorDriver.DisablePumps()

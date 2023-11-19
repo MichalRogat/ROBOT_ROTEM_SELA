@@ -89,11 +89,12 @@ class Driver(IMotor):
 
         GenericFunctions.callDriverFunction(self)
 
-
-class Motor(IMotor):
+class Pump(IMotor):
+    pumpInstances = []
     
     def __init__(self, pin):
         super().__init__()
+        Pump.instances.append(self)
         self.pin = pin
 
     def MotorRun(self, speed):
