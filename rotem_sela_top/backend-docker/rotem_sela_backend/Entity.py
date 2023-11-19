@@ -162,7 +162,6 @@ class IMU(IIMU):
 
 
 class Trailer1():
-<<<<<<< HEAD
     I2CAddress = 11
     readBatteryPin = 21 #A7
     IMU_SCL_pin = 8 # D8 on nano - Software I2C
