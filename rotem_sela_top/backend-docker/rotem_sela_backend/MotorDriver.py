@@ -1,54 +1,28 @@
 from functions import GenericFunctions
+import Entity
+from Entity import IMotor
 
 HIGH = 1
-LOW = 1
+LOW = 0
 
 class MotorDriver():
+    # Class implements the MotorDriver from version 3.5 in a way that 
+    # robot_main does not need any changes
+    
+    @classmethod
+    def stopMotor(self, motor:IMotor):
+        motor.stopMotor()
 
-    def __init__(self, isUglyDriver, pins, checkOverCurrent):
-        self.isUglyDriver = isUglyDriver
-        self.pins = pins
-        self.checkOverCurrent = checkOverCurrent
+    def motorRun(self, motor:IMotor, speed=0):
+        motor.MotorRun(speed)
+        
+# Example with driver
+motorDriver = MotorDriver()
+D1 = Entity.Driver(True, [12,11,10], 0)
+motorDriver.motorRun(motor=D1, speed=50)
+motorDriver.stopMotor(D1)
 
-    def stopMotor(self):
-        self.gpio = LOW
-        self.pwm = 0
-        self.extra = LOW
-        GenericFunctions.callDriverFunction(self)
-
-    def motorRun(self, speed):
-        self.gpio = HIGH
-
-        if speed >= 90:
-            speed = 90
-        if speed <= -90:
-            speed = -90
-
-        if self.isUglyDriver:
-            # Move counterclock
-            if speed >= 0:
-                self.pwm = speed
-                self.extra = HIGH
-            elif speed < 0:
-            # Move cloclwise
-                speed = abs(speed)
-                self.pwm = speed
-                self.extra = LOW
-
-        elif not self.isUglyDriver:
-            # Move clockwise
-            if speed >= 0:
-                self.pwm = HIGH
-                self.extra = speed
-            elif speed < 0:
-            # Move counterclock
-                speed = abs(speed)
-                self.pwm = speed
-                self.extra = HIGH
-
-        GenericFunctions.callDriverFunction(self)
-
-# Example
-# D1 = MotorDriver(True, [12,11,10], 0)
-# D1.motorRun(50)
-# D1.stopMotor()
+# Example with without driver
+pumpMotor = Entity.Motor(pin=17) # A3
+motorDriver.motorRun(motor=pumpMotor)
+motorDriver.stopMotor(motor=pumpMotor)

@@ -25,6 +25,14 @@ class IMotor(ITrailer):
     pins = []
     chekOverCurrent = 0
 
+    @abstractmethod
+    def stopMotor():
+        pass
+
+    @abstractmethod
+    def MotorRun():
+        pass
+
 
 class Trailer1():
     I2CAddress = 0x1
@@ -34,28 +42,68 @@ class Trailer1():
     IMU_SCL_pin = 8 # D8 on nano - Software I2C
     IMU_SDA_pin = 4 # D4 on nano - Software I2C
 
-class Driver():
+class Driver(IMotor):
         
     def __init__(self, isUglyDriver, pins, checkOverCurrent):
         self.isUglyDriver = isUglyDriver
         self.pins = pins
         self.checkOverCurrent = checkOverCurrent
 
-    def stopDriver(self):
+    def stopMotor(self):
         self.gpio = LOW
         self.pwm = 0
         self.extra = LOW
         GenericFunctions.callDriverFunction(self)
 
-class Motor():
-    
-    def __init__(self, pin, gpio):
-        self.pin = pin
-        self.gpio = gpio
+    def MotorRun(self, speed):
 
-    def startMotor(self):
+        if speed >= 90:
+            speed = 90
+        if speed <= -90:
+            speed = -90
+
+        if self.isUglyDriver:
+            # Move counterclock
+            if speed >= 0:
+                self.pwm = speed
+                self.extra = HIGH
+            elif speed < 0:
+            # Move cloclwise
+                speed = abs(speed)
+                self.pwm = speed
+                self.extra = LOW
+
+        elif not self.isUglyDriver:
+            # Move clockwise
+            if speed >= 0:
+                self.pwm = HIGH
+                self.extra = speed
+            elif speed < 0:
+            # Move counterclock
+                speed = abs(speed)
+                self.pwm = speed
+                self.extra = HIGH
+        
+        self.gpio = HIGH
+
+        GenericFunctions.callDriverFunction(self)
+
+
+class Motor(IMotor):
+    
+    def __init__(self, pin):
+        self.pin = pin
+
+    def MotorRun(self, speed):
+        self.gpio = HIGH
         GenericFunctions.callDigitalGpioFunction(self)
 
+    def stopMotor(self):
+        self.gpio = LOW
+        GenericFunctions.callDigitalGpioFunction(self)
 
-pumpMotor = Motor(pin=17, gpio=LOW) # A3
-pumpMotor.startMotor()
+# D1 = Driver(True, [12, 11, 10], 0)
+# # D1.
+
+# pumpMotor = Motor(pin=17, gpio=LOW) # A3
+# pumpMotor.startMotor()
