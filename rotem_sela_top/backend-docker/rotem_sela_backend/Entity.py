@@ -122,11 +122,11 @@ class DriveDriver(Driver):
             super(DriveDriver, drivedriver).stopMotor()
             
 class Trailer1():
-    I2CAddress = 0x1
+    I2CAddress = 11
     readBatteryPin = 21 #A7
     IMU_SCL_pin = 8 # D8 on nano - Software I2C
     IMU_SDA_pin = 4 # D4 on nano - Software I2C
 
-    # driver1 = Driver(True, [12,11,10], 14)
+    driver1 = Driver(True, [12,11,10], 14)
     turn1 = Driver(False, [7, 9, 6], 15)
-    pump1 = Pump(pin=17, a2dpin=20)
+    pump1 = Pump(pin=17, a2dPin=20)
