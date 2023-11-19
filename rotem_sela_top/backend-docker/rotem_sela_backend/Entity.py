@@ -8,7 +8,6 @@
 
 from abc import ABC, abstractmethod
 from functions import GenericFunctions
-import MotorDriver
 
 HIGH = 1
 LOW = 0
@@ -21,9 +20,10 @@ class ITrailer(ABC):
     readIMUPin = 0          # - software I2C
 
 class IMotor(ITrailer):
-    isUglyDriver = False
-    pins = []
-    chekOverCurrent = 0
+    instances = []
+
+    def __init__(self):
+        IMotor.instances.append(self)
 
     @abstractmethod
     def stopMotor():
@@ -45,6 +45,7 @@ class Trailer1():
 class Driver(IMotor):
         
     def __init__(self, isUglyDriver, pins, checkOverCurrent):
+        super().__init__()
         self.isUglyDriver = isUglyDriver
         self.pins = pins
         self.checkOverCurrent = checkOverCurrent
@@ -92,6 +93,7 @@ class Driver(IMotor):
 class Motor(IMotor):
     
     def __init__(self, pin):
+        super().__init__()
         self.pin = pin
 
     def MotorRun(self, speed):
@@ -101,9 +103,3 @@ class Motor(IMotor):
     def stopMotor(self):
         self.gpio = LOW
         GenericFunctions.callDigitalGpioFunction(self)
-
-# D1 = Driver(True, [12, 11, 10], 0)
-# # D1.
-
-# pumpMotor = Motor(pin=17, gpio=LOW) # A3
-# pumpMotor.startMotor()
