@@ -11,7 +11,9 @@ GETGPIO = 4
 HIGH = 1
 LOW = 0
 
-bus = SMBus(1)
+DEBUG = True
+if not DEBUG:
+    bus = SMBus(1)
 
 class ArduinoAddress(Enum):
     Arduino0 = 0x55
@@ -40,7 +42,10 @@ class Packet:
         return f"{self.SOT},\t {self.opcode},\t {self.payload_length},\t {self.payload},\t {self.checksum}"
 
 def sendPacketOrDebug(packet:Packet):
-    bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0.value, register=0x1, data=packet.to_array())
+    if DEBUG:
+        print(f"packet: {packet}")
+    else:
+        bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0.value, register=0x1, data=packet.to_array())
 
 class GenericFunctions:
 
@@ -70,3 +75,8 @@ class GenericFunctions:
         sendPacketOrDebug(packet)
         print(packet)
          
+    @classmethod
+    def callReadADC(cls, motor):
+        packet = Packet(READADC, payload=[motor.adcPin])
+        sendPacketOrDebug(packet)
+        print(packet)

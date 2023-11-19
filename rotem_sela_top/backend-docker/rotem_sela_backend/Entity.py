@@ -2,7 +2,7 @@
 # Each of the motors has 3 pins
 # A3 is pump gpio P1 (digital write)
 # A6 for readADC(full tank)
-# A0-read motor1 current sense
+# A0-read motor 1 current sense
 # A1-read motor 2 current sense
 # A2-read motor 3 current sense
 
@@ -27,6 +27,10 @@ class IMotor(ABC):
     def MotorRun():
         pass
 
+    @abstractmethod
+    def get_a2d_mot_value():
+        pass
+
 
 class IIMU(ABC):
     instances_imu = []
@@ -47,6 +51,26 @@ class IIMU(ABC):
 #     IMU_SCL_pin = 8  # D8 on nano - Software I2C
 #     IMU_SDA_pin = 4  # D4 on nano - Software I2C
 
+class Pump(IMotor):
+    pumpInstances = []
+
+    def __init__(self, pin, a2dPin):
+        super().__init__()
+        Pump.instances.append(self)
+        self.pin = pin
+        self.a2dPin = a2dPin
+
+    def MotorRun(self, speed):
+        self.gpio = HIGH
+        GenericFunctions.callDigitalGpioFunction(self)
+
+    def stopMotor(self):
+        self.gpio = LOW
+        GenericFunctions.callDigitalGpioFunction(self)
+
+    def get_a2d_mot_value(self):
+        GenericFunctions.callReadADC(self)
+
 
 class Driver(IMotor):
 
@@ -60,6 +84,7 @@ class Driver(IMotor):
         self.gpio = LOW
         self.pwm = 0
         self.extra = LOW
+        print(f"stopped motor: {self.pins}")
         GenericFunctions.callDriverFunction(self)
 
     def MotorRun(self, speed):
@@ -92,6 +117,7 @@ class Driver(IMotor):
                 self.extra = HIGH
 
         self.gpio = HIGH
+        print("i am inheriting correctly")
 
         GenericFunctions.callDriverFunction(self)
 
@@ -104,13 +130,24 @@ class Pump(IMotor):
         Pump.instances.append(self)
         self.pin = pin
 
-    def MotorRun(self, speed):
-        self.gpio = HIGH
-        GenericFunctions.callDigitalGpioFunction(self)
+    def get_a2d_mot_value(self):
+        self.adcPin = self.checkOverCurrent
+        GenericFunctions.callReadADC(self)
 
-    def stopMotor(self):
-        self.gpio = LOW
-        GenericFunctions.callDigitalGpioFunction(self)
+
+class DriveDriver(Driver):
+    driverDriverInstances = []
+
+    def __init__(self, isUglyDriver, pins, checkOverCurrent):
+        super().__init__(isUglyDriver, pins, checkOverCurrent)
+        DriveDriver.driverDriverInstances.append(self)
+
+    def MotorRun(self, speed):
+        from MotorDriver import MotorDriver
+
+        for drivedriver in DriveDriver.driverDriverInstances:
+            # MotorDriver.MotorRun(self=drivedriver, speed=50)
+            super(DriveDriver, drivedriver).MotorRun(speed)
 
 
 class IMU(IIMU):
@@ -122,3 +159,14 @@ class IMU(IIMU):
         self.Accel_Gyro_REG_H = Accel_Gyro_REG_H
         self.RegisterNum = RegisterNum
         self.value = value
+
+
+class Trailer1():
+    I2CAddress = 0x1
+    readBatteryPin = 21  # A7
+    IMU_SCL_pin = 8  # D8 on nano - Software I2C
+    IMU_SDA_pin = 4  # D4 on nano - Software I2C
+
+    # driver1 = Driver(True, [12,11,10], 14)
+    turn1 = Driver(False, [7, 9, 6], 15)
+    pump1 = Pump(pin=17, a2dpin=20)
