@@ -11,12 +11,9 @@ GETGPIO = 4
 HIGH = 1
 LOW = 0
 
-DEBUG = True
+DEBUG = False
 if not DEBUG:
     bus = SMBus(1)
-
-class ArduinoAddress(Enum):
-    Arduino0 = 0x55
     
 class Packet:
     def __init__(self, opcode, payload:list):
@@ -39,13 +36,14 @@ class Packet:
         return [self.SOT, self.opcode, self.payload_length] + self.payload + [self.checksum]
 
     def __repr__(self) -> str:
-        return f"{self.SOT},\t {self.opcode},\t {self.payload_length},\t {self.payload},\t {self.checksum}"
+        return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}"
 
-def sendPacketOrDebug(packet:Packet):
+def sendPacketOrDebug(packet:Packet, i2c_addr):
     if DEBUG:
         print(f"packet: {packet}")
     else:
-        bus.write_i2c_block_data(i2c_addr=ArduinoAddress.Arduino0.value, register=0x1, data=packet.to_array())
+        print(f"i2caddr: {i2c_addr}, packet:{packet}")
+        bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=packet.to_array())
 
 class GenericFunctions:
 
@@ -55,28 +53,28 @@ class GenericFunctions:
         # func - the function to perform e.g. stopMotor startMotor
         # motor - the motor to stop
 
-        packet2 = Packet(STARTPWM, [driver.pins[1], driver.pwm])
-        sendPacketOrDebug(packet2)
+        packet2 = Packet(SETGPIO, [driver.pins[1], driver.pwm])
+        sendPacketOrDebug(packet2, driver.I2CAddress)
 
         if (driver.isUglyDriver is True):
             packet3 = Packet(SETGPIO, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet3)
+            sendPacketOrDebug(packet3, driver.I2CAddress)
         else:
             packet4 = Packet(STARTPWM, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet4)
+            sendPacketOrDebug(packet4, driver.I2CAddress)
         
         packet1 = Packet(SETGPIO, payload=[driver.pins[0] ,driver.gpio])
-        sendPacketOrDebug(packet1)
+        sendPacketOrDebug(packet1, driver.I2CAddress)
 
     @classmethod
     def callDigitalGpioFunction(cls, motor):
         # This method controls generic digital gpio
         packet = Packet(SETGPIO, payload=[motor.pin, motor.gpio])
-        sendPacketOrDebug(packet)
-        print(packet)
+        sendPacketOrDebug(packet, motor.I2CAddress)
+        print(packet, motor.I2CAddress)
          
     @classmethod
     def callReadADC(cls, motor):
         packet = Packet(READADC, payload=[motor.adcPin])
-        sendPacketOrDebug(packet)
-        print(packet)
+        sendPacketOrDebug(packet, motor.I2CAddress)
+        print(packet, motor.I2CAddress)

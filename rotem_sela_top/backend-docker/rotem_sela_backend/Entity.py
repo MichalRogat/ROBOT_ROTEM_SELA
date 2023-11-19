@@ -16,8 +16,9 @@ LOW = 0
 class IMotor(ABC):
     instances = []
 
-    def __init__(self):
+    def __init__(self, I2CAddress):
         IMotor.instances.append(self)
+        self.I2CAddress = I2CAddress
 
     @abstractmethod
     def stopMotor():
@@ -42,20 +43,11 @@ class IIMU(ABC):
     def trackAngle():
         pass
 
-
-# class Trailer1():
-#     I2CAddress = 0x1
-#     checkFullTankPin = 20  # A6 - readADC
-#     activatePumpPin = 17  # A3 - digitalOutput (High or Low)
-#     readBatteryPin = None
-#     IMU_SCL_pin = 8  # D8 on nano - Software I2C
-#     IMU_SDA_pin = 4  # D4 on nano - Software I2C
-
 class Pump(IMotor):
     pumpInstances = []
 
-    def __init__(self, pin, a2dPin):
-        super().__init__()
+    def __init__(self, I2CAddress, pin, a2dPin):
+        super().__init__(I2CAddress)
         Pump.instances.append(self)
         self.pin = pin
         self.a2dPin = a2dPin
@@ -74,8 +66,8 @@ class Pump(IMotor):
 
 class Driver(IMotor):
 
-    def __init__(self, isUglyDriver, pins, checkOverCurrent):
-        super().__init__()
+    def __init__(self, I2CAddress, isUglyDriver, pins, checkOverCurrent):
+        super().__init__(I2CAddress)
         self.isUglyDriver = isUglyDriver
         self.pins = pins
         self.checkOverCurrent = checkOverCurrent
@@ -121,33 +113,27 @@ class Driver(IMotor):
 
         GenericFunctions.callDriverFunction(self)
 
-
-class Pump(IMotor):
-    pumpInstances = []
-
-    def __init__(self, pin):
-        super().__init__()
-        Pump.instances.append(self)
-        self.pin = pin
-
     def get_a2d_mot_value(self):
-        self.adcPin = self.checkOverCurrent
-        GenericFunctions.callReadADC(self)
+        pass
 
 
 class DriveDriver(Driver):
     driverDriverInstances = []
 
-    def __init__(self, isUglyDriver, pins, checkOverCurrent):
-        super().__init__(isUglyDriver, pins, checkOverCurrent)
+    def __init__(self, I2CAddress, isUglyDriver, pins, checkOverCurrent):
+        super().__init__(I2CAddress, isUglyDriver, pins, checkOverCurrent)
         DriveDriver.driverDriverInstances.append(self)
 
     def MotorRun(self, speed):
-        from MotorDriver import MotorDriver
 
         for drivedriver in DriveDriver.driverDriverInstances:
             # MotorDriver.MotorRun(self=drivedriver, speed=50)
             super(DriveDriver, drivedriver).MotorRun(speed)
+    
+    def get_a2d_mot_value(self, motor):
+        super().get_a2d_mot_value()
+
+
 
 
 class IMU(IIMU):
@@ -159,14 +145,85 @@ class IMU(IIMU):
         self.Accel_Gyro_REG_H = Accel_Gyro_REG_H
         self.RegisterNum = RegisterNum
         self.value = value
-
-
+    
 class Trailer1():
-    I2CAddress = 11
-    readBatteryPin = 21 #A7
-    IMU_SCL_pin = 8 # D8 on nano - Software I2C
-    IMU_SDA_pin = 4 # D4 on nano - Software I2C
+    def __init__(self, I2CAddress):
+        self.I2CAddress = I2CAddress
+        self.readBatteryPin = 21 #A7
+        self.IMU_SCL_pin = 8 # D8 on nano - Software I2C
+        self.IMU_SDA_pin = 4 # D4 on nano - Software I2C
 
-    driver1 = Driver(True, [12,11,10], 14)
-    turn1 = Driver(False, [7, 9, 6], 15)
-    pump1 = Pump(pin=17, a2dPin=20)
+        self.driver1 = DriveDriver(I2CAddress=0x11, isUglyDriver=True, pins=[12,11,10],checkOverCurrent= 14)
+        self.turn1 = Driver(I2CAddress=0x11, isUglyDriver=False,pins=  [2, 5, 3],checkOverCurrent= 15)
+        self.pump1 = Pump(I2CAddress=0x11, pin=17, a2dPin=20)
+
+class Trailer2():
+    def __init__(self, I2CAddress):
+        self.I2CAddress = I2CAddress
+        self.readBatteryPin = 21 #A7
+        self.IMU_SCL_pin = 8 # D8 on nano - Software I2C
+        self.IMU_SDA_pin = 4 # D4 on nano - Software I2C
+        IN1 = 3
+        IN2 = 5
+        SLEEP = 2
+
+        IN1 = 9 
+        IN2 = 6
+        SLEEP = 7
+        
+        self.e1 = Driver(I2CAddress=0x12, isUglyDriver=False, pins = [3,5,2],checkOverCurrent= 14)
+        self.e2 = Driver(I2CAddress=0x12, isUglyDriver=False, pins = [9, 6, 7],checkOverCurrent= 15)
+
+class Trailer3():
+    def __init__(self, I2CAddress):
+        self.I2CAddress = I2CAddress
+        self.readBatteryPin = 21 #A7
+        self.IMU_SCL_pin = 8 # D8 on nano - Software I2C
+        self.IMU_SDA_pin = 4 # D4 on nano - Software I2C
+        IN1 = 3
+        IN2 = 5
+        SLEEP = 2
+
+        IN1 = 9 
+        IN2 = 6
+        SLEEP = 7
+        
+        self.t2 = Driver(I2CAddress=0x13, isUglyDriver=False, pins = [3,5,2],checkOverCurrent= 14)
+        self.t3 = Driver(I2CAddress=0x13, isUglyDriver=False, pins = [9, 6, 7],checkOverCurrent= 15)
+
+class Trailer4():
+
+    def __init__(self, I2CAddress):
+        self.I2CAddress = I2CAddress
+        self.readBatteryPin = 21 #A7
+        self.IMU_SCL_pin = 8 # D8 on nano - Software I2C
+        self.IMU_SDA_pin = 4 # D4 on nano - Software I2C
+        IN1 = 3
+        IN2 = 5
+        SLEEP = 2
+
+        IN1 = 9 
+        IN2 = 6
+        SLEEP = 7
+        
+        self.e3 = Driver(I2CAddress=0x14, isUglyDriver=False, pins = [3,5,2],checkOverCurrent= 14)
+        self.e4 = Driver(I2CAddress=0x14, isUglyDriver=False, pins = [9, 6, 7],checkOverCurrent= 15)
+
+class Trailer5():
+
+    def __init__(self, I2CAddress):
+        self.I2CAddress = I2CAddress
+        self.readBatteryPin = 21 #A7
+        self.IMU_SCL_pin = 8 # D8 on nano - Software I2C
+        self.IMU_SDA_pin = 4 # D4 on nano - Software I2C
+        IN1 = 3
+        IN2 = 5
+        SLEEP = 2
+
+        IN1 = 9 
+        IN2 = 6
+        SLEEP = 7
+        
+        self.d2 = DriveDriver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[2, 5, 3],checkOverCurrent= 14)
+        # self.t4 = Driver(I2CAddress=I2CAddress, isUglyDriver=False,pins=  [2, 5, 3],checkOverCurrent= 15)
+        # self.p2 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
