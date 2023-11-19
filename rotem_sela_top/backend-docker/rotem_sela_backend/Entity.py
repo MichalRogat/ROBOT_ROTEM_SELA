@@ -12,14 +12,7 @@ from functions import GenericFunctions
 HIGH = 1
 LOW = 0
 
-class ITrailer(ABC):
-    I2CAddress = 0
-    checkFullTankPin = 0    # - readADC
-    pumpPin = 0     # - digital output (High or Low)
-    readBatteryPin = 0      # - readADC
-    readIMUPin = 0          # - software I2C
-
-class IMotor(ITrailer):
+class IMotor(ABC):
     instances = []
 
     def __init__(self):
@@ -37,14 +30,25 @@ class IMotor(ITrailer):
     def get_a2d_mot_value():
         pass
 
+class Pump(IMotor):
+    pumpInstances = []
+    
+    def __init__(self, pin, a2dPin):
+        super().__init__()
+        Pump.instances.append(self)
+        self.pin = pin
+        self.a2dPin = a2dPin
 
-class Trailer1():
-    I2CAddress = 0x1
-    checkFullTankPin = 20 #A6 - readADC
-    activatePumpPin = 17 #A3 - digitalOutput (High or Low)
-    readBatteryPin = None 
-    IMU_SCL_pin = 8 # D8 on nano - Software I2C
-    IMU_SDA_pin = 4 # D4 on nano - Software I2C
+    def MotorRun(self, speed):
+        self.gpio = HIGH
+        GenericFunctions.callDigitalGpioFunction(self)
+
+    def stopMotor(self):
+        self.gpio = LOW
+        GenericFunctions.callDigitalGpioFunction(self)
+
+    def get_a2d_mot_value(self):
+        GenericFunctions.callReadADC(self)
 
 class Driver(IMotor):
         
@@ -58,6 +62,7 @@ class Driver(IMotor):
         self.gpio = LOW
         self.pwm = 0
         self.extra = LOW
+        print(f"stopped motor: {self.pins}")
         GenericFunctions.callDriverFunction(self)
 
     def MotorRun(self, speed):
@@ -90,6 +95,7 @@ class Driver(IMotor):
                 self.extra = HIGH
         
         self.gpio = HIGH
+        print("i am inheriting correctly")
 
         GenericFunctions.callDriverFunction(self)
 
@@ -97,22 +103,30 @@ class Driver(IMotor):
         self.adcPin = self.checkOverCurrent
         GenericFunctions.callReadADC(self)
 
-class Pump(IMotor):
-    pumpInstances = []
-    
-    def __init__(self, pin, a2dPin):
-        super().__init__()
-        Pump.instances.append(self)
-        self.pin = pin
-        self.a2dPin = a2dPin
+class DriveDriver(Driver):
+    driverDriverInstances = []
+
+    def __init__(self, isUglyDriver, pins, checkOverCurrent):
+        super().__init__(isUglyDriver, pins, checkOverCurrent)
+        DriveDriver.driverDriverInstances.append(self)
 
     def MotorRun(self, speed):
-        self.gpio = HIGH
-        GenericFunctions.callDigitalGpioFunction(self)
+        from MotorDriver import MotorDriver
+
+        for drivedriver in DriveDriver.driverDriverInstances:
+            # MotorDriver.MotorRun(self=drivedriver, speed=50)
+            super(DriveDriver, drivedriver).MotorRun(speed)
 
     def stopMotor(self):
-        self.gpio = LOW
-        GenericFunctions.callDigitalGpioFunction(self)
+        for drivedriver in DriveDriver.driverDriverInstances:
+            super(DriveDriver, drivedriver).stopMotor()
+            
+class Trailer1():
+    I2CAddress = 0x1
+    readBatteryPin = 21 #A7
+    IMU_SCL_pin = 8 # D8 on nano - Software I2C
+    IMU_SDA_pin = 4 # D4 on nano - Software I2C
 
-    def get_a2d_mot_value(self):
-        GenericFunctions.callReadADC(self)
+    # driver1 = Driver(True, [12,11,10], 14)
+    turn1 = Driver(False, [7, 9, 6], 15)
+    pump1 = Pump(pin=17, a2dpin=20)
