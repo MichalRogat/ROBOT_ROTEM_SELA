@@ -161,7 +161,7 @@ class MotorDriver:
         # if self.over_current[motor.value]:
         #     return
         
-        if motor == RobotMotor.Drive1:
+        if motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
             # print(f"Run motor drvie1 {speed}")
             self.motor_speed[RobotMotor.Drive1.value]=speed
           
@@ -175,7 +175,7 @@ class MotorDriver:
                 self.pwmA.ChangeDutyCycle(speed)
                 GPIO.output(PWMA_DIR, GPIO.LOW)
 
-        elif motor == RobotMotor.Drive2:
+        #elif motor == RobotMotor.Drive2:
          
             self.motor_speed[RobotMotor.Drive2.value]=speed
             GPIO.output(PWMB_EN, GPIO.HIGH)
@@ -277,7 +277,7 @@ class MotorDriver:
             GPIO.output(PUMP3_ON2, GPIO.LOW)
            
     def MotorStop(self, motor):
-        if motor == RobotMotor.Drive1:
+        if motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
             # print(f"Stop motor drvie1")
             self.motor_speed[RobotMotor.Drive1.value]=0
             GPIO.output(PWMA_EN, GPIO.LOW)
@@ -288,7 +288,7 @@ class MotorDriver:
             GPIO.output(PWMB_EN, GPIO.LOW)
 
             self.pwmB.ChangeDutyCycle(0)
-        if motor == RobotMotor.Drive2:
+        #if motor == RobotMotor.Drive2:
           
             self.motor_speed[RobotMotor.Drive2.value]=0
             GPIO.output(PWMB_EN, GPIO.LOW)
