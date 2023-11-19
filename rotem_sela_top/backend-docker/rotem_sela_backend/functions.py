@@ -63,10 +63,10 @@ class GenericFunctions:
         packet1 = Packet(SETGPIO, payload=[driver.pins[0] ,driver.gpio])
         sendPacketOrDebug(packet1)
 
-    # @classmethod
-    def callDigitalGpioFunction(self):
+    @classmethod
+    def callDigitalGpioFunction(cls, motor):
         # This method controls generic digital gpio
-        packet = Packet(SETGPIO, payload=[self.pin, self.gpio])
+        packet = Packet(SETGPIO, payload=[motor.pin, motor.gpio])
         sendPacketOrDebug(packet)
         print(packet)
          

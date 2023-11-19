@@ -1,54 +1,55 @@
 from functions import GenericFunctions
+from Entity import IMotor
+import Entity
 
 HIGH = 1
-LOW = 1
+LOW = 0
 
 class MotorDriver():
+    # Class implements the MotorDriver from version 3.5 in a way that 
+    # robot_main does not need any changes
 
-    def __init__(self, isUglyDriver, pins, checkOverCurrent):
-        self.isUglyDriver = isUglyDriver
-        self.pins = pins
-        self.checkOverCurrent = checkOverCurrent
+    def __init__(self):
+    # What are these for ?
+        self.disable_motors = False
+        # self.over_current = [False] * (RobotMotor.Pump3.value+1)
+        # self.motor_speed = [0] * (RobotMotor.Pump3.value+1)
+        # self.current_limit = [1300] * (RobotMotor.Pump3.value+1)
+        # self.motor_current = [0] * (RobotMotor.Pump3.value+1)
+    
+    @classmethod
+    def stopMotor(self, motor:IMotor):
+        motor.stopMotor()
 
-    def stopMotor(self):
-        self.gpio = LOW
-        self.pwm = 0
-        self.extra = LOW
-        GenericFunctions.callDriverFunction(self)
+    @classmethod
+    def motorRun(self, motor:IMotor, speed=0):
+        motor.MotorRun(speed)
 
-    def motorRun(self, speed):
-        self.gpio = HIGH
+    @classmethod
+    def StopAllMotors(self):
+        print("Disable Motors")
+        if not self.disable_motors():
+            for instance in IMotor.instances:
+                instance.stopMotor()
 
-        if speed >= 90:
-            speed = 90
-        if speed <= -90:
-            speed = -90
+        self.disable_motors = False
 
-        if self.isUglyDriver:
-            # Move counterclock
-            if speed >= 0:
-                self.pwm = speed
-                self.extra = HIGH
-            elif speed < 0:
-            # Move cloclwise
-                speed = abs(speed)
-                self.pwm = speed
-                self.extra = LOW
+    @classmethod
+    def DisablePumps(self):
+        print("Disable Pumps")
+        for pumpInstacne in Entity.Pump.instances:
+            pumpInstacne.stopMotor()
 
-        elif not self.isUglyDriver:
-            # Move clockwise
-            if speed >= 0:
-                self.pwm = HIGH
-                self.extra = speed
-            elif speed < 0:
-            # Move counterclock
-                speed = abs(speed)
-                self.pwm = speed
-                self.extra = HIGH
+        
+motorDriver = MotorDriver()
 
-        GenericFunctions.callDriverFunction(self)
+# Example with driver
+D1 = Entity.Driver(True, [12,11,10], 0)
+motorDriver.motorRun(motor=D1, speed=50)
 
-# Example
-# D1 = MotorDriver(True, [12,11,10], 0)
-# D1.motorRun(50)
-# D1.stopMotor()
+# Example with without driver
+pumpMotor = Entity.Pump(pin=17) # A3
+# motorDriver.motorRun(motor=pumpMotor)
+
+# motorDriver.StopAllMotors()
+motorDriver.DisablePumps()
