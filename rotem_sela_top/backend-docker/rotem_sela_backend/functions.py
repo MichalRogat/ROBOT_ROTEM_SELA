@@ -11,6 +11,10 @@ GETGPIO = 4
 HIGH = 1
 LOW = 0
 
+IN1 = 0
+IN2 = 1
+SLEEP = 2
+
 DEBUG = False
 if not DEBUG:
     bus = SMBus(1)
@@ -53,18 +57,13 @@ class GenericFunctions:
         # func - the function to perform e.g. stopMotor startMotor
         # motor - the motor to stop
 
-        packet2 = Packet(SETGPIO, [driver.pins[1], driver.pwm])
+        packet2 = Packet(SETGPIO, [driver.pins[SLEEP], driver.gpio])
         sendPacketOrDebug(packet2, driver.I2CAddress)
-
-        if (driver.isUglyDriver is True):
-            packet3 = Packet(SETGPIO, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet3, driver.I2CAddress)
-        else:
-            packet4 = Packet(STARTPWM, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet4, driver.I2CAddress)
-        
-        packet1 = Packet(SETGPIO, payload=[driver.pins[0] ,driver.gpio])
-        sendPacketOrDebug(packet1, driver.I2CAddress)
+        packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
+        sendPacketOrDebug(packet3, driver.I2CAddress)
+        packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
+        sendPacketOrDebug(packet4, driver.I2CAddress)
+       
 
     @classmethod
     def callDigitalGpioFunction(cls, motor):

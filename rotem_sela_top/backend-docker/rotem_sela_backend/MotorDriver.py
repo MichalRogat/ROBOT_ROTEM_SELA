@@ -25,9 +25,9 @@ class MotorDriver():
     @classmethod
     def StopAllMotors(self):
         print("Disable Motors")
-        if not MotorDriver.disable_motors:
-            for instance in IMotor.instances:
-                instance.stopMotor()
+        # if not MotorDriver.disable_motors:
+        for instance in IMotor.instances:
+            instance.stopMotor()
 
         self.disable_motors = False
 
