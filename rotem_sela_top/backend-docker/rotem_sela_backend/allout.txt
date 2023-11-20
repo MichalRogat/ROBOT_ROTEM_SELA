@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/new_video_main.py", line 2, in <module>
-    from linux_system_monitor import LinuxSystemStatus
-  File "/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/linux_system_monitor.py", line 3, in <module>
-    import usb.core
-ModuleNotFoundError: No module named 'usb'
