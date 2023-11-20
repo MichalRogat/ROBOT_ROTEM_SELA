@@ -175,7 +175,7 @@ class Trailer1():
 
     def __init__(self, I2CAddress):
         self.I2CAddress = I2CAddress
-        self.driver1 = DriveDriver(I2CAddress=I2CAddress
+        self.driver1 = DriveDriver(I2CAddress=I2CAddress,
                                    isUglyDriver=True,
                                    pins=[11, 10, 12],
                                    checkOverCurrent=14)
