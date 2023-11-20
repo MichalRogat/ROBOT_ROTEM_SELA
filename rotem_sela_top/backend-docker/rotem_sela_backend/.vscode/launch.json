@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: ADC File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "test_adc.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },

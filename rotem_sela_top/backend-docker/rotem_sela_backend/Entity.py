@@ -72,7 +72,7 @@ class Pump(IMotor):
         GenericFunctions.callDigitalGpioFunction(self)
 
     def get_a2d_mot_value(self):
-        GenericFunctions.callReadADC(self)
+        GenericFunctions.callReadNano(self)
 
 
 class Driver(IMotor):
@@ -140,7 +140,6 @@ class Driver(IMotor):
     def get_a2d_mot_value(self):
         pass
 
-
 class DriveDriver(Driver):
     driverDriverInstances = []
 
@@ -185,12 +184,10 @@ class Trailer1():
                             checkOverCurrent=15)
         self.pump1 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
 
-
 class Trailer2():
 
     def __init__(self, I2CAddress):
         self.I2CAddress = I2CAddress
-        self.readBatteryPin = 20  # A6
         self.e1 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],
@@ -205,7 +202,6 @@ class Trailer3():
 
     def __init__(self, I2CAddress):
         self.I2CAddress = I2CAddress
-        self.readBatteryPin = 21  #A7
         self.t2 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],
@@ -220,7 +216,6 @@ class Trailer4():
 
     def __init__(self, I2CAddress):
         self.I2CAddress = I2CAddress
-        self.readBatteryPin = 21  #A7
         self.e3 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],

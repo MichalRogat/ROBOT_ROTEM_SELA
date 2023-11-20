@@ -1,5 +1,6 @@
-from enum import Enum
 from smbus2 import SMBus
+import json
+import struct
 
 # OPCODES
 STARTPWM = 0
@@ -40,7 +41,7 @@ class Packet:
         return [self.SOT, self.opcode, self.payload_length] + self.payload + [self.checksum]
 
     def __repr__(self) -> str:
-        return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}"
+        return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}" 
 
 def sendPacketOrDebug(packet:Packet, i2c_addr):
     if DEBUG:
@@ -73,9 +74,21 @@ class GenericFunctions:
         packet = Packet(SETGPIO, payload=[motor.pin, motor.gpio])
         sendPacketOrDebug(packet, motor.I2CAddress)
         print(packet, motor.I2CAddress)
-         
+
     @classmethod
-    def callReadADC(cls, motor):
-        packet = Packet(READADC, payload=[motor.adcPin])
-        sendPacketOrDebug(packet, motor.I2CAddress)
-        print(packet, motor.I2CAddress)
+    def callReadNano(cls, trailer):
+        ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
+
+        res = {}
+        res['fullTankValue'] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
+        res['m1CS'] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
+        res['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
+        res['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
+        res['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
+        res['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
+        res['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
+        res['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
+        res['yaw'] = - struct.unpack('>f', bytes(ret_byte[13:17]))[0] # 4B (float)
+        res['pitch'] = struct.unpack('>f', bytes(ret_byte[17:21]))[0] #- 4B
+        res['roll'] = struct.unpack('>f', bytes(ret_byte[21:25]))[0] #- 4B
+        print(json.dumps(res))

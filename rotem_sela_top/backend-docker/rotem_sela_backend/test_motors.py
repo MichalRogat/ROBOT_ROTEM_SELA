@@ -1,7 +1,7 @@
 from MotorDriver import MotorDriver
 from Entity import Trailer1, Trailer2, Trailer3, Trailer4, Trailer5
 
-# trailer1 = Trailer1(I2CAddress = 0x11)
+trailer1 = Trailer1(I2CAddress = 0x11)
 
 # MotorDriver.MotorRun(trailer1.driver1, speed=90)
 # MotorDriver.stopMotor(trailer1.driver1)
