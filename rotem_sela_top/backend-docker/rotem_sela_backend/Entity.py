@@ -190,7 +190,7 @@ class Trailer2():
 
     def __init__(self, I2CAddress):
         self.I2CAddress = I2CAddress
-        self.readBatteryPin = 21  #A7
+        self.readBatteryPin = 20  # A6
         self.e1 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],

@@ -20,15 +20,18 @@ class MotorDriver():
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
-        motor.MotorRun(100-speed)
+        if not motor.isUglyDriver:
+            motor.MotorRun(100-abs(speed) if speed > 0 else -(100-abs(speed)))
+        else:
+            motor.MotorRun(speed)
 
     @classmethod
     def StopAllMotors(self):
         print("Disable Motors")
         # if not MotorDriver.disable_motors:
         for instance in IMotor.instances:
+            instance.gpio = LOW
             instance.stopMotor()
-
         self.disable_motors = False
 
     @classmethod
@@ -40,19 +43,3 @@ class MotorDriver():
     @classmethod
     def get_a2d_mot_value(self, motor:Entity.IMotor):
         motor.get_a2d_mot_value()
-
-if __name__ == "__main__":
-    # unit test MotorDriver.py, Entity.py, Functions.py
-
-    motorDriver = MotorDriver()
-
-    # Example with driver
-    D1 = Entity.Driver(True, [12,11,10], 0)
-    # motorDriver.MotorRun(motor=D1, speed=50)
-
-    # Example with without driver
-    # pumpMotor = Entity.Pump(pin=17) # A3
-    # motorDriver.MotorRun(motor=pumpMotor)
-
-    motorDriver.StopAllMotors()
-    # motorDriver.DisablePumps()

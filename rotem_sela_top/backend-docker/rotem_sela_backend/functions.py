@@ -59,6 +59,8 @@ class GenericFunctions:
 
         packet2 = Packet(SETGPIO, [driver.pins[SLEEP], driver.gpio])
         sendPacketOrDebug(packet2, driver.I2CAddress)
+        if driver.IN1type is None:
+            return
         packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
         sendPacketOrDebug(packet3, driver.I2CAddress)
         packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
