@@ -14,7 +14,13 @@ WRITEIMU = 6
 HIGH = 1
 LOW = 0
 
-bus = SMBus(1)
+IN1 = 0
+IN2 = 1
+SLEEP = 2
+
+DEBUG = False
+if not DEBUG:
+    bus = SMBus(1)
 
 
 class ArduinoAddress(Enum):
@@ -46,12 +52,16 @@ class Packet:
         return [self.SOT, self.opcode, self.payload_length] + self.payload + [self.checksum]
 
     def __repr__(self) -> str:
-        return f"{self.SOT},\t {self.opcode},\t {self.payload_length},\t {self.payload},\t {self.checksum}"
+        return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}"
 
 
-def sendPacketOrDebug(packet: Packet):
-    bus.write_i2c_block_data(
-        i2c_addr=ArduinoAddress.Arduino0.value, register=0x1, data=packet.to_array())
+def sendPacketOrDebug(packet: Packet, i2c_addr):
+    if DEBUG:
+        print(f"packet: {packet}")
+    else:
+        print(f"i2caddr: {i2c_addr}, packet:{packet}")
+        bus.write_i2c_block_data(
+            i2c_addr=i2c_addr, register=0x1, data=packet.to_array())
 
 
 class GenericFunctions:
@@ -62,32 +72,27 @@ class GenericFunctions:
         # func - the function to perform e.g. stopMotor startMotor
         # motor - the motor to stop
 
-        packet2 = Packet(STARTPWM, [driver.pins[1], driver.pwm])
-        sendPacketOrDebug(packet2)
-
-        if (driver.isUglyDriver is True):
-            packet3 = Packet(SETGPIO, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet3)
-        else:
-            packet4 = Packet(STARTPWM, [driver.pins[2], driver.extra])
-            sendPacketOrDebug(packet4)
-
-        packet1 = Packet(SETGPIO, payload=[driver.pins[0], driver.gpio])
-        sendPacketOrDebug(packet1)
+        packet2 = Packet(SETGPIO, [driver.pins[SLEEP], driver.gpio])
+        sendPacketOrDebug(packet2, driver.I2CAddress)
+        packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
+        sendPacketOrDebug(packet3, driver.I2CAddress)
+        packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
+        sendPacketOrDebug(packet4, driver.I2CAddress)
 
     @classmethod
     def callDigitalGpioFunction(cls, motor):
         # This method controls generic digital gpio
         packet = Packet(SETGPIO, payload=[motor.pin, motor.gpio])
-        sendPacketOrDebug(packet)
-        print(packet)
+        sendPacketOrDebug(packet, motor.I2CAddress)
+        print(packet, motor.I2CAddress)
 
     @classmethod
-    def readIMU(self, address, low, high):
-        IMUPacket_R = Packet(READIMU, payload=[address, low, high])
-        sendPacketOrDebug(IMUPacket_R)
+    def callReadADC(cls, motor):
+        packet = Packet(READADC, payload=[motor.adcPin])
+        sendPacketOrDebug(packet, motor.I2CAddress)
+        print(packet, motor.I2CAddress)
 
     @classmethod
-    def writeIMU(self, address, reg_num, value):
-        IMUPacket_W = Packet(WRITEIMU, payload=[address, reg_num, value])
-        sendPacketOrDebug(IMUPacket_W)
+    def readIMU(self, address):
+        IMUPacket_R = Packet(READIMU, payload=[])
+        sendPacketOrDebug(IMUPacket_R, address)
