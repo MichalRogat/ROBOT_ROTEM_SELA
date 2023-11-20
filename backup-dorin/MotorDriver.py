@@ -20,7 +20,7 @@ class MotorDriver():
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
-        motor.MotorRun(100-speed)
+        motor.MotorRun(speed)
 
     @classmethod
     def StopAllMotors(self):
