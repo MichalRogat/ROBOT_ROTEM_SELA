@@ -1,12 +1,26 @@
 from Entity import IMotor
 import Entity
+import threading
+from functions import GenericFunctions
+import Entity as Entity
+import time
 
 HIGH = 1
 LOW = 0
 
 class MotorDriver():
-    # Class implements the MotorDriver from version 3.5 in a way that 
-    # robot_main does not need any changes
+# 
+    def __init__(self):
+        trailer1 = Entity.Trailer1(I2CAddress = 0x11)
+        trailer2 = Entity.Trailer2(I2CAddress = 0x12)
+        trailer3 = Entity.Trailer3(I2CAddress = 0x13)
+        trailer4 = Entity.Trailer4(I2CAddress = 0x14)
+        trailer5 = Entity.Trailer5(I2CAddress = 0x15)
+
+        def init_thread():
+                GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
+        threading.Thread(target=init_thread).start()
+
 
     disable_motors = False
     # over_current = [False] * (RobotMotor.Pump3.value+1)
@@ -40,6 +54,4 @@ class MotorDriver():
         for pumpInstacne in Entity.Pump.instances:
             pumpInstacne.stopMotor()
 
-    @classmethod
-    def get_a2d_mot_value(self, motor:Entity.IMotor):
-        motor.get_a2d_mot_value()
+motorDriver = MotorDriver()

@@ -278,9 +278,6 @@ class RobotMain():
 
         }
 
-        # print(f"Send telemetry ")
-        # print(str(info))
-
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
 

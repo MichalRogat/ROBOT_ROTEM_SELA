@@ -150,7 +150,6 @@ class DriveDriver(Driver):
     def MotorRun(self, speed):
 
         for drivedriver in DriveDriver.driverDriverInstances:
-            # MotorDriver.MotorRun(self=drivedriver, speed=50)
             super(DriveDriver, drivedriver).MotorRun(speed)
 
     def get_a2d_mot_value(self, motor):
@@ -169,11 +168,20 @@ class IMU(IIMU):
         self.RegisterNum = RegisterNum
         self.value = value
 
+class ITrailer(ABC):
+    trailer_instances = []
 
-class Trailer1():
+    def __init__(self):
+        super().__init__()
+        ITrailer.trailer_instances.append(self)
+
+
+class Trailer1(ITrailer):
 
     def __init__(self, I2CAddress):
+        super().__init__()
         self.I2CAddress = I2CAddress
+        self.name = '1'
         self.driver1 = DriveDriver(I2CAddress=I2CAddress,
                                    isUglyDriver=True,
                                    pins=[11, 10, 12],
@@ -184,9 +192,11 @@ class Trailer1():
                             checkOverCurrent=15)
         self.pump1 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
 
-class Trailer2():
+class Trailer2(ITrailer):
 
     def __init__(self, I2CAddress):
+        super().__init__()
+        self.name = '2'
         self.I2CAddress = I2CAddress
         self.e1 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
@@ -198,9 +208,11 @@ class Trailer2():
                          checkOverCurrent=15)
 
 
-class Trailer3():
+class Trailer3(ITrailer):
 
     def __init__(self, I2CAddress):
+        super().__init__()
+        self.name = '3'
         self.I2CAddress = I2CAddress
         self.t2 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
@@ -212,9 +224,11 @@ class Trailer3():
                          checkOverCurrent=15)
 
 
-class Trailer4():
+class Trailer4(ITrailer):
 
     def __init__(self, I2CAddress):
+        super().__init__()
+        self.name = '4'
         self.I2CAddress = I2CAddress
         self.e3 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
@@ -226,9 +240,11 @@ class Trailer4():
                          checkOverCurrent=15)
 
 
-class Trailer5():
+class Trailer5(ITrailer):
 
     def __init__(self, I2CAddress):
+        super().__init__()
+        self.name = '5'
         self.I2CAddress = I2CAddress
         self.d2 = DriveDriver(I2CAddress=I2CAddress,
                               isUglyDriver=False,

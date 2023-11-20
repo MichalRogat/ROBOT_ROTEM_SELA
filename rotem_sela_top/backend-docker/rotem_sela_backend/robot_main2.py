@@ -17,6 +17,8 @@ import asyncio
 import json
 import numpy as np
 import math
+from functions import GenericFunctions
+import Entity
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -233,8 +235,7 @@ class RobotMain():
                 if self.activePump == 1:
                     self.motors.MotorStop(RobotMotor.Pump1)
                 elif self.activePump == 2:
-                    self.motors.MotorStop(RobotMotor.Pump2)
-                elif self.activePump == 3:
+                  lif self.activePump == 3:
                     self.motors.MotorStop(RobotMotor.Pump3)
         self.telemetryChannel.send_message(json.dumps(event))
 
@@ -261,26 +262,9 @@ class RobotMain():
                 self.motors.MotorTestCurrentOverload(self.a2d.values)
 
     def TelemetricInfoSend(self):
-        if IMU1_EXIST:
-            self.angle1 = self.imu_1.prevAngle[0]
-        else:
-            self.angle1 = [0.0, 0.0, 0.0]
-        if IMU2_EXIST:
-            self.angle2 = self.imu_2.prevAngle[0]
-        else:
-            self.angle2 = [0.0, 0.0, 0.0]
-        if IMU3_EXIST:
-            self.angle3 = self.imu_3.prevAngle[0]
-        else:
-            self.angle3 = [0.0, 0.0, 0.0]
-        if IMU4_EXIST:
-            self.angle4 = self.imu_4.prevAngle[0]
-        else:
-            self.angle4 = [0.0, 0.0, 0.0]
-        if IMU5_EXIST:
-            self.angle5 = self.imu_5.prevAngle[0]
-        else:
-            self.angle5 = [0.0, 0.0, 0.0]
+        def init_thread():
+            GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
+        threading.Thread(target=init_thread, args=(self.telemetryChannel, )).start()
 
         info = {
             "opcode": CommandOpcode.telemetric.name,
@@ -317,7 +301,62 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle
 
+        }  self.motors.MotorStop(RobotMotor.Pump2)
+                elif self.activePump == 3:
+                    self.motors.MotorStop(RobotMotor.Pump3)
+        self.telemetryChannel.send_message(json.dumps(event))
+
+    def CalibrationHandler(self, event):
+        self.offset1 = self.angle1
+        self.offset2 = self.angle2
+        self.offset3 = self.angle3
+        self.offset4 = self.angle4
+        self.offset5 = self.angle5
+
+    def RobotMain(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        while True:
+            # print(self.a2d.values)
+            delta = datetime.datetime.now() - self.last_keep_alive
+            # if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
+            #     self.motors.StopAllMotors()
+            self.TelemetricInfoSend()
+            time.sleep(0.1)
+            # read current of motors
+            if A2D_EXISTS:
+                # this function take time i2c a2d issue to solve
+                self.motors.MotorTestCurrentOverload(self.a2d.values)
+
+    def TelemetricInfoSend(self):
+        
+        info = {
+            "opcode": CommandOpcode.telemetric.name,
+            "joint1": self.a2d.values[6],
+            "activePump": self.activePump,
+            "pumpingNow": self.isPumpingNow,
+            "Spare2": 4096,
+            "Spare3": 4096,
+            "Spare4": 4096,
+            "Spare5": 4096,
+            "Spare6": 4096,
+            "Spare7": 4096,
+            "Camera-F1": True,
+            "Camera-S1": True,
+            "Camera-F2": True,
+            "Camera-S2": True,
+            "Camera-F3": True,
+            "Camera-S3": True,
+            "Camera-F4": True,
+            "Camera-S4": True,
+            "isFlip": self.isFlip,
+            "isToggle": self.isToggle
         }
+        lock = threading.Lock()
+        def init_thread():
+            global info
+            GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
+        threading.Thread(target=init_thread, args=(self.telemetryChannel, )).start()
 
         # print(f"Send telemetry ")
         # print(str(info))
