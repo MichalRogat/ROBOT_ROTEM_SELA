@@ -80,50 +80,49 @@ class GenericFunctions:
         sendPacketOrDebug(packet, motor.I2CAddress)
         print(packet, motor.I2CAddress)
 
-    @classmethod
-    def callReadNano(cls, trailers):
+    # @classmethod
+    # def callReadNano(cls, trailers):
 
-        while(True):
-            for trailer in trailers:
-                try:
-                    ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
-                    res = {}
-                    res['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
-                    res['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
-                    res['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
-                    res['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
-                    res['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
-                    res['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
-                    res['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
-                    res['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
-                    res['imu'+trailer.name]=[
-                                                    struct.unpack('>f', bytes(ret_byte[13:17]))[0], #yaw
-                                                    struct.unpack('>f', bytes(ret_byte[17:21]))[0], #pitch
-                                                    struct.unpack('>f', bytes(ret_byte[21:25]))[0] # roll
-                    ]
-                    res["opcode"] = CommandOpcode.telemetric.name,
-                    res["joint1"] = "not implemented" # self.a2d.values[6],
-                    res["activePump"] = "not implemented" # self.activePump,
-                    res["pumpingNow"] = "not implemted," # self.isPumpingNow # 
-                    res["Spare2"] = 4096,
-                    res["Spare3"] = 4096,
-                    res["Spare4"] = 4096,
-                    res["Spare5"] = 4096,
-                    res["Spare6"] = 4096,
-                    res["Spare7"] = 4096,
-                    res["Camera-F1"] = True,
-                    res["Camera-S1"] = True,
-                    res["Camera-F2"] = True,
-                    res["Camera-S2"] = True,
-                    res["Camera-F3"] = True,
-                    res["Camera-S3"] = True,
-                    res["Camera-F4"] = True,
-                    res["Camera-S4"] = True,
-                    res["isFlip"]: "not implemeted" #self.isFlip,
-                    res["isToggle"]: "not implemted " # self.isToggle
-                    # print(json.dumps(res))
-                except Exception as e:
-                    print(f"{trailer} {e}")
-                finally:
-                    time.sleep(0.1)
-        
+        # while(True):
+        #     for trailer in trailers:
+        #         try:
+        #             ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
+        #             res = {}
+        #             res['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
+        #             res['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
+        #             res['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
+        #             res['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
+        #             res['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
+        #             res['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
+        #             res['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
+        #             res['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
+        #             res['imu'+trailer.name]=[
+        #                                             struct.unpack('>f', bytes(ret_byte[13:17]))[0], #yaw
+        #                                             struct.unpack('>f', bytes(ret_byte[17:21]))[0], #pitch
+        #                                             struct.unpack('>f', bytes(ret_byte[21:25]))[0] # roll
+        #             ]
+        #             res["opcode"] = CommandOpcode.telemetric.name,
+        #             res["joint1"] = "not implemented" # self.a2d.values[6],
+        #             res["activePump"] = "not implemented" # self.activePump,
+        #             res["pumpingNow"] = "not implemted," # self.isPumpingNow # 
+        #             res["Spare2"] = 4096,
+        #             res["Spare3"] = 4096,
+        #             res["Spare4"] = 4096,
+        #             res["Spare5"] = 4096,
+        #             res["Spare6"] = 4096,
+        #             res["Spare7"] = 4096,
+        #             res["Camera-F1"] = True,
+        #             res["Camera-S1"] = True,
+        #             res["Camera-F2"] = True,
+        #             res["Camera-S2"] = True,
+        #             res["Camera-F3"] = True,
+        #             res["Camera-S3"] = True,
+        #             res["Camera-F4"] = True,
+        #             res["Camera-S4"] = True,
+        #             res["isFlip"]: "not implemeted" #self.isFlip,
+        #             res["isToggle"]: "not implemted " # self.isToggle
+        #             # print(json.dumps(res))
+        #         except Exception as e:
+        #             print(f"{trailer} {e}")
+        #         finally:
+        #             time.sleep(0.1)

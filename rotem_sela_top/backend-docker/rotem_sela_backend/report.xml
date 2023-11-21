@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<dfxml xmloutputversion='1.0'>
+  <metadata 
+  xmlns='http://afflib.org/tcpflow/' 
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+  xmlns:dc='http://purl.org/dc/elements/1.1/'>
+    <dc:type>Feature Extraction</dc:type>
+  </metadata>
+  <creator version='1.0'>
+    <program>TCPFLOW</program>
+    <version>1.5.1</version>
+    <build_environment>
+      <compiler>8.3.0 (8.3.0)</compiler>
+      <CPPFLAGS>-pthread -I/usr/local/include -I/usr/local/include -Wdate-time -D_FORTIFY_SOURCE=2 -DUTC_OFFSET=+0000 </CPPFLAGS>
+      <CFLAGS>-g   -pthread -g -O3 -fdebug-prefix-map=/build/tcpflow-ma1goP/tcpflow-1.5.2+repack1=. -fstack-protector-strong -Wformat -Werror=format-security -MD -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return -Wbad-function-cast -Wcast-qual -Wundef -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wc++-compat -Wmissing-noreturn -Wall -Wstrict-prototypes -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wshadow -Wwrite-strings -Wcast-align -Waggregate-return -Wbad-function-cast -Wcast-qual -Wundef -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wc++-compat -Wmissing-noreturn -Wall -Wstrict-prototypes</CFLAGS>
+      <CXXFLAGS>-g -pthread -g -O3 -fdebug-prefix-map=/build/tcpflow-ma1goP/tcpflow-1.5.2+repack1=. -fstack-protector-strong -Wformat -Werror=format-security -Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wshadow -Wwrite-strings -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wmissing-noreturn -Woverloaded-virtual -Wsign-promo -funit-at-a-time -Weffc++ -Wno-address-of-packed-member -Wall -MD -D_FORTIFY_SOURCE=2 -Wpointer-arith -Wshadow -Wwrite-strings -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wfloat-equal -Wmultichar -Wmissing-noreturn -Woverloaded-virtual -Wsign-promo -funit-at-a-time -Wstrict-null-sentinel -Weffc++ </CXXFLAGS>
+      <LDFLAGS>-L/usr/local/lib -L/usr/local/lib -Wl,-z,relro</LDFLAGS>
+      <LIBS>-lpcap -lcairo -lfontconfig -lfreetype -lpixman-1 -lexpat  -lcrypto -lssl -lcrypto -ldl -lz </LIBS>
+      <compilation_date>2019-08-10T12:45:57</compilation_date>
+      <library name="boost" version="106700"/>
+    </build_environment>
+    <execution_environment>
+      <os_sysname>Linux</os_sysname>
+      <os_release>6.1.21-v8+</os_release>
+      <os_version>#1642 SMP PREEMPT Mon Apr  3 17:24:16 BST 2023</os_version>
+      <host>raspberrypi</host>
+      <arch>aarch64</arch>
+      <command_line>tcpflow -i any -C -J port 1234</command_line>
+      <uid>0</uid>
+      <username>root</username>
+      <start_time>2023-11-21T10:52:38Z</start_time>
+    </execution_environment>
+  </creator>
+  <configuration>
+  </configuration>
+  <tdelta>0</tdelta>
+  <configuration>
+    <fileobject>
+      <filesize>0</filesize>
+      <tcpflow startime='2023-11-21T10:53:52.826677Z' endtime='2023-11-21T10:55:25.080431Z' mac_daddr='00:04:00:01:00:06' mac_saddr='dc:a6:32:e6:5c:d2' family='2' src_ipn='192.168.1.86' dst_ipn='192.168.1.193' srcport='1234' dstport='53137' packets='1704' len='95428' />
+    </fileobject>
+    <fileobject>
+      <filesize>0</filesize>
+      <tcpflow startime='2023-11-21T11:01:53.912918Z' endtime='2023-11-21T11:02:00.888324Z' mac_daddr='00:04:00:01:00:06' mac_saddr='dc:a6:32:e6:5c:d2' family='2' src_ipn='192.168.1.86' dst_ipn='192.168.1.193' srcport='1234' dstport='53512' packets='478' len='26772' />
+    </fileobject>
+    <fileobject>
+      <filesize>0</filesize>
+      <tcpflow startime='2023-11-21T11:04:43.623031Z' endtime='2023-11-21T11:24:10.183063Z' mac_daddr='00:04:00:01:00:06' mac_saddr='dc:a6:32:e6:5c:d2' family='2' src_ipn='192.168.1.86' dst_ipn='192.168.1.193' srcport='1234' dstport='53684' packets='17425' len='975804' />
+    </fileobject>

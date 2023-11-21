@@ -4,24 +4,30 @@ import queue
 import logging
 import os
 import datetime
-from pwm_rpi import RobotMotor, MotorDriver, LIGHT
+from pwm_rpi import RobotMotor, LIGHT
+# from MotorDriver import MotorDriver
 import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
 from enum import Enum
 from minimu import MinIMU_v5_pi
 import serial_a2d
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 import asyncio
 import json
 import numpy as np
 import math
+from functions import GenericFunctions
+import Entity
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
-A2D_EXISTS = True
-IMU1_EXIST = True
-IMU2_EXIST = True
+A2D_EXISTS = False
+IMU1_EXIST = False
+IMU2_EXIST = False
+IMU3_EXIST = False
+IMU4_EXIST = False
+IMU5_EXIST = False
 
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
@@ -36,8 +42,14 @@ class RobotMain():
     isToggle = False
     angle1 = [0, 0, 0]
     angle2 = [0, 0, 0]
+    angle3 = [0, 0, 0]
+    angle4 = [0, 0, 0]
+    angle5 = [0, 0, 0]
     offset1 = [0, 0, 0]
     offset2 = [0, 0, 0]
+    offset3 = [0, 0, 0]
+    offset4 = [0, 0, 0]
+    offset5 = [0, 0, 0]
 
     def __init__(self) -> None:
         print(f"Start robot service {RC}")
@@ -55,14 +67,20 @@ class RobotMain():
             print(f"Start remote control service")
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
 
-        self.a2d = serial_a2d.SerialA2D()
+        try:
+            self.a2d = serial_a2d.SerialA2D()
+        except Exception as e:
+            print ("Exception in a2d: ", e)
         self.a2d_thread = threading.Thread(target=self.A2dHandler)
         self.i2c_lock = threading.Lock()
         self.message_handler_thread = threading.Thread(
             target=self.RobotMessageHandler)
         self.main_thread = threading.Thread(target=self.RobotMain)
         self.last_keep_alive = datetime.datetime.now()
-        self.motors = MotorDriver()
+        try:
+            self.motors = MotorDriver()
+        except Exception as e:
+            print("load motor exception: ",e)
 
         if IMU1_EXIST:
             self.imu_1 = MinIMU_v5_pi(0, self.i2c_lock)
@@ -73,6 +91,19 @@ class RobotMain():
             self.imu_2 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
             self.imu_2.trackAngle()
             # self.imu_2.trackYaw()
+
+        if IMU3_EXIST:
+            self.imu_3 = MinIMU_v5_pi(0, self.i2c_lock)
+            self.imu_3.trackAngle()
+            # self.imu_1.trackYaw()
+
+        if IMU4_EXIST:
+            self.imu_4 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
+            self.imu_4.trackAngle()
+
+        if IMU5_EXIST:
+            self.imu_5 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
+            self.imu_5.trackAngle()
 
         self.comm_thread.start()
         self.message_handler_thread.start()
@@ -105,6 +136,8 @@ class RobotMain():
         while True:
             try:
                 event = self.rx_q.get(0.5)
+                if "opcode" not in event:
+                    print(f"Received event from remote: {event}")
                 if event["opcode"] == CommandOpcode.motor.value:
                     self.MotorHandler(event)
                 if event["opcode"] == CommandOpcode.keep_alive.value:
@@ -117,7 +150,7 @@ class RobotMain():
                     self.CalibrationHandler(event)
                 if event['opcode'] == CommandOpcode.stop_all.value:
                     self.motors.StopAllMotors()
-
+                
             except Exception as e:
                 pass
 
@@ -210,7 +243,7 @@ class RobotMain():
                 if self.activePump == 1:
                     self.motors.MotorStop(RobotMotor.Pump1)
                 elif self.activePump == 2:
-                    self.motors.MotorStop(RobotMotor.Pump2)
+                  self.motors.MotorStop(RobotMotor.Pump2)
                 elif self.activePump == 3:
                     self.motors.MotorStop(RobotMotor.Pump3)
         self.telemetryChannel.send_message(json.dumps(event))
@@ -218,6 +251,9 @@ class RobotMain():
     def CalibrationHandler(self, event):
         self.offset1 = self.angle1
         self.offset2 = self.angle2
+        self.offset3 = self.angle3
+        self.offset4 = self.angle4
+        self.offset5 = self.angle5
 
     def RobotMain(self):
         loop = asyncio.new_event_loop()
@@ -235,19 +271,14 @@ class RobotMain():
                 self.motors.MotorTestCurrentOverload(self.a2d.values)
 
     def TelemetricInfoSend(self):
-        if IMU1_EXIST:
-            self.angle1 = self.imu_1.prevAngle[0]
-        else:
-            self.angle1 = [0.0, 0.0, 0.0]
-        if IMU2_EXIST:
-            self.angle2 = self.imu_2.prevAngle[0]
-        else:
-            self.angle2 = [0.0, 0.0, 0.0]
 
         info = {
             "opcode": CommandOpcode.telemetric.name,
             "imu-1": np.subtract(np.array(self.angle1), np.array(self.offset1)).tolist(),
             "imu-2": np.subtract(np.array(self.angle2), np.array(self.offset2)).tolist(),
+            "imu-3": np.subtract(np.array(self.angle3), np.array(self.offset3)).tolist(),
+            "imu-4": np.subtract(np.array(self.angle4), np.array(self.offset4)).tolist(),
+            "imu-5": np.subtract(np.array(self.angle5), np.array(self.offset5)).tolist(),
             "drive1": self.a2d.values[1],
             "drive2": self.a2d.values[2],
             "elev": self.a2d.values[4],
@@ -276,7 +307,9 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle
 
-        }
+        } 
+        print(f"Send telemetry ")
+        print(str(info))
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
