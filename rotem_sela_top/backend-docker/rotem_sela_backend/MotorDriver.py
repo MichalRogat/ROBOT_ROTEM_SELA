@@ -1,9 +1,6 @@
 from Entity import IMotor
 import Entity
-import threading
-from functions import GenericFunctions
 import Entity as Entity
-import time
 
 HIGH = 1
 LOW = 0
@@ -48,3 +45,7 @@ class MotorDriver():
         print("Disable Pumps")
         for pumpInstacne in Entity.Pump.instances:
             pumpInstacne.stopMotor()
+
+if __name__ == "__main__":
+    md = MotorDriver()
+    md.StopAllMotors()

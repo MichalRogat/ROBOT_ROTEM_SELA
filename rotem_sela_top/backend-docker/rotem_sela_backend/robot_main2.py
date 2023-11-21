@@ -131,14 +131,19 @@ class RobotMain():
         if len(event) < 2:
             print("motor arg missing")
             return
+        value = int(event["value"])
         speed = event["value"]
         # motor = RobotMotor(event["motor"])
         if int(event["event"]) == 3:
-            value = int(event["value"])
             if self.isFlip:
                 value = -value
-            self.motors.MotorRun(self.motors.trailer1.driver1, value)
-            self.motors.MotorRun(self.motors.trailer5.driver2, value)
+            if value == 0:
+                self.motors.stopMotor(self.motors.trailer1.driver1)
+                self.motors.stopMotor(self.motors.trailer5.driver2)
+            else:
+                self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                self.motors.MotorRun(self.motors.trailer5.driver2, value)
+
                 
                 
 
