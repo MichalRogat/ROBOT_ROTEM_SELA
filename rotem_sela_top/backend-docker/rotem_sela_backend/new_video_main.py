@@ -6,20 +6,10 @@ import tornado.web
 import tornado.websocket
 from tornado.web import RequestHandler, Application
 import asyncio
-import sys
 import v4l2py
-from robot_main import RobotMain, stopVideo
+from robot_main2 import RobotMain, stopVideo
 import threading
-import os
-import numpy as np
-import datetime
-import os
-import subprocess
-# import ffmpeg
-import base64
 import json
-from robot_remote_control import CommandOpcode
-
 import multiprocessing
 import time
 

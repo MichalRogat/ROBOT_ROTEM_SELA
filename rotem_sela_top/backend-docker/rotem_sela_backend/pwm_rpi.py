@@ -1,7 +1,5 @@
 import RPi.GPIO as GPIO
-import threading
 import time
-import datetime
 from enum import Enum
 
 PWMA            = 12  #PWM0 GPIO18

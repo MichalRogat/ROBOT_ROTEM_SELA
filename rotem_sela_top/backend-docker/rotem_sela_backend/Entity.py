@@ -140,21 +140,6 @@ class Driver(IMotor):
     def get_a2d_mot_value(self):
         pass
 
-class DriveDriver(Driver):
-    driverDriverInstances = []
-
-    def __init__(self, I2CAddress, isUglyDriver, pins, checkOverCurrent):
-        super().__init__(I2CAddress, isUglyDriver, pins, checkOverCurrent)
-        DriveDriver.driverDriverInstances.append(self)
-
-    def MotorRun(self, speed):
-
-        for drivedriver in DriveDriver.driverDriverInstances:
-            super(DriveDriver, drivedriver).MotorRun(speed)
-
-    def get_a2d_mot_value(self, motor):
-        super().get_a2d_mot_value()
-
 
 class IMU(IIMU):
 
@@ -182,7 +167,7 @@ class Trailer1(ITrailer):
         super().__init__()
         self.I2CAddress = I2CAddress
         self.name = '1'
-        self.driver1 = DriveDriver(I2CAddress=I2CAddress,
+        self.driver1 = Driver(I2CAddress=I2CAddress,
                                    isUglyDriver=True,
                                    pins=[11, 10, 12],
                                    checkOverCurrent=14)
@@ -246,7 +231,7 @@ class Trailer5(ITrailer):
         super().__init__()
         self.name = '5'
         self.I2CAddress = I2CAddress
-        self.d2 = DriveDriver(I2CAddress=I2CAddress,
+        self.d2 = Driver(I2CAddress=I2CAddress,
                               isUglyDriver=False,
                               pins=[3, 5, 2],
                               checkOverCurrent=14)
