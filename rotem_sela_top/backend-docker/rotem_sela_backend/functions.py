@@ -52,8 +52,18 @@ class Packet:
         return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}" 
 
 def i2c_write(i2c_addr, data):
+    res = None
+    retries = 0
     lock.acquire()
-    res = bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+    while retries < 4:
+        try:
+            
+            res = bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+            break
+        except Exception as e:
+            retries = retries + 1
+            time.sleep(0.01)
+
     lock.release()
     return res
 
@@ -62,7 +72,9 @@ def sendPacketOrDebug(packet:Packet, i2c_addr):
         print(f"packet: {packet}")
     else:
         print(f"i2caddr: {i2c_addr}, packet:{packet}")
-        i2c_write(i2c_addr, packet.to_array())    
+       
+        i2c_write(i2c_addr, packet.to_array())
+       
 
 class GenericFunctions:
 
