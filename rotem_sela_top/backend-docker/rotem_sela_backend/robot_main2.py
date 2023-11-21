@@ -1,24 +1,19 @@
 import threading
 import time
 import queue
-import logging
-import os
 import datetime
 from pwm_rpi import RobotMotor, LIGHT
 from MotorDriver import MotorDriver
 import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
-from enum import Enum
-# from minimu import MinIMU_v5_pi
 import serial_a2d
 import RPi.GPIO as GPIO
 import asyncio
 import json
 import numpy as np
-import math
 from functions import GenericFunctions
-import Entity
+from Entity import ITrailer
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -32,6 +27,7 @@ IMU5_EXIST = False
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
 
+nanoTelemetry = {}
 
 class RobotMain():
 
@@ -76,36 +72,15 @@ class RobotMain():
         self.message_handler_thread = threading.Thread(
             target=self.RobotMessageHandler)
         self.main_thread = threading.Thread(target=self.RobotMain)
+        self.readADC_thread = threading.Thread(target=self.ReadADC)
         self.last_keep_alive = datetime.datetime.now()
         self.motors = MotorDriver()
-
-        if IMU1_EXIST:
-            self.imu_1 = MinIMU_v5_pi(0, self.i2c_lock)
-            self.imu_1.trackAngle()
-            # self.imu_1.trackYaw()
-
-        if IMU2_EXIST:
-            self.imu_2 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
-            self.imu_2.trackAngle()
-            # self.imu_2.trackYaw()
-
-        if IMU3_EXIST:
-            self.imu_3 = MinIMU_v5_pi(0, self.i2c_lock)
-            self.imu_3.trackAngle()
-            # self.imu_1.trackYaw()
-
-        if IMU4_EXIST:
-            self.imu_4 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
-            self.imu_4.trackAngle()
-
-        if IMU5_EXIST:
-            self.imu_5 = MinIMU_v5_pi(1, self.i2c_lock, mFullScale=16)
-            self.imu_5.trackAngle()
 
         self.comm_thread.start()
         self.message_handler_thread.start()
         self.main_thread.start()
         self.a2d_thread.start()
+        self.readADC_thread.start()
         self.motors.StopAllMotors()
 
     def setTelemetryChannel(self, channel):
@@ -276,18 +251,24 @@ class RobotMain():
             if A2D_EXISTS:
                 # this function take time i2c a2d issue to solve
                 self.motors.MotorTestCurrentOverload(self.a2d.values)
+    
+    def ReadADC(self):
+        global nanoTelemetry
+        while True:
+            GenericFunctions.callReadNano(ITrailer.trailer_instances, nanoTelemetry)
+            print(nanoTelemetry)
 
     def TelemetricInfoSend(self):
-
+        global nanoTelemetry
         info = {
             "opcode": CommandOpcode.telemetric.name,
-            "imu-1": np.subtract(np.array(self.angle1), np.array(self.offset1)).tolist(),
-            "imu-2": np.subtract(np.array(self.angle2), np.array(self.offset2)).tolist(),
-            "imu-3": np.subtract(np.array(self.angle3), np.array(self.offset3)).tolist(),
-            "imu-4": np.subtract(np.array(self.angle4), np.array(self.offset4)).tolist(),
-            "imu-5": np.subtract(np.array(self.angle5), np.array(self.offset5)).tolist(),
-            "drive1": self.a2d.values[1],
-            "drive2": self.a2d.values[2],
+            # "imu-1": np.subtract(np.array(self.angle1), np.array(self.offset1)).tolist(),
+            # "imu-2": np.subtract(np.array(self.angle2), np.array(self.offset2)).tolist(),
+            # "imu-3": np.subtract(np.array(self.angle3), np.array(self.offset3)).tolist(),
+            # "imu-4": np.subtract(np.array(self.angle4), np.array(self.offset4)).tolist(),
+            # "imu-5": np.subtract(np.array(self.angle5), np.array(self.offset5)).tolist(),
+            # "drive1": nanoTelemetry['d1_cs']
+            # "drive2": self.a2d.values[2],
             "elev": self.a2d.values[4],
             "turn1": self.a2d.values[3],
             "turn2": self.a2d.values[5],
@@ -316,14 +297,11 @@ class RobotMain():
 
         } 
         print(f"Send telemetry ")
-        print(str(info))
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-
+            print(nanoTelemetry)
+            self.telemetryChannel.send_message(json.dumps(nanoTelemetry))
 
 if __name__ == "__main__":
-    obj = RobotMain()
-    obj.motors.MotorRun(RobotMotor.Pump3, 10)
-    obj.motors.MotorStop(RobotMotor.Pump3)
-    time.sleep(1000000)
+    RobotMain()
