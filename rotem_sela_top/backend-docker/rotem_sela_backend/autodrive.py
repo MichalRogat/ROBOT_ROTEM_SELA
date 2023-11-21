@@ -1,7 +1,6 @@
 # Maintainer: Dorin
 
 import RPi.GPIO as GPIO
-from minimu import MinIMU_v5_pi
 import threading
         
 class MotorDrive:
