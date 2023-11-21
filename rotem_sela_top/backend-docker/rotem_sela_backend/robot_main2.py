@@ -263,9 +263,6 @@ class RobotMain():
                 self.motors.MotorTestCurrentOverload(self.a2d.values)
 
     def TelemetricInfoSend(self):
-        def init_thread():
-            GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
-        threading.Thread(target=init_thread, args=(self.telemetryChannel, )).start()
 
         info = {
             "opcode": CommandOpcode.telemetric.name,
@@ -302,62 +299,9 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle
 
-        }  
-
-    def CalibrationHandler(self, event):
-        self.offset1 = self.angle1
-        self.offset2 = self.angle2
-        self.offset3 = self.angle3
-        self.offset4 = self.angle4
-        self.offset5 = self.angle5
-
-    def RobotMain(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        while True:
-            # print(self.a2d.values)
-            delta = datetime.datetime.now() - self.last_keep_alive
-            # if delta.total_seconds() >= KEEP_ALIVE_TIMEOUT_SEC:
-            #     self.motors.StopAllMotors()
-            self.TelemetricInfoSend()
-            time.sleep(0.1)
-            # read current of motors
-            if A2D_EXISTS:
-                # this function take time i2c a2d issue to solve
-                self.motors.MotorTestCurrentOverload(self.a2d.values)
-
-    def TelemetricInfoSend(self):
-        
-        info = {
-            "opcode": CommandOpcode.telemetric.name,
-            "joint1": self.a2d.values[6],
-            "activePump": self.activePump,
-            "pumpingNow": self.isPumpingNow,
-            "Spare2": 4096,
-            "Spare3": 4096,
-            "Spare4": 4096,
-            "Spare5": 4096,
-            "Spare6": 4096,
-            "Spare7": 4096,
-            "Camera-F1": True,
-            "Camera-S1": True,
-            "Camera-F2": True,
-            "Camera-S2": True,
-            "Camera-F3": True,
-            "Camera-S3": True,
-            "Camera-F4": True,
-            "Camera-S4": True,
-            "isFlip": self.isFlip,
-            "isToggle": self.isToggle
-        }
-        lock = threading.Lock()
-        def init_thread():
-            global info
-            GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
-        threading.Thread(target=init_thread, args=(self.telemetryChannel, )).start()
-
-        # print(f"Send telemetry ")
-        # print(str(info))
+        } 
+        print(f"Send telemetry ")
+        print(str(info))
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
