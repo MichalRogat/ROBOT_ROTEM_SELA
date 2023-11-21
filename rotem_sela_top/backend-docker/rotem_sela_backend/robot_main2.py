@@ -134,9 +134,13 @@ class RobotMain():
         speed = event["value"]
         # motor = RobotMotor(event["motor"])
         if int(event["event"]) == 3:
+            value = int(event["value"])
             if self.isFlip:
-                pass
-            else
+                value = -value
+            self.motors.MotorRun(self.motors.trailer1.driver1, value)
+            self.motors.MotorRun(self.motors.trailer5.driver2, value)
+                
+                
 
 
 
@@ -144,31 +148,31 @@ class RobotMain():
 
 
 
-            if motor == RobotMotor.Turn1:
-                motor = RobotMotor.Turn2
-            elif motor == RobotMotor.Turn2:
-                motor = RobotMotor.Turn1
-            elif motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
-                speed = -speed
+        #     if motor == RobotMotor.Turn1:
+        #         motor = RobotMotor.Turn2
+        #     elif motor == RobotMotor.Turn2:
+        #         motor = RobotMotor.Turn1
+        #     elif motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
+        #         speed = -speed
 
-        if motor == RobotMotor.Turn1:
-            motor = RobotMotor.Turn2
-        elif motor == RobotMotor.Turn2:
-            motor = RobotMotor.Turn1
-        elif motor == RobotMotor.Elev1:
-            motor = RobotMotor.Joint1
+        # if motor == RobotMotor.Turn1:
+        #     motor = RobotMotor.Turn2
+        # elif motor == RobotMotor.Turn2:
+        #     motor = RobotMotor.Turn1
+        # elif motor == RobotMotor.Elev1:
+        #     motor = RobotMotor.Joint1
 
-        elif motor == RobotMotor.Joint1:
-            motor = RobotMotor.Elev1
+        # elif motor == RobotMotor.Joint1:
+        #     motor = RobotMotor.Elev1
 
-        if speed == 0:
-            self.motors.MotorStop(motor)
-        else:
-            if motor == RobotMotor.Drive1:
-                self.motors.MotorRun(motor, speed)
-                self.motors.MotorRun(RobotMotor.Drive2, speed)
-            else:
-                self.motors.MotorRun(motor, speed)
+        # if speed == 0:
+        #     self.motors.stopMotor(motor)
+        # else:
+        #     if motor == RobotMotor.Drive1:
+        #         self.motors.MotorRun(motor, speed)
+        #         self.motors.MotorRun(RobotMotor.Drive2, speed)
+        #     else:
+        #         self.motors.MotorRun(motor, speed)
 
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
@@ -223,11 +227,11 @@ class RobotMain():
             if (self.isPumpingNow):
                 self.isPumpingNow = 0
                 if self.activePump == 1:
-                    self.motors.MotorStop(RobotMotor.Pump1)
+                    self.motors.stopMotor(RobotMotor.Pump1)
                 elif self.activePump == 2:
-                  self.motors.MotorStop(RobotMotor.Pump2)
+                  self.motors.stopMotor(RobotMotor.Pump2)
                 elif self.activePump == 3:
-                    self.motors.MotorStop(RobotMotor.Pump3)
+                    self.motors.stopMotor(RobotMotor.Pump3)
         self.telemetryChannel.send_message(json.dumps(event))
 
     def CalibrationHandler(self, event):

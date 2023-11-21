@@ -183,11 +183,11 @@ class Trailer2(ITrailer):
         super().__init__()
         self.name = '2'
         self.I2CAddress = I2CAddress
-        self.e1 = Driver(I2CAddress=I2CAddress,
+        self.elevation1 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],
                          checkOverCurrent=14)
-        self.e2 = Driver(I2CAddress=I2CAddress,
+        self.elevation2 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[9, 6, 7],
                          checkOverCurrent=15)
@@ -199,11 +199,11 @@ class Trailer3(ITrailer):
         super().__init__()
         self.name = '3'
         self.I2CAddress = I2CAddress
-        self.t2 = Driver(I2CAddress=I2CAddress,
+        self.turn2 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],
                          checkOverCurrent=14)
-        self.t3 = Driver(I2CAddress=I2CAddress,
+        self.turn3 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[9, 6, 7],
                          checkOverCurrent=15)
@@ -215,11 +215,11 @@ class Trailer4(ITrailer):
         super().__init__()
         self.name = '4'
         self.I2CAddress = I2CAddress
-        self.e3 = Driver(I2CAddress=I2CAddress,
+        self.elevation3 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[3, 5, 2],
                          checkOverCurrent=14)
-        self.e4 = Driver(I2CAddress=I2CAddress,
+        self.elevation4 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[9, 6, 7],
                          checkOverCurrent=15)
@@ -231,12 +231,12 @@ class Trailer5(ITrailer):
         super().__init__()
         self.name = '5'
         self.I2CAddress = I2CAddress
-        self.d2 = Driver(I2CAddress=I2CAddress,
+        self.driver2 = Driver(I2CAddress=I2CAddress,
                               isUglyDriver=False,
                               pins=[3, 5, 2],
                               checkOverCurrent=14)
-        self.t4 = Driver(I2CAddress=I2CAddress,
+        self.turn4 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
                          pins=[9, 6, 7],
                          checkOverCurrent=15)
-        self.p2 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
+        self.pump2 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
