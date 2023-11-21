@@ -235,7 +235,8 @@ class RobotMain():
                 if self.activePump == 1:
                     self.motors.MotorStop(RobotMotor.Pump1)
                 elif self.activePump == 2:
-                  lif self.activePump == 3:
+                  self.motors.MotorStop(RobotMotor.Pump2)
+                elif self.activePump == 3:
                     self.motors.MotorStop(RobotMotor.Pump3)
         self.telemetryChannel.send_message(json.dumps(event))
 
@@ -301,10 +302,7 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle
 
-        }  self.motors.MotorStop(RobotMotor.Pump2)
-                elif self.activePump == 3:
-                    self.motors.MotorStop(RobotMotor.Pump3)
-        self.telemetryChannel.send_message(json.dumps(event))
+        }  
 
     def CalibrationHandler(self, event):
         self.offset1 = self.angle1
