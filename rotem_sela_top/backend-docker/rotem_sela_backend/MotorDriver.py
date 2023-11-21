@@ -11,16 +11,11 @@ LOW = 0
 class MotorDriver():
 # 
     def __init__(self):
-        trailer1 = Entity.Trailer1(I2CAddress = 0x11)
-        trailer2 = Entity.Trailer2(I2CAddress = 0x12)
-        trailer3 = Entity.Trailer3(I2CAddress = 0x13)
-        trailer4 = Entity.Trailer4(I2CAddress = 0x14)
-        trailer5 = Entity.Trailer5(I2CAddress = 0x15)
-
-        def init_thread():
-                GenericFunctions.callReadNano(Entity.ITrailer.trailer_instances)
-        threading.Thread(target=init_thread).start()
-
+        self.trailer1 = Entity.Trailer1(I2CAddress = 0x11)
+        self.trailer2 = Entity.Trailer2(I2CAddress = 0x12)
+        self.trailer3 = Entity.Trailer3(I2CAddress = 0x13)
+        self.trailer4 = Entity.Trailer4(I2CAddress = 0x14)
+        self.trailer5 = Entity.Trailer5(I2CAddress = 0x15)
 
     disable_motors = False
     # over_current = [False] * (RobotMotor.Pump3.value+1)
@@ -53,5 +48,3 @@ class MotorDriver():
         print("Disable Pumps")
         for pumpInstacne in Entity.Pump.instances:
             pumpInstacne.stopMotor()
-
-motorDriver = MotorDriver()

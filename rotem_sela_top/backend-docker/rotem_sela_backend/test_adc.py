@@ -3,8 +3,5 @@ import time
 from functions import GenericFunctions
 trailer1 = Trailer1(I2CAddress = 0x11)
 
-while(True):
-    GenericFunctions.callReadNano(trailer1)
-    time.sleep(2)
-
-    
+while True:
+    GenericFunctions.callReadNano([trailer1])

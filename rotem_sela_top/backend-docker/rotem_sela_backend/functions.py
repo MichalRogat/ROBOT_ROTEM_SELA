@@ -2,6 +2,7 @@ from smbus2 import SMBus
 import json
 import struct
 import time
+from threading import Lock
 # from robot_main2 import info
 # import threading
 
@@ -24,6 +25,8 @@ SLEEP = 2
 DEBUG = False
 if not DEBUG:
     bus = SMBus(1)
+
+lock = Lock()
     
 class Packet:
     def __init__(self, opcode, payload:list):
@@ -48,12 +51,18 @@ class Packet:
     def __repr__(self) -> str:
         return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}" 
 
+def i2c_write(i2c_addr, data):
+    lock.acquire()
+    res = bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+    lock.release()
+    return res
+
 def sendPacketOrDebug(packet:Packet, i2c_addr):
     if DEBUG:
         print(f"packet: {packet}")
     else:
         print(f"i2caddr: {i2c_addr}, packet:{packet}")
-        bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=packet.to_array())
+        i2c_write(i2c_addr, packet.to_array())    
 
 class GenericFunctions:
 
@@ -81,29 +90,74 @@ class GenericFunctions:
         print(packet, motor.I2CAddress)
 
     @classmethod
-    def callReadNano(cls, trailers):
-    # def callReadNano(cls, trailers, info:dict()):
-        while(True):
-            for trailer in trailers:
-                try:
-                    ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
-                    info = {}
-                    info['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
-                    info['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
-                    info['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
-                    info['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
-                    info['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
-                    info['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
-                    info['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
-                    info['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
-                    info['imu'+trailer.name]=[
-                                            struct.unpack('>f', bytes(ret_byte[13:17]))[0], #yaw
-                                            struct.unpack('>f', bytes(ret_byte[17:21]))[0], #pitch
-                                            struct.unpack('>f', bytes(ret_byte[21:25]))[0] # roll
-                                            ]
-                    print(f"info from functions: {json.dumps(info)}")
-                except Exception as e:
-                    print(f"Trailer {trailer.name} {e}")
-                finally:
-                    time.sleep(0.1)
+    def callReadNano(cls, trailers, nanoTelemetry:dict()):
+        for trailer in trailers:
+            try:
+                ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
+
+                nanoTelemetry['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
+                nanoTelemetry['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
+                nanoTelemetry['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
+                nanoTelemetry['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
+                nanoTelemetry['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
+                nanoTelemetry['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
+                nanoTelemetry['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
+                nanoTelemetry['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
+                integer_part_roll = ret_byte[13]
+                fraction_part_roll = ret_byte[14]
+                integer_part_pitch = ret_byte[15]
+                fraction_part_pitch = ret_byte[16]
+                integer_part_yaw = ret_byte[17]
+                fraction_part_yaw = ret_byte[18]
+                
+                nanoTelemetry['imu'+trailer.name]=[integer_part_roll+fraction_part_roll/10.0,
+                                          integer_part_pitch+fraction_part_pitch/10.0,
+                                          integer_part_yaw+fraction_part_yaw/10.0                                     
+
+                ]
+                
+            except Exception as e:
+                print(f"Trailer {trailer.name} {e}")
+            finally:
+                time.sleep(0.05)
+        print(nanoTelemetry)
+    # @classmethod
+    # def callReadNano(cls, trailers):
+    #     for trailer in trailers:
+    #         try:
+    #             ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
+    #             info = {}
+
+    #             info['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
+    #             info['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
+    #             info['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little') # - 2B
+    #             info['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little') #- 2B
+    #             info['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little') #- 2B
+    #             info['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little') #- 1B
+    #             info['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little') # 1B
+    #             info['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little') # - 1B
+    #             # info['imu'+trailer.name]=[
+    #             #                         struct.unpack('>f', bytes(ret_byte[13:17]))[0], #yaw
+    #             #                         struct.unpack('>f', bytes(ret_byte[17:21]))[0], #pitch
+    #             #                         struct.unpack('>f', bytes(ret_byte[21:25]))[0] # roll
+    #             #                         ]
+    #             integer_part_roll = ret_byte[13]
+    #             fraction_part_roll = ret_byte[14]
+    #             integer_part_pitch = ret_byte[15]
+    #             fraction_part_pitch = ret_byte[16]
+    #             integer_part_yaw = ret_byte[17]
+    #             fraction_part_yaw = ret_byte[18]
+                
+    #             info['imu'+trailer.name]=[integer_part_roll+fraction_part_roll/10.0,
+    #                                       integer_part_pitch+fraction_part_pitch/10.0,
+    #                                       integer_part_yaw+fraction_part_yaw/10.0                                     
+
+    #             ]
+    #             # print(f"info from functions: {json.dumps(info)}")
+    #             print(f"info from functions: {json.dumps(info)}")
+    #             # nanoTelemetry.update(info)
+    #         except Exception as e:
+    #             print(f"Trailer {trailer.name} {e}")
+    #         finally:
+    #             time.sleep(0.05)
         
