@@ -9,13 +9,12 @@ PORT=1234
 
 class CommandOpcode(Enum):
     motor = 1
-    keep_alive = 2
+    keep_alive = 99
     camera = 3
     telemetric = 4
     pump = 5
     acc_calib = 6
-    stop_all = 7
-    frame_data = 8
+
     
 class RobotRemoteControl():
     def __init__(self, control_q):

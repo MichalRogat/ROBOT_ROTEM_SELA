@@ -103,7 +103,8 @@ class GenericFunctions:
                                             ]
                     print(f"info from functions: {json.dumps(info)}")
                 except Exception as e:
-                    print(f"Trailer {trailer.name} {e}")
+                    # print(f"Trailer {trailer.name} {e}")
+                    pass
                 finally:
                     time.sleep(0.1)
         

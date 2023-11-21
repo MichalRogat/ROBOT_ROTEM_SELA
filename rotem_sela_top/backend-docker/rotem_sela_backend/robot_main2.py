@@ -10,7 +10,7 @@ import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
 from enum import Enum
-from minimu import MinIMU_v5_pi
+# from minimu import MinIMU_v5_pi
 import serial_a2d
 import RPi.GPIO as GPIO
 import asyncio
@@ -67,7 +67,10 @@ class RobotMain():
             print(f"Start remote control service")
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
 
-        self.a2d = serial_a2d.SerialA2D()
+        try:
+            self.a2d = serial_a2d.SerialA2D()
+        except Exception as e:
+            print("NO a2c Error: ", e)
         self.a2d_thread = threading.Thread(target=self.A2dHandler)
         self.i2c_lock = threading.Lock()
         self.message_handler_thread = threading.Thread(
@@ -130,19 +133,22 @@ class RobotMain():
         while True:
             try:
                 event = self.rx_q.get(0.5)
-                if event["opcode"] == CommandOpcode.motor.value:
+                # if "" in event:
+                print(event)
+                # if event["opcode"] == CommandOpcode.motor.value:
+                #     self.MotorHandler(event)
+                # if event["opcode"] == CommandOpcode.keep_alive.value:
+                #     self.KeepAliveHandler()
+                # if event["opcode"] == CommandOpcode.camera.value:
+                #     self.CameraHandler(event)
+                # if event["opcode"] == CommandOpcode.pump.value:
+                #     self.PumpHandler(event)
+                # if event["opcode"] == CommandOpcode.acc_calib.value:
+                #     self.CalibrationHandler(event)
+                # if event['opcode'] == CommandOpcode.stop_all.value:
+                #     self.motors.StopAllMotors()
+                if int(event["event"] ) == 3:
                     self.MotorHandler(event)
-                if event["opcode"] == CommandOpcode.keep_alive.value:
-                    self.KeepAliveHandler()
-                if event["opcode"] == CommandOpcode.camera.value:
-                    self.CameraHandler(event)
-                if event["opcode"] == CommandOpcode.pump.value:
-                    self.PumpHandler(event)
-                if event["opcode"] == CommandOpcode.acc_calib.value:
-                    self.CalibrationHandler(event)
-                if event['opcode'] == CommandOpcode.stop_all.value:
-                    self.motors.StopAllMotors()
-
             except Exception as e:
                 pass
 
@@ -151,9 +157,18 @@ class RobotMain():
             print("motor arg missing")
             return
         speed = event["value"]
-        motor = RobotMotor(event["motor"])
+        # motor = RobotMotor(event["motor"])
+        if int(event["event"]) == 3:
+            if self.isFlip:
+                pass
+            else
 
-        if self.isFlip:
+
+
+
+
+
+
             if motor == RobotMotor.Turn1:
                 motor = RobotMotor.Turn2
             elif motor == RobotMotor.Turn2:
