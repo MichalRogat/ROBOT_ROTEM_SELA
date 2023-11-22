@@ -76,7 +76,7 @@ def toggleCams():
     for q in subQueues:
         q.put({'opcode':'toggle'})
 
-def videoFeedHandler(port, cam_id, queu, barrier):
+def videoFeedHandler(port, cam_id, queue, barrier):
         global isMain
         isMain = False
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
