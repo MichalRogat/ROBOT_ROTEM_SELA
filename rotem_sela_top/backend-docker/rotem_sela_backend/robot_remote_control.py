@@ -14,6 +14,7 @@ class CommandOpcode(Enum):
     telemetric = 4
     pump = 5
     acc_calib = 6
+    stop_all = 7
 
     
 class RobotRemoteControl():
@@ -42,10 +43,16 @@ class RobotRemoteControl():
                         self.control_q.put(event)
                     except ValueError as err:
                         continue
+            except socket.timeout:
+                pass
             except Exception as e :
                 print(str(e))
-                self.client_socket.close() #close connection to client
+                try:
+                    self.client_socket.close() #close connection to client
+                except Exception as e:
+                    pass
                 self.control_q.put({'opcode':CommandOpcode.stop_all.value})
+                self.server.listen(0)
                 self.client_socket, self.client_address = self.server.accept()
                 continue
            

@@ -36,6 +36,9 @@ class RobotMain():
     toggleCb = None
     isFlip = False
     isToggle = False
+
+    currJoint = 0
+
     angle1 = [0, 0, 0]
     angle2 = [0, 0, 0]
     angle3 = [0, 0, 0]
@@ -107,34 +110,47 @@ class RobotMain():
         asyncio.set_event_loop(loop)
         while True:
             try:
-                event = self.rx_q.get(0.5)
-                # if "" in event:
-                print(event)
-                # if event["opcode"] == CommandOpcode.motor.value:
-                #     self.MotorHandler(event)
-                # if event["opcode"] == CommandOpcode.keep_alive.value:
-                #     self.KeepAliveHandler()
-                # if event["opcode"] == CommandOpcode.camera.value:
-                #     self.CameraHandler(event)
-                # if event["opcode"] == CommandOpcode.pump.value:
-                #     self.PumpHandler(event)
-                # if event["opcode"] == CommandOpcode.acc_calib.value:
-                #     self.CalibrationHandler(event)
-                # if event['opcode'] == CommandOpcode.stop_all.value:
-                #     self.motors.StopAllMotors()
-                if int(event["event"] ) == 3:
+                events = {}
+                while self.rx_q.qsize() > 0:
+
+                    event = self.rx_q.get(0.5)
+                    events[event['event']] = event
+                
+                for key in events:
+
+                    event = events[key]
+                    # if "" in event:
+                    # print(event)
+                    # if event["opcode"] == CommandOpcode.motor.value:
+                    #     self.MotorHandler(event)
+                    # if event["opcode"] == CommandOpcode.keep_alive.value:
+                    #     self.KeepAliveHandler()
+                    # if event["opcode"] == CommandOpcode.camera.value:
+                    #     self.CameraHandler(event)
+                    # if event["opcode"] == CommandOpcode.pump.value:
+                    #     self.PumpHandler(event)
+                    # if event["opcode"] == CommandOpcode.acc_calib.value:
+                    #     self.CalibrationHandler(event)
+                    # if event['opcode'] == CommandOpcode.stop_all.value:
+                    #     self.motors.StopAllMotors()
+                    
                     self.MotorHandler(event)
             except Exception as e:
                 pass
 
     def MotorHandler(self, event):
         if len(event) < 2:
-            print("motor arg missing")
+            # print("motor arg missing")
             return
         value = int(event["value"])
-        speed = event["value"]
+        if value > 99:
+            value = 99
+        elif value < -99:
+            value = -99
         # motor = RobotMotor(event["motor"])
         if int(event["event"]) == 3:
+            print(event)
+            
             if self.isFlip:
                 value = -value
             if value == 0:
@@ -143,6 +159,29 @@ class RobotMain():
             else:
                 self.motors.MotorRun(self.motors.trailer1.driver1, value)
                 self.motors.MotorRun(self.motors.trailer5.driver2, value)
+        elif int(event["event"]) == 2:
+                print(event)
+                if value ==0:
+                    if not self.isFlip:
+                        self.motors.stopMotor(self.motors.trailer1.turn1)
+                    else:
+                        self.motors.stopMotor(self.motors.trailer5.turn4)
+                else:
+                    if not self.isFlip:
+                        self.motors.MotorRun(self.motors.trailer1.turn1, value)
+                    else:
+                        self.motors.MotorRun(self.motors.trailer5.turn4, value)
+        elif int(event["event"]) == 23:
+            self.isFlip = not self.isFlip
+            self.flipCb()
+        elif int(event["event"]) == 34:
+            if self.currJoint < 4:
+                self.currJoint=self.currJoint+1
+        elif int(event["event"]) == 33:
+            if self.currJoint > 0:
+                self.currJoint=self.currJoint-1
+
+        
 
                 
                 
@@ -257,15 +296,13 @@ class RobotMain():
             self.TelemetricInfoSend()
             time.sleep(0.1)
             # read current of motors
-            if A2D_EXISTS:
-                # this function take time i2c a2d issue to solve
-                self.motors.MotorTestCurrentOverload(self.a2d.values)
+           
     
     def ReadADC(self):
         global nanoTelemetry
         while True:
             GenericFunctions.callReadNano(ITrailer.trailer_instances, nanoTelemetry)
-            print(nanoTelemetry)
+            # print(nanoTelemetry)
 
     def TelemetricInfoSend(self):
         global nanoTelemetry

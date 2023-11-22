@@ -28,7 +28,7 @@
       <command_line>tcpflow -i any -C -J port 1234</command_line>
       <uid>0</uid>
       <username>root</username>
-      <start_time>2023-11-21T14:27:50Z</start_time>
+      <start_time>2023-11-21T16:59:32Z</start_time>
     </execution_environment>
   </creator>
   <configuration>
@@ -37,9 +37,29 @@
   <configuration>
     <fileobject>
       <filesize>0</filesize>
-      <tcpflow startime='2023-11-21T14:27:58.683575Z' endtime='2023-11-21T14:27:59.703751Z' mac_daddr='00:04:00:01:00:06' mac_saddr='b8:27:eb:a7:3a:cd' family='2' src_ipn='192.168.1.239' dst_ipn='192.168.1.157' srcport='1234' dstport='52166' packets='2' len='116' />
+      <tcpflow startime='2023-11-21T16:59:34.586732Z' endtime='2023-11-21T17:23:43.249645Z' mac_daddr='00:04:00:01:00:06' mac_saddr='b8:27:eb:a7:3a:cd' family='2' src_ipn='192.168.1.238' dst_ipn='192.168.1.93' srcport='1234' dstport='50220' packets='2847' len='159436' />
     </fileobject>
     <fileobject>
-      <filesize>0</filesize>
-      <tcpflow startime='2023-11-21T14:28:19.808506Z' endtime='2023-11-21T14:28:19.831240Z' mac_daddr='00:04:00:01:00:06' mac_saddr='b8:27:eb:a7:3a:cd' family='2' src_ipn='192.168.1.239' dst_ipn='192.168.1.157' srcport='1234' dstport='52177' packets='3' len='172' />
+      <filename>192.168.001.093.50220-192.168.001.238.01234</filename>
+      <filesize>37320</filesize>
+      <tcpflow startime='2023-11-21T16:59:34.586540Z' endtime='2023-11-21T17:23:43.249467Z' mac_daddr='00:00:00:01:00:06' mac_saddr='d0:37:45:93:02:ef' family='2' src_ipn='192.168.1.93' dst_ipn='192.168.1.238' srcport='50220' dstport='1234' packets='2848' len='196826' />
     </fileobject>
+  </configuration>
+  <summary />
+  <open_fds_at_end>0</open_fds_at_end>
+  <max_open_flows>0</max_open_flows>
+  <total_flows>2</total_flows>
+  <flow_map_size>2</flow_map_size>
+  <total_packets>5695</total_packets>
+  <rusage>
+    <utime>0.487001</utime>
+    <stime>0.139143</stime>
+    <maxrss>10372</maxrss>
+    <minflt>910</minflt>
+    <majflt>22</majflt>
+    <nswap>0</nswap>
+    <inblock>1544</inblock>
+    <oublock>16</oublock>
+    <clocktime>1451.088199</clocktime>
+  </rusage>
+</dfxml>
