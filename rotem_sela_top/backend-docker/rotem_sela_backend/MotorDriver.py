@@ -46,6 +46,13 @@ class MotorDriver():
         for pumpInstacne in Entity.Pump.instances:
             pumpInstacne.stopMotor()
 
+    
+
 if __name__ == "__main__":
     md = MotorDriver()
-    md.StopAllMotors()
+    # md.StopAllMotors()
+
+    md.MotorRun(md.trailer3.turn2, 90)
+    # md.MotorRun(md.trailer3.turn3, 90)
+    # md.stopMotor(md.trailer3.turn3)
+

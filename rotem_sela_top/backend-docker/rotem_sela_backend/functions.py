@@ -118,7 +118,7 @@ class GenericFunctions:
         # This method controls generic digital gpio
         packet = Packet(SETGPIO, payload=[motor.pin, motor.gpio])
         sendPacketOrDebug(packet, motor.I2CAddress)
-        print(packet, motor.I2CAddress)
+        # print(packet, motor.I2CAddress)
 
     @classmethod
     def callReadNano(cls, trailers, nanoTelemetry):
@@ -152,7 +152,7 @@ class GenericFunctions:
                 pass
             finally:
                 time.sleep(0.05)
-        print(nanoTelemetry)
+        # print(nanoTelemetry)
     # @classmethod
     # def callReadNano(cls, trailers):
     #     for trailer in trailers:
@@ -193,3 +193,8 @@ class GenericFunctions:
     #         finally:
     #             time.sleep(0.05)
         
+if __name__ == "__main__":
+    SETGPIO
+    packet = Packet(SETGPIO, payload=[13, 1])
+    sendPacketOrDebug(packet, 0x11)
+    print(packet)

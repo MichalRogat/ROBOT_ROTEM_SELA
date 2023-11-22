@@ -175,8 +175,8 @@ class RobotMain():
             self.isFlip = not self.isFlip
             self.flipCb()
         elif int(event["event"]) == 34:
-            if self.currJoint < 4:
-                self.currJoint=self.currJoint+1
+            self.currJoint=(self.currJoint+1) % 4
+            print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 33:
             if self.currJoint > 0:
                 self.currJoint=self.currJoint-1
@@ -342,11 +342,11 @@ class RobotMain():
             "isToggle": self.isToggle
 
         } 
-        print(f"Send telemetry ")
+        # print(f"Send telemetry ")
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-            print(nanoTelemetry)
+            # print(nanoTelemetry)
             self.telemetryChannel.send_message(json.dumps(nanoTelemetry))
 
 if __name__ == "__main__":

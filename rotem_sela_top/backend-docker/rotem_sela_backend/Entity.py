@@ -60,6 +60,7 @@ class Pump(IMotor):
     def __init__(self, I2CAddress, pin, a2dPin):
         super().__init__(I2CAddress)
         Pump.instances.append(self)
+        self.isUglyDriver = False
         self.pin = pin
         self.a2dPin = a2dPin
 
@@ -133,7 +134,7 @@ class Driver(IMotor):
                 self.IN2type = SETGPIO
 
         self.gpio = HIGH
-        print("i am inheriting correctly")
+        # print("i am inheriting correctly")
 
         GenericFunctions.callDriverFunction(self)
 
@@ -168,8 +169,8 @@ class Trailer1(ITrailer):
         self.I2CAddress = I2CAddress
         self.name = '1'
         self.driver1 = Driver(I2CAddress=I2CAddress,
-                                   isUglyDriver=True,
-                                   pins=[11, 10, 12],
+                                   isUglyDriver=False,
+                                   pins=[9, 6, 7],
                                    checkOverCurrent=14)
         self.turn1 = Driver(I2CAddress=I2CAddress,
                             isUglyDriver=False,
