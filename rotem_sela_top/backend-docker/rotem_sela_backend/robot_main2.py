@@ -36,7 +36,7 @@ class RobotMain():
     toggleCb = None
     isFlip = False
     isToggle = False
-
+    joints = None
     currJoint = 0
 
     angle1 = [0, 0, 0]
@@ -49,8 +49,13 @@ class RobotMain():
     offset3 = [0, 0, 0]
     offset4 = [0, 0, 0]
     offset5 = [0, 0, 0]
+    
 
     def __init__(self) -> None:
+        joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
+                  [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
+                  [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
+                  [self.motors.trailer5.turn4,self.motors.trailer4.elevation4]]
         print(f"Start robot service {RC}")
         self.currentLightLevel = 1
         self.activePump = 1
@@ -148,7 +153,7 @@ class RobotMain():
         elif value < -99:
             value = -99
         # motor = RobotMotor(event["motor"])
-        if int(event["event"]) == 3:
+        if int(event["event"]) == 3: # right_stick_y
             print(event)
             
             if self.isFlip:
@@ -159,7 +164,7 @@ class RobotMain():
             else:
                 self.motors.MotorRun(self.motors.trailer1.driver1, value)
                 self.motors.MotorRun(self.motors.trailer5.driver2, value)
-        elif int(event["event"]) == 2:
+        elif int(event["event"]) == 2: #right_stick_x
                 print(event)
                 if value ==0:
                     if not self.isFlip:
@@ -171,17 +176,34 @@ class RobotMain():
                         self.motors.MotorRun(self.motors.trailer1.turn1, value)
                     else:
                         self.motors.MotorRun(self.motors.trailer5.turn4, value)
-        elif int(event["event"]) == 23:
+        elif int(event["event"]) == 23: # right_stick_y
             self.isFlip = not self.isFlip
             self.flipCb()
-        elif int(event["event"]) == 34:
+        elif int(event["event"]) == 34: # left_arrow
+            self.motors.stopMotor(self.joints[self.currJoint][0])
             self.currJoint=(self.currJoint+1) % 4
             print(f"Joing number {self.currJoint} is selected")
-        elif int(event["event"]) == 33:
+        elif int(event["event"]) == 33: # right_arrow
             if self.currJoint > 0:
-                self.currJoint=self.currJoint-1
+                self.motors.stopMotor(self.joints[self.currJoint][0])
+                self.currJoint=self.currJoint-1 % 4
+        elif int(event["event"]) == 0: # moving the left joystick
+            # print(event)
+            if value ==0:
+                self.motors.stopMotor(self.joints[self.currJoint][0])
+            elif not self.isFlip:
+                self.motors.MotorRun(self.joints[self.currJoint][0], value)
+            else:
+                self.motors.MotorRun(self.joints[self.currJoint][0], -value)
+        elif int(event["event"]) in (31, 32): # up_arrow - elevation up for current joint
+            if value == 0:
+                self.motors.stopMotor(self.joints[self.currJoint][1])
+            else:
+                self.motors.MotorRun(self.joints[self.currJoint][1], value)
+        
 
         
+
 
                 
                 
