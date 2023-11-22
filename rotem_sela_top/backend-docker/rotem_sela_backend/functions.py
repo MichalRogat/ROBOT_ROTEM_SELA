@@ -52,26 +52,45 @@ class Packet:
         return f"{self.SOT}, {self.opcode}, {self.payload_length}, {self.payload}, {self.checksum}" 
 
 def i2c_write(i2c_addr, data):
-    res = None
     retries = 0
     lock.acquire()
     while retries < 4:
         try:
             
-            res = bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+            bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
             break
         except Exception as e:
             retries = retries + 1
             time.sleep(0.01)
 
     lock.release()
+    if retries >= 4:
+        print("Failed i2c")
+    return
+
+def i2c_read(i2c_addr, len):
+    res = None
+    retries = 0
+    lock.acquire()
+    while retries < 4:
+        try:
+            
+            res = bus.read_i2c_block_data(i2c_addr=i2c_addr, register=0x1, length=len)
+            break
+        except Exception as e:
+            retries = retries + 1
+            time.sleep(0.01)
+
+    lock.release()
+    if res is None:
+        print("Failed i2c read")
     return res
 
 def sendPacketOrDebug(packet:Packet, i2c_addr):
     if DEBUG:
         print(f"packet: {packet}")
     else:
-        print(f"i2caddr: {i2c_addr}, packet:{packet}")
+        # print(f"i2caddr: {i2c_addr}, packet:{packet}")
        
         i2c_write(i2c_addr, packet.to_array())
        
@@ -102,10 +121,10 @@ class GenericFunctions:
         print(packet, motor.I2CAddress)
 
     @classmethod
-    def callReadNano(cls, trailers, nanoTelemetry:dict()):
+    def callReadNano(cls, trailers, nanoTelemetry):
         for trailer in trailers:
             try:
-                ret_byte = bus.read_i2c_block_data(trailer.I2CAddress, 1, 32)
+                ret_byte = i2c_read(trailer.I2CAddress, 32)
 
                 nanoTelemetry['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little') # - 2B
                 nanoTelemetry['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little') #- 2B
@@ -129,7 +148,8 @@ class GenericFunctions:
                 ]
                 
             except Exception as e:
-                print(f"Trailer {trailer.name} {e}")
+                # print(f"Trailer {trailer.name} {e}")
+                pass
             finally:
                 time.sleep(0.05)
         print(nanoTelemetry)
