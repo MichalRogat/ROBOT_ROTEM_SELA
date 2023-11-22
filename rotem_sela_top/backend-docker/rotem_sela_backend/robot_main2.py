@@ -52,6 +52,7 @@ class RobotMain():
     
 
     def __init__(self) -> None:
+        self.motors = MotorDriver()
         joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
                   [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
                   [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
@@ -82,7 +83,6 @@ class RobotMain():
         self.main_thread = threading.Thread(target=self.RobotMain)
         self.readADC_thread = threading.Thread(target=self.ReadADC)
         self.last_keep_alive = datetime.datetime.now()
-        self.motors = MotorDriver()
 
         self.comm_thread.start()
         self.message_handler_thread.start()

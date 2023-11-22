@@ -118,8 +118,6 @@ class GenericFunctions:
     @classmethod
     def callReadNano(cls, trailers, nanoTelemetry):
         for trailer in trailers:
-            if trailer.name != '5':
-                continue
             try:
                 ret_byte = i2c_read(trailer.I2CAddress, 32)
 
@@ -136,9 +134,9 @@ class GenericFunctions:
                 print(ret_byte[15])
                 print(ret_byte[16])
 
-                nanoTelemetry['imu'+trailer.name] = [int.from_bytes(ret_byte[13:17], byteorder='big', signed=True)/10.0,
-                                                     int.from_bytes(ret_byte[17:21], byteorder='big', signed=True)/10.0,
-                                                     int.from_bytes(ret_byte[21:25], byteorder='big', signed=True)/10.0
+                nanoTelemetry['imu'+trailer.name] = [int.from_bytes(ret_byte[13:17], byteorder='little', signed=True)/10.0,
+                                                     int.from_bytes(ret_byte[17:21], byteorder='little', signed=True)/10.0,
+                                                     int.from_bytes(ret_byte[21:25], byteorder='little', signed=True)/10.0
                                                     ]
             except Exception as e:
                 print(f"Trailer {trailer.name} {e}")
