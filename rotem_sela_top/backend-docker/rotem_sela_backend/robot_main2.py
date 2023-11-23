@@ -185,12 +185,14 @@ class RobotMain():
             self.flipCb()
         elif int(event["event"]) == 34: # left_arrow
             self.motors.stopMotor(self.joints[self.currJoint][0])
-            self.currJoint=(self.currJoint+1) % 4
+            if self.currJoint > 4:
+                self.currJoint=(self.currJoint+1)
             print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 33: # right_arrow
             if self.currJoint > 0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
-                self.currJoint=self.currJoint-1 % 4
+                if self.currJoint >= 0:
+                    self.currJoint=self.currJoint-1
                 print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 0: # moving the left joystick
             # print(event)
@@ -341,7 +343,7 @@ class RobotMain():
     def TelemetricInfoSend(self):
         global nanoTelemetry
         info = {
-            "opcode": CommandOpcode.telemetric.name,
+            # "opcode": CommandOpcode.telemetric.name,
             # "elev": self.a2d.values[4],
             # "turn1": self.a2d.values[3],
             # "turn2": self.a2d.values[5],
@@ -363,7 +365,8 @@ class RobotMain():
             "Camera-F4": True,
             "Camera-S4": True,
             "isFlip": self.isFlip,
-            "isToggle": self.isToggle
+            "isToggle": self.isToggle,
+            "CurrentJoint": self.currJoint
 
         } 
         # print(f"Send telemetry ")
