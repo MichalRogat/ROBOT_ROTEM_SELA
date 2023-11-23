@@ -55,26 +55,6 @@ class IIMU(ABC):
         pass
 
 
-class Pump(IMotor):
-    pumpInstances = []
-
-    def __init__(self, I2CAddress, pin, a2dPin):
-        super().__init__(I2CAddress)
-        Pump.pumpInstances.append(self)
-        self.isUglyDriver = False
-        self.pin = pin
-        self.a2dPin = a2dPin
-
-    def MotorRun(self, speed):
-        self.gpio = HIGH
-        GenericFunctions.callDigitalGpioFunction(self)
-
-    def stopMotor(self):
-        self.gpio = LOW
-        GenericFunctions.callDigitalGpioFunction(self)
-
-    def get_a2d_mot_value(self):
-        GenericFunctions.callReadNano(self)
 
 
 class Driver(IMotor):
@@ -178,7 +158,7 @@ class Trailer1(ITrailer):
                             isUglyDriver=False,
                             pins=[9, 6, 7],
                             checkOverCurrent=15)
-        self.pump1 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
+        self.pump1 = Driver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[11,10,12], checkOverCurrent=16)
 
 class Trailer2(ITrailer):
 
@@ -242,4 +222,4 @@ class Trailer5(ITrailer):
                          isUglyDriver=False,
                          pins=[9, 6, 7],
                          checkOverCurrent=15)
-        self.pump2 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
+        self.pump2 = Driver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[11,10,12], checkOverCurrent=16)

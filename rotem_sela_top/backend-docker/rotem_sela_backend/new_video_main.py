@@ -15,9 +15,10 @@ import time
 
 CAM_PORTS = [
     ([['2','1'],['7','8']], 5000),
-    ([['3','4'], ['6','5']], 5001),
+    ([['3','9'], ['6','10']], 5001),
     ([['6','5'],['3','4']], 5002),
-    ([['7','8'],['2','1']], 5003)
+    ([['7','8'],['2','1']], 5003),
+    # ([['9','10'],['9','10']], 5004)
 ]
 
 # Dictionary of cameras; the key is an identifier, the value is the OpenCV VideoCapture object
@@ -39,6 +40,8 @@ def map_cams():
             '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480},
             '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480},
             '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400},
+            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480},
+            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400},
            }
     print(map)
     return map
@@ -102,12 +105,12 @@ def videoFeedHandler(port, cam_id, queue, barrier):
             with v4l2py.Device(video_dev) as device:
                 devices[cam_id[sideIdx][camIdx]] = device
                 device.set_format(buffer_type=1, width=res[cam_id[sideIdx][camIdx]]['width'], height=res[cam_id[sideIdx][camIdx]]['height'], pixel_format='MJPG')
-                device.set_fps(buffer_type=1, fps=10)
+                device.set_fps(buffer_type=1, fps=1)
                 for frame in device:
                     try:
                         if stopVideo:
                             break
-                        
+                        time.sleep(1)
                         ChannelHandler.send_message(frame.data)
                         try:
                             item = queue.get(block=False)
@@ -193,9 +196,8 @@ if __name__ == "__main__":
         process.start()
 
     app = tornado.web.Application(ChannelHandler.urls())
-    
-    # Setup HTTP Server
     http_server = tornado.httpserver.HTTPServer(app)
+    # Setup HTTP Server
     http_server.listen(8888, '0.0.0.0')
     print(f"Websocket started")
     # Start IO/Event loop

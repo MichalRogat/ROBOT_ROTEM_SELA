@@ -185,37 +185,59 @@ class RobotMain():
             self.flipCb()
         elif int(event["event"]) == 34: # left_arrow
             self.motors.stopMotor(self.joints[self.currJoint][0])
-            if self.currJoint > 4:
+            if self.currJoint < 3:
                 self.currJoint=(self.currJoint+1)
             print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 33: # right_arrow
             if self.currJoint > 0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
-                if self.currJoint >= 0:
+                if self.currJoint > 0:
                     self.currJoint=self.currJoint-1
                 print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 0: # moving the left joystick
             # print(event)
+
             if value ==0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
             elif not self.isFlip:
+                if self.currJoint == 1:
+                    value = -value
                 self.motors.MotorRun(self.joints[self.currJoint][0], value)
             else:
                 self.motors.MotorRun(self.joints[self.currJoint][0], -value)
         elif int(event["event"]) in (31, 32): # up_arrow - elevation up for current joint
+
+            if self.currJoint == 0 or self.currJoint == 3:
+                value = -value
+
             if value == 0:
                 self.motors.stopMotor(self.joints[self.currJoint][1])
             else:
                 self.motors.MotorRun(self.joints[self.currJoint][1], value)
-        elif int(event["event"]) == 21: # up_arrow - elevation up for current joint
+        elif int(event["event"]) == 21: # circle - switch sides
             self.toggleCb()
         elif int(event["event"]) == 29:
-            self.currPump = (self.currPump+1) % len(Entity.Pump.pumpInstances)
+            self.currPump = (self.currPump+1) % 4
         elif int(event["event"]) == 30: # stop pump
             if value == 0:
-                self.motors.stopMotor(self.motors.stopMotor(self.pumps[self.currPump]))
+                if self.currPump == 0:
+                    self.motors.MotorStop(self.motors.trailer1.pump1)
+                elif self.currPump == 1:
+                    self.motors.MotorStop(self.motors.trailer1.pump1)
+                elif self.currPump == 2:
+                    self.motors.MotorStop(self.motors.trailer5.pump2)
+                elif self.currPump == 3:
+                    self.motors.MotorStop(self.motors.trailer5.pump2)
             else:
-                self.motors.MotorRun(self.pumps[self.currPump])
+                if self.currPump == 0:
+                    self.motors.MotorRun(self.motors.trailer1.pump1, 90)
+                elif self.currPump == 1:
+                    self.motors.MotorRun(self.motors.trailer1.pump1, -90)
+                elif self.currPump == 2:
+                    self.motors.MotorRun(self.motors.trailer5.pump2, 90)
+                elif self.currPump == 3:
+                    self.motors.MotorRun(self.motors.trailer5.pump2, -90)
+
         
 
 
@@ -343,7 +365,7 @@ class RobotMain():
     def TelemetricInfoSend(self):
         global nanoTelemetry
         info = {
-            # "opcode": CommandOpcode.telemetric.name,
+            "opcode": CommandOpcode.telemetric.name,
             # "elev": self.a2d.values[4],
             # "turn1": self.a2d.values[3],
             # "turn2": self.a2d.values[5],

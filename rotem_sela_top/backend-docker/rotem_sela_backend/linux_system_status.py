@@ -57,6 +57,7 @@ class LinuxSystemStatus:
             try:
                 # Get the details of the device
                 iProduct = dev.product
+                print(dev.product)
                 if "camera" in iProduct.lower():
                     serial = f"{dev.idVendor}-{dev.idProduct}-{dev.bcdDevice}"
                     dev_address = dev.address
