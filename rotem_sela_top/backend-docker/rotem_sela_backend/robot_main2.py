@@ -76,11 +76,11 @@ class RobotMain():
             print(f"Start remote control service")
             self.comm = robot_remote_control.RobotRemoteControl(self.rx_q)
 
-        try:
-            self.a2d = serial_a2d.SerialA2D()
-        except Exception as e:
-            print("NO a2c Error: ", e)
-        self.a2d_thread = threading.Thread(target=self.A2dHandler)
+        # try:
+        #     self.a2d = serial_a2d.SerialA2D()
+        # except Exception as e:
+        #     print("NO a2c Error: ", e)
+        # self.a2d_thread = threading.Thread(target=self.A2dHandler)
         self.i2c_lock = threading.Lock()
         self.message_handler_thread = threading.Thread(
             target=self.RobotMessageHandler)
@@ -91,7 +91,7 @@ class RobotMain():
         self.comm_thread.start()
         self.message_handler_thread.start()
         self.main_thread.start()
-        self.a2d_thread.start()
+        # self.a2d_thread.start()
         # self.readADC_thread.start()
         self.motors.StopAllMotors()
 

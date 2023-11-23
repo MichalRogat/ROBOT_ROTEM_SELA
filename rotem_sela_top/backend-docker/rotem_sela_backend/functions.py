@@ -55,6 +55,7 @@ def i2c_write(i2c_addr, data):
         try:
             
             bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+            print("Sent i2c "+str(i2c_addr))
             break
         except Exception as e:
             retries = retries + 1
