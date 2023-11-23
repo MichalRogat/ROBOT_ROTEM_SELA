@@ -1,6 +1,7 @@
 from Entity import IMotor
 import Entity
 import Entity as Entity
+import time
 
 HIGH = 1
 LOW = 0
@@ -26,6 +27,17 @@ class MotorDriver():
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
+        if speed > 0:
+            speed_dir = "f"
+        else:
+            speed_dir = "b"
+
+        if motor.dir != speed_dir:
+            motor.stopMotor()
+            time.sleep(0.01)
+        motor.dir = speed_dir
+
+        print("Motor speed"+str(speed))
         if not motor.isUglyDriver:
             motor.MotorRun(100-abs(speed) if speed > 0 else -(100-abs(speed)))
         else:
@@ -45,14 +57,4 @@ class MotorDriver():
         print("Disable Pumps")
         for pumpInstacne in Entity.Pump.instances:
             pumpInstacne.stopMotor()
-
-    
-
-if __name__ == "__main__":
-    md = MotorDriver()
-    # md.StopAllMotors()
-
-    md.MotorRun(md.trailer3.turn2, 90)
-    # md.MotorRun(md.trailer3.turn3, 90)
-    # md.stopMotor(md.trailer3.turn3)
 

@@ -185,12 +185,12 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
 if __name__ == "__main__":
     processes = []
     
-    for item in CAM_PORTS:
-        queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier))
-        processes.append(process)
-        subQueues.append(queue)
-        process.start()
+    # for item in CAM_PORTS:
+    #     queue = multiprocessing.Queue()
+    #     process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier))
+    #     processes.append(process)
+    #     subQueues.append(queue)
+    #     process.start()
 
     app = tornado.web.Application(ChannelHandler.urls())
     

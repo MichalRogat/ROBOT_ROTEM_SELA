@@ -29,6 +29,7 @@ class IMotor(ABC):
     def __init__(self, I2CAddress):
         IMotor.instances.append(self)
         self.I2CAddress = I2CAddress
+        self.dir = None
 
     @abstractmethod
     def stopMotor():
@@ -59,7 +60,7 @@ class Pump(IMotor):
 
     def __init__(self, I2CAddress, pin, a2dPin):
         super().__init__(I2CAddress)
-        Pump.instances.append(self)
+        Pump.pumpInstances.append(self)
         self.isUglyDriver = False
         self.pin = pin
         self.a2dPin = a2dPin
@@ -85,6 +86,7 @@ class Driver(IMotor):
         self.checkOverCurrent = checkOverCurrent
         self.IN1type = None
         self.IN2type = None
+        self.dir = None
 
     def stopMotor(self):
         self.gpio = LOW
@@ -170,11 +172,11 @@ class Trailer1(ITrailer):
         self.name = '1'
         self.driver1 = Driver(I2CAddress=I2CAddress,
                                    isUglyDriver=False,
-                                   pins=[9, 6, 7],
+                                   pins=[3, 5, 2],
                                    checkOverCurrent=14)
         self.turn1 = Driver(I2CAddress=I2CAddress,
                             isUglyDriver=False,
-                            pins=[3, 5, 2],
+                            pins=[9, 6, 7],
                             checkOverCurrent=15)
         self.pump1 = Pump(I2CAddress=I2CAddress, pin=17, a2dPin=20)
 

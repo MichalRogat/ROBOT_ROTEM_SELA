@@ -2,16 +2,18 @@ import threading
 import time
 import queue
 import datetime
-from pwm_rpi import RobotMotor, LIGHT
+# from pwm_rpi import RobotMotor, LIGHT
 from MotorDriver import MotorDriver
 import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
 import serial_a2d
 import RPi.GPIO as GPIO
+import Entity
 import asyncio
 import json
 import numpy as np
+import traceback
 from functions import GenericFunctions
 from Entity import ITrailer
 
@@ -53,10 +55,12 @@ class RobotMain():
 
     def __init__(self) -> None:
         self.motors = MotorDriver()
-        joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
+        self.joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
                   [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
                   [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
                   [self.motors.trailer5.turn4,self.motors.trailer4.elevation4]]
+        self.pumps = [self.motors.trailer1.pump1,self.motors.trailer5.pump2]
+        self.currPump =0
         print(f"Start robot service {RC}")
         self.currentLightLevel = 1
         self.activePump = 1
@@ -88,7 +92,7 @@ class RobotMain():
         self.message_handler_thread.start()
         self.main_thread.start()
         self.a2d_thread.start()
-        self.readADC_thread.start()
+        # self.readADC_thread.start()
         self.motors.StopAllMotors()
 
     def setTelemetryChannel(self, channel):
@@ -141,7 +145,7 @@ class RobotMain():
                     
                     self.MotorHandler(event)
             except Exception as e:
-                pass
+                traceback.print_exc()
 
     def MotorHandler(self, event):
         if len(event) < 2:
@@ -187,6 +191,7 @@ class RobotMain():
             if self.currJoint > 0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
                 self.currJoint=self.currJoint-1 % 4
+                print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 0: # moving the left joystick
             # print(event)
             if value ==0:
@@ -200,8 +205,15 @@ class RobotMain():
                 self.motors.stopMotor(self.joints[self.currJoint][1])
             else:
                 self.motors.MotorRun(self.joints[self.currJoint][1], value)
-        
-
+        elif int(event["event"]) == 21: # up_arrow - elevation up for current joint
+            self.toggleCb()
+        elif int(event["event"]) == 29:
+            self.currPump = (self.currPump+1) % len(Entity.Pump.pumpInstances)
+        elif int(event["event"]) == 30: # stop pump
+            if value == 0:
+                self.motors.stopMotor(self.motors.stopMotor(self.pumps[self.currPump]))
+            else:
+                self.motors.MotorRun(self.pumps[self.currPump])
         
 
 
@@ -265,40 +277,40 @@ class RobotMain():
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
                 self.currentLightLevel = 1
-            if (self.currentLightLevel < 3):
-                GPIO.output(LIGHT, not (GPIO.input(LIGHT)))
-            else:
-                stopVideo = True
+            # if (self.currentLightLevel < 3):
+                # GPIO.output(LIGHT, not (GPIO.input(LIGHT)))
+            # else:
+            #     stopVideo = True
         self.telemetryChannel.send_message(json.dumps(event))
 
-    def PumpHandler(self, event):
-        if len(event) < 2:
-            print("pump arg missing")
-            return
-        togglePumps = event["togglePumps"]
-        activePumping = event["activePumping"]
-        if (togglePumps):
-            self.activePump = self.activePump + 1
-            if (self.activePump == 4):
-                self.activePump = 1
-        if (activePumping):
-            self.isPumpingNow = 1
-            if self.activePump == 1:
-                self.motors.MotorRun(RobotMotor.Pump1, 50)
-            elif self.activePump == 2:
-                self.motors.MotorRun(RobotMotor.Pump2, 50)
-            elif self.activePump == 3:
-                self.motors.MotorRun(RobotMotor.Pump3, 50)
-        else:
-            if (self.isPumpingNow):
-                self.isPumpingNow = 0
-                if self.activePump == 1:
-                    self.motors.stopMotor(RobotMotor.Pump1)
-                elif self.activePump == 2:
-                  self.motors.stopMotor(RobotMotor.Pump2)
-                elif self.activePump == 3:
-                    self.motors.stopMotor(RobotMotor.Pump3)
-        self.telemetryChannel.send_message(json.dumps(event))
+    # def PumpHandler(self, event):
+    #     if len(event) < 2:
+    #         print("pump arg missing")
+    #         return
+    #     togglePumps = event["togglePumps"]
+    #     activePumping = event["activePumping"]
+    #     if (togglePumps):
+    #         self.activePump = self.activePump + 1
+    #         if (self.activePump == 4):
+    #             self.activePump = 1
+    #     if (activePumping):
+    #         self.isPumpingNow = 1
+    #         if self.activePump == 1:
+    #             self.motors.MotorRun(RobotMotor.Pump1, 50)
+    #         elif self.activePump == 2:
+    #             self.motors.MotorRun(RobotMotor.Pump2, 50)
+    #         elif self.activePump == 3:
+    #             self.motors.MotorRun(RobotMotor.Pump3, 50)
+    #     else:
+    #         if (self.isPumpingNow):
+    #             self.isPumpingNow = 0
+    #             if self.activePump == 1:
+    #                 self.motors.stopMotor(RobotMotor.Pump1)
+    #             elif self.activePump == 2:
+    #               self.motors.stopMotor(RobotMotor.Pump2)
+    #             elif self.activePump == 3:
+    #                 self.motors.stopMotor(RobotMotor.Pump3)
+    #     self.telemetryChannel.send_message(json.dumps(event))
 
     def CalibrationHandler(self, event):
         self.offset1 = self.angle1
@@ -330,20 +342,10 @@ class RobotMain():
         global nanoTelemetry
         info = {
             "opcode": CommandOpcode.telemetric.name,
-            # "imu-1": np.subtract(np.array(self.angle1), np.array(self.offset1)).tolist(),
-            # "imu-2": np.subtract(np.array(self.angle2), np.array(self.offset2)).tolist(),
-            # "imu-3": np.subtract(np.array(self.angle3), np.array(self.offset3)).tolist(),
-            # "imu-4": np.subtract(np.array(self.angle4), np.array(self.offset4)).tolist(),
-            # "imu-5": np.subtract(np.array(self.angle5), np.array(self.offset5)).tolist(),
-            # "drive1": nanoTelemetry['d1_cs']
-            # "drive2": self.a2d.values[2],
-            "elev": self.a2d.values[4],
-            "turn1": self.a2d.values[3],
-            "turn2": self.a2d.values[5],
-            "joint1": self.a2d.values[6],
-            "FullTank1": self.a2d.values[7],
-            "FullTank2": self.a2d.values[8],
-            "FullTank3": self.a2d.values[9],
+            # "elev": self.a2d.values[4],
+            # "turn1": self.a2d.values[3],
+            # "turn2": self.a2d.values[5],
+            # "joint1": self.a2d.values[6],
             "activePump": self.activePump,
             "pumpingNow": self.isPumpingNow,
             "Spare2": 4096,

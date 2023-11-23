@@ -1,6 +1,7 @@
 from smbus2 import SMBus
 import time
 from threading import Lock
+import traceback
 
 # OPCODES
 STARTPWM = 0
@@ -102,12 +103,17 @@ class GenericFunctions:
         sendPacketOrDebug(packet2, driver.I2CAddress)
         if driver.IN1type is None:
             return
-        packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
-        sendPacketOrDebug(packet3, driver.I2CAddress)
-        packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
-        sendPacketOrDebug(packet4, driver.I2CAddress)
-       
-
+        
+        if driver.IN1type == STARTPWM:
+            packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
+            sendPacketOrDebug(packet4, driver.I2CAddress)
+            packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
+            sendPacketOrDebug(packet3, driver.I2CAddress)
+        else:
+            packet3 = Packet(driver.IN1type, [driver.pins[IN1], driver.IN1])
+            sendPacketOrDebug(packet3, driver.I2CAddress)
+            packet4 = Packet(driver.IN2type, [driver.pins[IN2], driver.IN2])
+            sendPacketOrDebug(packet4, driver.I2CAddress)
     @classmethod
     def callDigitalGpioFunction(cls, motor):
         # This method controls generic digital gpio
@@ -129,20 +135,18 @@ class GenericFunctions:
                 nanoTelemetry['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little')
                 nanoTelemetry['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little')
                 nanoTelemetry['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little')
-                print("->"+str(ret_byte[13]))
-                print(ret_byte[14])
-                print(ret_byte[15])
-                print(ret_byte[16])
 
                 nanoTelemetry['imu'+trailer.name] = [int.from_bytes(ret_byte[13:17], byteorder='little', signed=True)/10.0,
                                                      int.from_bytes(ret_byte[17:21], byteorder='little', signed=True)/10.0,
                                                      int.from_bytes(ret_byte[21:25], byteorder='little', signed=True)/10.0
                                                     ]
             except Exception as e:
-                print(f"Trailer {trailer.name} {e}")
+                print(f"Trailer {trailer.name} {traceback.print_exc()}")
             finally:
                 time.sleep(0.05)
-        print(nanoTelemetry)
+        # print(nanoTelemetry)
         
 if __name__ == "__main__":
+    #packet = Packet(SETGPIO, payload=[17, HIGH])
+    #sendPacketOrDebug(packet, 0x13)
     pass

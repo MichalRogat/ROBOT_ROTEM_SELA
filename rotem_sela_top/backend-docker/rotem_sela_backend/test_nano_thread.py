@@ -12,12 +12,12 @@ class RobotMain():
         threading.Thread(target=self.ReadADC).start()
         # threading.Thread(target=self.testMotor).start()
 
-    # def testMotor(self):
-    #     while True:
-    #         self.md.MotorRun(self.md.trailer1.driver1, 90)
-    #         time.sleep(5)
-    #         self.md.stopMotor(self.md.trailer1.driver1)
-    #         time.sleep(5)
+    def testMotor(self):
+        while True:
+            self.md.MotorRun(self.md.trailer1.driver1, 90)
+            time.sleep(5)
+            self.md.stopMotor(self.md.trailer1.driver1)
+            time.sleep(5)
 
     def ReadADC(self):
         global nanoTelemetry
