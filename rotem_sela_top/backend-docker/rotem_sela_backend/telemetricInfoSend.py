@@ -32,7 +32,8 @@ def TelemetricInfoSend(self):
             "Camera-F4": True,
             "Camera-S4": True,
             "isFlip": self.isFlip,
-            "isToggle": self.isToggle
+            "isToggle": self.isToggle,
+        
         }
 
         while True:
