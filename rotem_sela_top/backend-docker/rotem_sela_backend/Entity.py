@@ -8,6 +8,8 @@
 
 from abc import ABC, abstractmethod
 from functions import GenericFunctions
+from functions import pIdx
+
 
 HIGH = 1
 LOW = 0
@@ -72,8 +74,9 @@ class Driver(IMotor):
         self.gpio = LOW
         self.IN1 = 0
         self.IN2 = LOW
-        print(f"stopped motor: {self.pins}")
-        GenericFunctions.callDriverFunction(self)
+       
+        GenericFunctions.callDriverFunction(self,retries=100)
+        print(f"stopped motor: {self.I2CAddress} {pIdx[self.I2CAddress]['rcv']}")
 
     def MotorRun(self, speed):
         self.gpio = HIGH
@@ -152,11 +155,11 @@ class Trailer1(ITrailer):
         self.name = '1'
         self.driver1 = Driver(I2CAddress=I2CAddress,
                                    isUglyDriver=False,
-                                   pins=[3, 5, 2],
+                                   pins=[9, 6, 7],
                                    checkOverCurrent=14)
         self.turn1 = Driver(I2CAddress=I2CAddress,
                             isUglyDriver=False,
-                            pins=[9, 6, 7],
+                            pins=[3, 5, 2],
                             checkOverCurrent=15)
         self.pump1 = Driver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[11,10,12], checkOverCurrent=16)
 
@@ -200,11 +203,11 @@ class Trailer4(ITrailer):
         self.I2CAddress = I2CAddress
         self.elevation3 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
-                         pins=[3, 5, 2],
+                         pins=[9, 6, 7],
                          checkOverCurrent=14)
         self.elevation4 = Driver(I2CAddress=I2CAddress,
                          isUglyDriver=False,
-                         pins=[9, 6, 7],
+                         pins=[3, 5, 2],
                          checkOverCurrent=15)
 
 

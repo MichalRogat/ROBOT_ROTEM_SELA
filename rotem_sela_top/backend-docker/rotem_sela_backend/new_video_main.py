@@ -105,12 +105,12 @@ def videoFeedHandler(port, cam_id, queue, barrier):
             with v4l2py.Device(video_dev) as device:
                 devices[cam_id[sideIdx][camIdx]] = device
                 device.set_format(buffer_type=1, width=res[cam_id[sideIdx][camIdx]]['width'], height=res[cam_id[sideIdx][camIdx]]['height'], pixel_format='MJPG')
-                device.set_fps(buffer_type=1, fps=1)
+                device.set_fps(buffer_type=1, fps=10)
                 for frame in device:
                     try:
                         if stopVideo:
                             break
-                        time.sleep(1)
+                       
                         ChannelHandler.send_message(frame.data)
                         try:
                             item = queue.get(block=False)

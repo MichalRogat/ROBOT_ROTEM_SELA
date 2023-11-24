@@ -32,12 +32,12 @@ class MotorDriver():
         else:
             speed_dir = "b"
 
-        if motor.dir != speed_dir:
-            motor.stopMotor()
-            time.sleep(0.01)
+        # if motor.dir != speed_dir:
+        #     motor.stopMotor()
+            # time.sleep(0.01)
         motor.dir = speed_dir
 
-        print("Motor speed"+str(speed))
+        print(f"Motor speed {speed} {motor.I2CAddress}" )
         if not motor.isUglyDriver:
             motor.MotorRun(100-abs(speed) if speed > 0 else -(100-abs(speed)))
         else:

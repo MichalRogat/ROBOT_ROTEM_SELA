@@ -39,7 +39,8 @@ class RobotMain():
     isFlip = False
     isToggle = False
     joints = None
-    currJoint = 0
+    currJoint = 3
+    ledOn = False
 
     angle1 = [0, 0, 0]
     angle2 = [0, 0, 0]
@@ -92,7 +93,7 @@ class RobotMain():
         self.message_handler_thread.start()
         self.main_thread.start()
         # self.a2d_thread.start()
-        # self.readADC_thread.start()
+        self.readADC_thread.start()
         self.motors.StopAllMotors()
 
     def setTelemetryChannel(self, channel):
@@ -158,7 +159,7 @@ class RobotMain():
             value = -99
         # motor = RobotMotor(event["motor"])
         if int(event["event"]) == 3: # right_stick_y
-            print(event)
+            # print(event)
             
             if self.isFlip:
                 value = -value
@@ -167,9 +168,9 @@ class RobotMain():
                 self.motors.stopMotor(self.motors.trailer5.driver2)
             else:
                 self.motors.MotorRun(self.motors.trailer1.driver1, value)
-                self.motors.MotorRun(self.motors.trailer5.driver2, value)
+                self.motors.MotorRun(self.motors.trailer5.driver2, -value)
         elif int(event["event"]) == 2: #right_stick_x
-                print(event)
+                # print(event)
                 if value ==0:
                     if not self.isFlip:
                         self.motors.stopMotor(self.motors.trailer1.turn1)
@@ -182,32 +183,51 @@ class RobotMain():
                         self.motors.MotorRun(self.motors.trailer5.turn4, value)
         elif int(event["event"]) == 23: # right_stick_y
             self.isFlip = not self.isFlip
+
+            if(self.isFlip):
+                self.currJoint = 0
+            else:
+                self.currJoint = 3
+
             self.flipCb()
         elif int(event["event"]) == 34: # left_arrow
             self.motors.stopMotor(self.joints[self.currJoint][0])
-            if self.currJoint < 3:
-                self.currJoint=(self.currJoint+1)
-            print(f"Joing number {self.currJoint} is selected")
-        elif int(event["event"]) == 33: # right_arrow
-            if self.currJoint > 0:
-                self.motors.stopMotor(self.joints[self.currJoint][0])
+
+            if self.isFlip:
+                if self.currJoint < 3:
+                    self.currJoint=(self.currJoint+1)
+            else:
                 if self.currJoint > 0:
                     self.currJoint=self.currJoint-1
-                print(f"Joing number {self.currJoint} is selected")
+            print(f"Joing number {self.currJoint} is selected")
+        elif int(event["event"]) == 33: # right_arrow
+            self.motors.stopMotor(self.joints[self.currJoint][0])
+            if self.isFlip:   
+                if self.currJoint > 0:
+                    self.currJoint=self.currJoint-1
+            else:
+                if self.currJoint < 3:
+                    self.currJoint=(self.currJoint+1)
+            print(f"Joing number {self.currJoint} is selected")
         elif int(event["event"]) == 0: # moving the left joystick
             # print(event)
 
             if value ==0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
             elif not self.isFlip:
-                if self.currJoint == 1:
-                    value = -value
+                
                 self.motors.MotorRun(self.joints[self.currJoint][0], value)
             else:
+                if self.currJoint == 3:
+                    value = -value
+                if self.currJoint == 0:
+                    value = -value
+                
                 self.motors.MotorRun(self.joints[self.currJoint][0], -value)
+                
         elif int(event["event"]) in (31, 32): # up_arrow - elevation up for current joint
 
-            if self.currJoint == 0 or self.currJoint == 3:
+            if self.currJoint == 3:
                 value = -value
 
             if value == 0:
@@ -221,13 +241,13 @@ class RobotMain():
         elif int(event["event"]) == 30: # stop pump
             if value == 0:
                 if self.currPump == 0:
-                    self.motors.MotorStop(self.motors.trailer1.pump1)
+                    self.motors.stopMotor(self.motors.trailer1.pump1)
                 elif self.currPump == 1:
-                    self.motors.MotorStop(self.motors.trailer1.pump1)
+                    self.motors.stopMotor(self.motors.trailer1.pump1)
                 elif self.currPump == 2:
-                    self.motors.MotorStop(self.motors.trailer5.pump2)
+                    self.motors.stopMotor(self.motors.trailer5.pump2)
                 elif self.currPump == 3:
-                    self.motors.MotorStop(self.motors.trailer5.pump2)
+                    self.motors.stopMotor(self.motors.trailer5.pump2)
             else:
                 if self.currPump == 0:
                     self.motors.MotorRun(self.motors.trailer1.pump1, 90)
@@ -237,6 +257,14 @@ class RobotMain():
                     self.motors.MotorRun(self.motors.trailer5.pump2, 90)
                 elif self.currPump == 3:
                     self.motors.MotorRun(self.motors.trailer5.pump2, -90)
+        elif int(event["event"]) == 35:
+            self.ledOn = not self.ledOn
+            if self.ledOn:
+                GenericFunctions.setGpioFunction(self.motors.trailer1.pump1, 13, 1)
+                GenericFunctions.setGpioFunction(self.motors.trailer5.pump2, 13, 1)
+            else:
+                GenericFunctions.setGpioFunction(self.motors.trailer1.pump1, 13, 0)
+                GenericFunctions.setGpioFunction(self.motors.trailer5.pump2, 13, 0)
 
         
 
@@ -370,7 +398,7 @@ class RobotMain():
             # "turn1": self.a2d.values[3],
             # "turn2": self.a2d.values[5],
             # "joint1": self.a2d.values[6],
-            "activePump": self.activePump,
+            "activePump": self.currPump+1,
             "pumpingNow": self.isPumpingNow,
             "Spare2": 4096,
             "Spare3": 4096,
