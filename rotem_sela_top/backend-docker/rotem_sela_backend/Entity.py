@@ -7,7 +7,7 @@
 # A2-read motor 3 current sense
 
 from abc import ABC, abstractmethod
-from functions import GenericFunctions
+from functions import Packet
 from functions import pIdx
 
 
@@ -31,8 +31,8 @@ class IMotor(ABC):
     def __init__(self, I2CAddress):
         IMotor.instances.append(self)
         self.I2CAddress = I2CAddress
-        self.dir = None
-
+        self.speed = 0
+       
     @abstractmethod
     def stopMotor():
         pass
@@ -41,111 +41,45 @@ class IMotor(ABC):
     def MotorRun():
         pass
 
-    @abstractmethod
-    def get_a2d_mot_value():
-        pass
-
-
-class IIMU(ABC):
-    instances_imu = []
-
-    def __init__(self):
-        IIMU.instances.append(self)
-
-    @abstractmethod
-    def trackAngle():
-        pass
-
-
-
-
 class Driver(IMotor):
 
-    def __init__(self, I2CAddress, isUglyDriver, pins, checkOverCurrent):
+    def __init__(self, I2CAddress, motorNum):
         super().__init__(I2CAddress)
-        self.isUglyDriver = isUglyDriver
-        self.pins = pins
-        self.checkOverCurrent = checkOverCurrent
-        self.IN1type = None
-        self.IN2type = None
-        self.dir = None
-
+        self.motorNum = motorNum
+        
     def stopMotor(self):
-        self.gpio = LOW
-        self.IN1 = 0
-        self.IN2 = LOW
        
-        GenericFunctions.callDriverFunction(self,retries=100)
-        print(f"stopped motor: {self.I2CAddress} {pIdx[self.I2CAddress]['rcv']}")
+        self.speed = 0
 
     def MotorRun(self, speed):
-        self.gpio = HIGH
+       
         if speed >= 90:
             speed = 90
         if speed <= -90:
             speed = -90
 
-        if self.isUglyDriver:
-            # Move counterclock
-            if speed >= 0:
-                self.IN1 = speed
-                self.IN2 = HIGH
-
-                self.IN1type = STARTPWM
-                self.IN2type = SETGPIO
-
-            elif speed < 0:
-                # Move cloclwise
-                speed = abs(speed)
-                self.IN1 = speed
-                self.IN2 = LOW
-                self.IN1type = STARTPWM
-                self.IN2type = SETGPIO
-
-        elif not self.isUglyDriver:
-            # Move clockwise
-            if speed >= 0:
-                self.IN1 = HIGH
-                self.IN2 = speed
-                self.IN1type = SETGPIO
-                self.IN2type = STARTPWM
-            elif speed < 0:
-                # Move counterclock
-                speed = abs(speed)
-                self.IN1 = speed
-                self.IN2 = HIGH
-                self.dir = 'b'
-                self.IN1type = STARTPWM
-                self.IN2type = SETGPIO
-
-        self.gpio = HIGH
-        # print("i am inheriting correctly")
-
-        GenericFunctions.callDriverFunction(self)
-
-    def get_a2d_mot_value(self):
-        pass
-
-
-class IMU(IIMU):
-
-    def __init__(self, imu_address, Accel_Gyro_REG_L, Accel_Gyro_REG_H,
-                 RegisterNum, value):
-        super().__init__()
-        IMU.instances_imu.append(self)
-        self.imu_address = imu_address
-        self.Accel_Gyro_REG_L = Accel_Gyro_REG_L
-        self.Accel_Gyro_REG_H = Accel_Gyro_REG_H
-        self.RegisterNum = RegisterNum
-        self.value = value
+        self.speed = speed
 
 class ITrailer(ABC):
     trailer_instances = []
-
+    gpio = {}
     def __init__(self):
         super().__init__()
         ITrailer.trailer_instances.append(self)
+    
+    def addGpio(self, pin, val):
+        self.gpio[pin] = val;
 
+    def GetGpioState(self):
+        res = []
+        for pin in self.gpio:
+            res.append(pin)
+            res.append(self.gpio[pin])
+        return res
+    
+    @abstractmethod
+    def GetState():
+        pass
 
 class Trailer1(ITrailer):
 
@@ -153,15 +87,12 @@ class Trailer1(ITrailer):
         super().__init__()
         self.I2CAddress = I2CAddress
         self.name = '1'
-        self.driver1 = Driver(I2CAddress=I2CAddress,
-                                   isUglyDriver=False,
-                                   pins=[9, 6, 7],
-                                   checkOverCurrent=14)
-        self.turn1 = Driver(I2CAddress=I2CAddress,
-                            isUglyDriver=False,
-                            pins=[3, 5, 2],
-                            checkOverCurrent=15)
-        self.pump1 = Driver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[11,10,12], checkOverCurrent=16)
+        self.driver1 = Driver(I2CAddress,2)
+        self.turn1 = Driver(I2CAddress,1)
+        self.pump1 = Driver(I2CAddress, 3)
+    
+    def GetState(self):
+        return Packet([self.turn1.speed, self.driver1.speed, self.pump1.speed]+self.GetGpioState(), 0x11)
 
 class Trailer2(ITrailer):
 
@@ -169,15 +100,11 @@ class Trailer2(ITrailer):
         super().__init__()
         self.name = '2'
         self.I2CAddress = I2CAddress
-        self.elevation1 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[3, 5, 2],
-                         checkOverCurrent=14)
-        self.elevation2 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[9, 6, 7],
-                         checkOverCurrent=15)
+        self.elevation1 = Driver(I2CAddress,1)
+        self.elevation2 = Driver(I2CAddress,2)
 
+    def GetState(self):
+        return Packet([self.elevation1.speed, self.elevation2.speed, 0]+self.GetGpioState(), 0x22)
 
 class Trailer3(ITrailer):
 
@@ -185,15 +112,11 @@ class Trailer3(ITrailer):
         super().__init__()
         self.name = '3'
         self.I2CAddress = I2CAddress
-        self.turn2 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[3, 5, 2],
-                         checkOverCurrent=14)
-        self.turn3 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[9, 6, 7],
-                         checkOverCurrent=15)
+        self.turn2 = Driver(I2CAddress,1)
+        self.turn3 = Driver(I2CAddress,2)
 
+    def GetState(self):
+        return Packet([self.turn2.speed, self.turn3.speed, 0]+self.GetGpioState(), 0x33)
 
 class Trailer4(ITrailer):
 
@@ -201,15 +124,10 @@ class Trailer4(ITrailer):
         super().__init__()
         self.name = '4'
         self.I2CAddress = I2CAddress
-        self.elevation3 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[9, 6, 7],
-                         checkOverCurrent=14)
-        self.elevation4 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[3, 5, 2],
-                         checkOverCurrent=15)
-
+        self.elevation3 = Driver(I2CAddress,2)
+        self.elevation4 = Driver(I2CAddress,1)
+    def GetState(self):
+        return Packet([self.elevation4.speed, self.elevation3.speed, 0]+self.GetGpioState(), 0x44)
 
 class Trailer5(ITrailer):
 
@@ -217,12 +135,9 @@ class Trailer5(ITrailer):
         super().__init__()
         self.name = '5'
         self.I2CAddress = I2CAddress
-        self.driver2 = Driver(I2CAddress=I2CAddress,
-                              isUglyDriver=False,
-                              pins=[3, 5, 2],
-                              checkOverCurrent=14)
-        self.turn4 = Driver(I2CAddress=I2CAddress,
-                         isUglyDriver=False,
-                         pins=[9, 6, 7],
-                         checkOverCurrent=15)
-        self.pump2 = Driver(I2CAddress=I2CAddress, isUglyDriver=False, pins=[11,10,12], checkOverCurrent=16)
+        self.driver2 = Driver(I2CAddress,1)
+        self.turn4 = Driver(I2CAddress,2)
+        self.pump2 = Driver(I2CAddress,3)
+
+    def GetState(self):
+        return Packet([self.driver2.speed, self.turn4.speed, self.pump2.speed]+self.GetGpioState(), 0x55)

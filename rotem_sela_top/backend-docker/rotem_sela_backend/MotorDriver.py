@@ -10,10 +10,10 @@ class MotorDriver():
 # 
     def __init__(self):
         self.trailer1 = Entity.Trailer1(I2CAddress = 0x11)
-        self.trailer2 = Entity.Trailer2(I2CAddress = 0x12)
-        self.trailer3 = Entity.Trailer3(I2CAddress = 0x13)
-        self.trailer4 = Entity.Trailer4(I2CAddress = 0x14)
-        self.trailer5 = Entity.Trailer5(I2CAddress = 0x15)
+        self.trailer2 = Entity.Trailer2(I2CAddress = 0x22)
+        self.trailer3 = Entity.Trailer3(I2CAddress = 0x33)
+        self.trailer4 = Entity.Trailer4(I2CAddress = 0x44)
+        self.trailer5 = Entity.Trailer5(I2CAddress = 0x55)
 
     disable_motors = False
     # over_current = [False] * (RobotMotor.Pump3.value+1)
@@ -27,28 +27,15 @@ class MotorDriver():
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
-        if speed > 0:
-            speed_dir = "f"
-        else:
-            speed_dir = "b"
-
-        # if motor.dir != speed_dir:
-        #     motor.stopMotor()
-            # time.sleep(0.01)
-        motor.dir = speed_dir
-
-        print(f"Motor speed {speed} {motor.I2CAddress}" )
-        if not motor.isUglyDriver:
-            motor.MotorRun(100-abs(speed) if speed > 0 else -(100-abs(speed)))
-        else:
-            motor.MotorRun(speed)
-
+        
+        motor.MotorRun(speed)
+        
     @classmethod
     def StopAllMotors(self):
         print("Disable Motors")
         # if not MotorDriver.disable_motors:
         for instance in IMotor.instances:
-            instance.gpio = LOW
+           
             instance.stopMotor()
         self.disable_motors = False
 

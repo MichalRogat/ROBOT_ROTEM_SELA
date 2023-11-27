@@ -161,7 +161,8 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
                     else:
                         client.write_message(message, binary=True)
                 except Exception as e:
-                    print(str(e))
+                    cls.clients.remove(client)
+                    break
         except Exception as e:
             print(str(e))
           
