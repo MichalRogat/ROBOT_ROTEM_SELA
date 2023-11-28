@@ -427,7 +427,8 @@ class RobotMain():
             "imu-2":nanoTelemetry["imu2"],
             "imu-3":nanoTelemetry["imu3"],
             "imu-4":nanoTelemetry["imu4"],
-            "imu-5":nanoTelemetry["imu5"],
+            "imu-5":nanoTelemetry["imu5"]
+            # "screen1":camInfo["screen1"]
             # "battery":nanoTelemetry['batteryRead']
 
         } 
