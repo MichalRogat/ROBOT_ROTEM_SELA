@@ -20,7 +20,7 @@ KEEP_ALIVE_TIMEOUT_SEC = 1.0
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
 
-nanoTelemetry = {'imu1':[0,0,0],'imu2':[0,0,0],'imu3':[0,0,0],'imu4':[0,0,0],'imu5':[0,0,0]}
+nanoTelemetry = {'imu1':[0,0,0],'imu2':[0,0,0],'imu3':[0,0,0],'imu4':[0,0,0],'imu5':[0,0,0],"batteryRead":0}
 
 class RobotMain():
 
@@ -95,6 +95,9 @@ class RobotMain():
 
     def setToggleCallback(self, toggleCb):
         self.toggleCb = toggleCb
+
+    def setGetCamsCallback(self, toggleCb):
+        self.getCamsCb = toggleCb
 
     def A2dHandler(self):
         self.a2d.listen()
@@ -235,7 +238,11 @@ class RobotMain():
         elif int(event["event"]) == 21: # circle - switch sides
             self.toggleCb()
         elif int(event["event"]) == 24: # circle - switch sides
-            self.toggleCb()
+            self.offset1 = self.angle1
+            self.offset2 = self.angle2
+            self.offset3 = self.angle3
+            self.offset4 = self.angle4
+            self.offset5 = self.angle5
         elif int(event["event"]) == 29:
             self.currPump = (self.currPump+1) % 4
         elif int(event["event"]) == 30: # stop pump
@@ -369,13 +376,7 @@ class RobotMain():
     #                 self.motors.stopMotor(RobotMotor.Pump3)
     #     self.telemetryChannel.send_message(json.dumps(event))
 
-    def CalibrationHandler(self, event):
-        self.offset1 = self.angle1
-        self.offset2 = self.angle2
-        self.offset3 = self.angle3
-        self.offset4 = self.angle4
-        self.offset5 = self.angle5
-
+   
     def RobotMain(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -398,6 +399,13 @@ class RobotMain():
 
     def TelemetricInfoSend(self):
         global nanoTelemetry
+        self.angle1 = nanoTelemetry["imu1"]
+        print(self.angle1, self.offset1)
+        self.angle2 = nanoTelemetry["imu2"]
+        self.angle3 = nanoTelemetry["imu3"]
+        self.angle4 = nanoTelemetry["imu4"]
+        self.angle5 = nanoTelemetry["imu5"]
+            # "screen1":camInfo["screen1"]
         info = {
             "opcode": CommandOpcode.telemetric.name,
             # "elev": self.a2d.values[4],
@@ -423,14 +431,13 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle,
             "CurrentJoint": self.currJoint,
-            "imu-1":nanoTelemetry["imu1"],
-            "imu-2":nanoTelemetry["imu2"],
-            "imu-3":nanoTelemetry["imu3"],
-            "imu-4":nanoTelemetry["imu4"],
-            "imu-5":nanoTelemetry["imu5"]
+            "imu-1" : np.subtract(np.array(nanoTelemetry["imu1"]) , np.array(self.offset1)).tolist(),
+            "imu-2" : np.subtract(np.array(nanoTelemetry["imu2"]) , np.array(self.offset2)).tolist(),
+            "imu-3" : np.subtract(np.array(nanoTelemetry["imu3"]) , np.array(self.offset3)).tolist(),
+            "imu-4" : np.subtract(np.array(nanoTelemetry["imu4"]) , np.array(self.offset4)).tolist(),
+            "imu-5" : np.subtract(np.array(nanoTelemetry["imu5"]) , np.array(self.offset5)).tolist(),
             # "screen1":camInfo["screen1"]
-            # "battery":nanoTelemetry['batteryRead']
-
+            "battery":nanoTelemetry["batteryRead"]
         } 
         # print(f"Send telemetry ")
 
