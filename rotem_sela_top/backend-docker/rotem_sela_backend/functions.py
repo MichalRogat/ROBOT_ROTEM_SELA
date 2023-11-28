@@ -62,19 +62,13 @@ def i2c_read(i2c_addr, len):
     
     return res
 
-def callReadNano(trailers, nanoTelemetry):
+def callReadNano(trailers, nanoTelemetry, motors):
     for trailer in trailers:
         try:
             global pIdx
-            # if trailer.I2CAddress != 0x11:
-            #     continue
             if trailer.I2CAddress not in pIdx:
                 pIdx[trailer.I2CAddress] = {'rcv':-1, 'send':0}
-            
             packet = trailer.GetState()
-            # print(packet)
-            i2c_write(trailer.I2CAddress, packet.to_array())
-            # time.sleep(0.01)
             ret_byte = i2c_read(trailer.I2CAddress, 32)
             if ret_byte[0] == 170 and ret_byte[4] == 175:
                 continue
@@ -92,17 +86,13 @@ def callReadNano(trailers, nanoTelemetry):
                                                     int.from_bytes(ret_byte[17:21], byteorder='little', signed=True)/10.0,
                                                     int.from_bytes(ret_byte[21:25], byteorder='little', signed=True)/10.0
                                                 ]
+            for motor in motors:
+                nanoTelemetry["name of motor"] = motor.name
+                nanoTelemetry["speed of motor"] = motor.speed
+
             pIdx[trailer.I2CAddress]['rcv'] = ret_byte[25]
-            # time.sleep(0.1)
-            if trailer.I2CAddress != packet.packetIdx:
-                print("********************************************************")
-            # print(nanoTelemetry)
-        except Exception as e:
-            # print(f"Trailer {trailer.name}")
+        except Exception:
             traceback.print_exc()
-            pass
-        finally:
-            pass
 
     
 def startCalibration():

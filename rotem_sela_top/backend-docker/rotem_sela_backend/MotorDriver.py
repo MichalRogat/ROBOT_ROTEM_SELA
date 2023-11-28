@@ -16,10 +16,6 @@ class MotorDriver():
         self.trailer5 = Entity.Trailer5(I2CAddress = 0x55)
 
     disable_motors = False
-    # over_current = [False] * (RobotMotor.Pump3.value+1)
-    # motor_speed = [0] * (RobotMotor.Pump3.value+1)
-    # current_limit = [1300] * (RobotMotor.Pump3.value+1)
-    # motor_current = [0] * (RobotMotor.Pump3.value+1)
     
     @classmethod
     def stopMotor(self, motor:IMotor):
@@ -27,14 +23,13 @@ class MotorDriver():
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
-        
         motor.MotorRun(speed)
         
     @classmethod
     def StopAllMotors(self):
         print("Disable Motors")
         # if not MotorDriver.disable_motors:
-        for instance in IMotor.instances:
+        for instance in IMotor.motor_instances:
            
             instance.stopMotor()
         self.disable_motors = False

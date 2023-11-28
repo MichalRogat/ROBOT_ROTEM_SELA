@@ -7,13 +7,14 @@ import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
 import RPi.GPIO as GPIO
-import Entity
 import asyncio
 import json
 import numpy as np
 import traceback
 from functions import callReadNano
-from Entity import ITrailer
+from Entity import ITrailer, IMotor
+import multiprocessing
+import csv
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -21,6 +22,25 @@ RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
 
 nanoTelemetry = {'imu1':[0,0,0],'imu2':[0,0,0],'imu3':[0,0,0],'imu4':[0,0,0],'imu5':[0,0,0],"batteryRead":0}
+
+# Events
+KEEP_ALIVE = 99
+LEFT_JOYSTICK = 0
+RIGHT_STICK_X = 2
+RIGHT_STICK_Y = 3
+LEFT_STICK_IN = 7
+RIGHT_STICK_IN = 8
+CIRCLE = 21
+TRIANGLE = 23
+SHARE_PLUS_OPTIONS = 24
+GIVE_NAME = 30
+UP_ARROW = 31
+DOWN_ARROW = 32
+RIGHT_ARROW = 33
+LEFT_ARROW = 34
+GIVE_NAME2 = 35
+
+
 
 class RobotMain():
 
@@ -96,9 +116,6 @@ class RobotMain():
     def setToggleCallback(self, toggleCb):
         self.toggleCb = toggleCb
 
-    def setGetCamsCallback(self, toggleCb):
-        self.getCamsCb = toggleCb
-
     def A2dHandler(self):
         self.a2d.listen()
 
@@ -121,42 +138,21 @@ class RobotMain():
                     events[event['event']] = event
                 
                 for key in events:
-
                     event = events[key]
-                    # if "" in event:
-                    # print(event)
-                    # if event["opcode"] == CommandOpcode.motor.value:
-                    #     self.MotorHandler(event)
-                    # if event["opcode"] == CommandOpcode.keep_alive.value:
-                    #     self.KeepAliveHandler()
-                    # if event["opcode"] == CommandOpcode.camera.value:
-                    #     self.CameraHandler(event)
-                    # if event["opcode"] == CommandOpcode.pump.value:
-                    #     self.PumpHandler(event)
-                    # if event["opcode"] == CommandOpcode.acc_calib.value:
-                    #     self.CalibrationHandler(event)
-                    # if event['opcode'] == CommandOpcode.stop_all.value:
-                    #     self.motors.StopAllMotors()
-                    
                     self.MotorHandler(event)
             except Exception as e:
                 traceback.print_exc()
 
     def MotorHandler(self, event):
-        if len(event) < 2:
-            if event['event'] == 99:
-                # keep alive
-                pass
-            else:
-                print("motor arg missing")
-            return
+        if event['event'] == KEEP_ALIVE:
+            pass
         value = int(event["value"])
         if value > 99:
             value = 99
         elif value < -99:
             value = -99
-        # motor = RobotMotor(event["motor"])
-        if int(event["event"]) == 3: # right_stick_y
+
+        if int(event["event"]) == RIGHT_STICK_Y:
             # print(event)
             value = -value
             if self.isFlip:
@@ -167,8 +163,8 @@ class RobotMain():
             else:
                 self.motors.MotorRun(self.motors.trailer1.driver1, value)
                 self.motors.MotorRun(self.motors.trailer5.driver2, -value)
-        elif int(event["event"]) == 2:
-                # print(event)
+
+        elif int(event["event"]) == RIGHT_STICK_X:
                 if value ==0:
                     if not self.isFlip:
                         self.motors.stopMotor(self.motors.trailer1.turn1)
@@ -181,7 +177,8 @@ class RobotMain():
                     else:
                         value = -value
                         self.motors.MotorRun(self.motors.trailer5.turn4, value)
-        elif int(event["event"]) == 23: # right_stick_y
+
+        elif int(event["event"]) == TRIANGLE:
             self.isFlip = not self.isFlip
 
             if(self.isFlip):
@@ -190,7 +187,8 @@ class RobotMain():
                 self.currJoint = 3
 
             self.flipCb()
-        elif int(event["event"]) == 34: # left_arrow
+
+        elif int(event["event"]) == LEFT_ARROW:
             self.motors.stopMotor(self.joints[self.currJoint][0])
             self.motors.stopMotor(self.joints[self.currJoint][1])
 
@@ -201,7 +199,9 @@ class RobotMain():
                 if self.currJoint > 0:
                     self.currJoint=self.currJoint-1
             print(f"Joing number {self.currJoint} is selected")
-        elif int(event["event"]) == 33: # right_arrow
+
+
+        elif int(event["event"]) == RIGHT_ARROW: # right_arrow
             self.motors.stopMotor(self.joints[self.currJoint][0])
             self.motors.stopMotor(self.joints[self.currJoint][1])
             if self.isFlip:   
@@ -211,9 +211,9 @@ class RobotMain():
                 if self.currJoint < 3:
                     self.currJoint=(self.currJoint+1)
             print(f"Joing number {self.currJoint} is selected")
-        elif int(event["event"]) == 0: # moving the left joystick
-            # print(event)
 
+
+        elif int(event["event"]) == LEFT_JOYSTICK:
             if value ==0:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
             elif not self.isFlip:
@@ -226,7 +226,7 @@ class RobotMain():
                 
                 self.motors.MotorRun(self.joints[self.currJoint][0], -value)
                 
-        elif int(event["event"]) in (31, 32): # up_arrow - elevation up for current joint
+        elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
 
             if self.currJoint != 3:
                 value = -value
@@ -235,17 +235,21 @@ class RobotMain():
                 self.motors.stopMotor(self.joints[self.currJoint][1])
             else:
                 self.motors.MotorRun(self.joints[self.currJoint][1], value)
-        elif int(event["event"]) == 21: # circle - switch sides
+
+        elif int(event["event"]) == CIRCLE: # circle - switch sides
             self.toggleCb()
-        elif int(event["event"]) == 24: # circle - switch sides
+
+        elif int(event["event"]) == SHARE_PLUS_OPTIONS:
             self.offset1 = self.angle1
             self.offset2 = self.angle2
             self.offset3 = self.angle3
             self.offset4 = self.angle4
             self.offset5 = self.angle5
-        elif int(event["event"]) == 29:
-            self.currPump = (self.currPump+1) % 4
-        elif int(event["event"]) == 30: # stop pump
+
+        # elif int(event["event"]) == 29:
+        #     self.currPump = (self.currPump+1) % 4
+            
+        elif int(event["event"]) == GIVE_NAME: # stop pump
             if value == 0:
                 if self.currPump == 0:
                     self.motors.stopMotor(self.motors.trailer1.pump1)
@@ -264,7 +268,9 @@ class RobotMain():
                     self.motors.MotorRun(self.motors.trailer5.pump2, 90)
                 elif self.currPump == 3:
                     self.motors.MotorRun(self.motors.trailer5.pump2, -90)
-        elif int(event["event"]) == 35:
+
+                    
+        elif int(event["event"]) == GIVE_NAME2:
             self.ledOn = not self.ledOn
             if self.ledOn:
                 self.motors.trailer1.addGpio(13,1)
@@ -275,47 +281,15 @@ class RobotMain():
                 self.motors.trailer3.addGpio(17,1)
                 self.motors.trailer5.addGpio(13,0)
 
-        elif int(event["event"]) == 7:
+        elif int(event["event"]) == LEFT_STICK_IN:
             self.motors.StopAllMotors()
 
+        elif int(event["event"]) == RIGHT_STICK_IN:
+            curr_time = datetime.now()
+
+            raise NotImplementedError("recording function not implemented yet.")
+
         
-
-
-                
-                
-
-
-
-
-
-
-
-        #     if motor == RobotMotor.Turn1:
-        #         motor = RobotMotor.Turn2
-        #     elif motor == RobotMotor.Turn2:
-        #         motor = RobotMotor.Turn1
-        #     elif motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
-        #         speed = -speed
-
-        # if motor == RobotMotor.Turn1:
-        #     motor = RobotMotor.Turn2
-        # elif motor == RobotMotor.Turn2:
-        #     motor = RobotMotor.Turn1
-        # elif motor == RobotMotor.Elev1:
-        #     motor = RobotMotor.Joint1
-
-        # elif motor == RobotMotor.Joint1:
-        #     motor = RobotMotor.Elev1
-
-        # if speed == 0:
-        #     self.motors.stopMotor(motor)
-        # else:
-        #     if motor == RobotMotor.Drive1:
-        #         self.motors.MotorRun(motor, speed)
-        #         self.motors.MotorRun(RobotMotor.Drive2, speed)
-        #     else:
-        #         self.motors.MotorRun(motor, speed)
-
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
         self.motors.disable_motors = False
@@ -341,40 +315,7 @@ class RobotMain():
             self.currentLightLevel += 1
             if (self.currentLightLevel == 4):
                 self.currentLightLevel = 1
-            # if (self.currentLightLevel < 3):
-                # GPIO.output(LIGHT, not (GPIO.input(LIGHT)))
-            # else:
-            #     stopVideo = True
         self.telemetryChannel.send_message(json.dumps(event))
-
-    # def PumpHandler(self, event):
-    #     if len(event) < 2:
-    #         print("pump arg missing")
-    #         return
-    #     togglePumps = event["togglePumps"]
-    #     activePumping = event["activePumping"]
-    #     if (togglePumps):
-    #         self.activePump = self.activePump + 1
-    #         if (self.activePump == 4):
-    #             self.activePump = 1
-    #     if (activePumping):
-    #         self.isPumpingNow = 1
-    #         if self.activePump == 1:
-    #             self.motors.MotorRun(RobotMotor.Pump1, 50)
-    #         elif self.activePump == 2:
-    #             self.motors.MotorRun(RobotMotor.Pump2, 50)
-    #         elif self.activePump == 3:
-    #             self.motors.MotorRun(RobotMotor.Pump3, 50)
-    #     else:
-    #         if (self.isPumpingNow):
-    #             self.isPumpingNow = 0
-    #             if self.activePump == 1:
-    #                 self.motors.stopMotor(RobotMotor.Pump1)
-    #             elif self.activePump == 2:
-    #               self.motors.stopMotor(RobotMotor.Pump2)
-    #             elif self.activePump == 3:
-    #                 self.motors.stopMotor(RobotMotor.Pump3)
-    #     self.telemetryChannel.send_message(json.dumps(event))
 
    
     def RobotMain(self):
@@ -387,31 +328,28 @@ class RobotMain():
             #     self.motors.StopAllMotors()
             self.TelemetricInfoSend()
             time.sleep(0.1)
-            # read current of motors
            
     
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry)
-            # print(nanoTelemetry)
-            # time.sleep(0.01)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
+
+    def append_to_csv(self, data, filename):
+        with open(filename, 'a', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+            writer.writerow(data)
 
     def TelemetricInfoSend(self):
         global nanoTelemetry
         self.angle1 = nanoTelemetry["imu1"]
-        print(self.angle1, self.offset1)
+        # print(self.angle1, self.offset1)
         self.angle2 = nanoTelemetry["imu2"]
         self.angle3 = nanoTelemetry["imu3"]
         self.angle4 = nanoTelemetry["imu4"]
         self.angle5 = nanoTelemetry["imu5"]
-            # "screen1":camInfo["screen1"]
         info = {
             "opcode": CommandOpcode.telemetric.name,
-            # "elev": self.a2d.values[4],
-            # "turn1": self.a2d.values[3],
-            # "turn2": self.a2d.values[5],
-            # "joint1": self.a2d.values[6],
             "activePump": self.currPump+1,
             "pumpingNow": self.isPumpingNow,
             "Spare2": 4096,
@@ -436,15 +374,12 @@ class RobotMain():
             "imu-3" : np.subtract(np.array(nanoTelemetry["imu3"]) , np.array(self.offset3)).tolist(),
             "imu-4" : np.subtract(np.array(nanoTelemetry["imu4"]) , np.array(self.offset4)).tolist(),
             "imu-5" : np.subtract(np.array(nanoTelemetry["imu5"]) , np.array(self.offset5)).tolist(),
-            # "screen1":camInfo["screen1"]
             "battery":nanoTelemetry["batteryRead"]
         } 
-        # print(f"Send telemetry ")
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-            # print(nanoTelemetry)
-            # self.telemetryChannel.send_message(json.dumps(nanoTelemetry))
+        self.append_to_csv(nanoTelemetry, "Record"+datetime.datetime.now())
 
 if __name__ == "__main__":
     RobotMain()
