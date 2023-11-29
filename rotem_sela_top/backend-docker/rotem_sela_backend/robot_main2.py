@@ -400,7 +400,7 @@ class RobotMain():
     def TelemetricInfoSend(self):
         global nanoTelemetry
         self.angle1 = nanoTelemetry["imu1"]
-        print(self.angle1, self.offset1)
+        # print(self.angle1, self.offset1)
         self.angle2 = nanoTelemetry["imu2"]
         self.angle3 = nanoTelemetry["imu3"]
         self.angle4 = nanoTelemetry["imu4"]

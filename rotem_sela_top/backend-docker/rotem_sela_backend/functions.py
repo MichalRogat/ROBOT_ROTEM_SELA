@@ -71,6 +71,10 @@ def callReadNano(trailers, nanoTelemetry):
             if trailer.I2CAddress not in pIdx:
                 pIdx[trailer.I2CAddress] = {'rcv':-1, 'send':0}
             
+
+            # if trailer.I2CAddress == 0x55:
+            #     continue
+
             packet = trailer.GetState()
             # print(packet)
             i2c_write(trailer.I2CAddress, packet.to_array())
@@ -98,7 +102,7 @@ def callReadNano(trailers, nanoTelemetry):
                 print("********************************************************")
             # print(nanoTelemetry)
         except Exception as e:
-            # print(f"Trailer {trailer.name}")
+            print(f"Trailer {trailer.name}")
             traceback.print_exc()
             pass
         finally:
