@@ -3,6 +3,7 @@ import time
 import queue
 import datetime
 from MotorDriver import MotorDriver
+from AutoDrive5 import AutoDrive
 import ps4_controller
 import robot_remote_control
 from robot_remote_control import CommandOpcode
@@ -20,7 +21,7 @@ KEEP_ALIVE_TIMEOUT_SEC = 1.0
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
 
-nanoTelemetry = {'imu1':[0,0,0],'imu2':[0,0,0],'imu3':[0,0,0],'imu4':[0,0,0],'imu5':[0,0,0],"batteryRead":0}
+nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0}
 
 # Events
 KEEP_ALIVE = 99
@@ -29,6 +30,7 @@ RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
 LEFT_STICK_IN = 7
 RIGHT_STICK_IN = 8
+SHARE_BUTTON = 4
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
@@ -54,11 +56,12 @@ class RobotMain():
         self.telemetryChannel = None
         self.currJoint = 3
         self.ledOn = False
-        self.angle1 = self.angle2 = self.angle3 = self.angle4 = self.angle5 = [0, 0, 0]
-        self.offset1 = self.offset2 = self.offset3 = self.offset4 = self.offset5 = [0, 0, 0]
+        self.angles = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
+        self.offsets = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
         self.recordFileName = "Record"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M")+".csv"
         self.fd = None
         self.writer = None
+        self.isAutoDrive = False
 
         self.joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
                   [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
@@ -73,7 +76,8 @@ class RobotMain():
 
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
-        # self.tx_q = queue.Queue()
+        self.autoDrive = AutoDrive(self.motors, self.rx_q)
+
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(
                 self.rx_q, interface="/dev/input/js0", connecting_using_ds4drv=False)
@@ -87,6 +91,8 @@ class RobotMain():
         #     print("NO a2c Error: ", e)
         # self.a2d_thread = threading.Thread(target=self.A2dHandler)
         self.i2c_lock = threading.Lock()
+        self.priority_lock = threading.Lock()
+        self.isJoystickActive = False
         self.message_handler_thread = threading.Thread(
             target=self.RobotMessageHandler)
         self.main_thread = threading.Thread(target=self.RobotMain)
@@ -133,161 +139,166 @@ class RobotMain():
             try:
                 events = {}
                 while self.rx_q.qsize() > 0:
-
                     event = self.rx_q.get(0.5)
                     events[event['event']] = event
-                
+
                 for key in events:
                     event = events[key]
                     self.MotorHandler(event)
+
             except Exception as e:
                 traceback.print_exc()
 
-    def MotorHandler(self, event):
-        if event['event'] == KEEP_ALIVE:
-            pass
-        value = int(event["value"])
-        if value > 99:
-            value = 99
-        elif value < -99:
-            value = -99
+    def MotorHandler(self, event, isAutoDrive):
+        if isAutoDrive:
+            self.handleAutoDriveCommands(event)
+        
+        else:
+            if event['event'] == KEEP_ALIVE:
+                pass
+            value = int(event["value"])
+            if value > 99:
+                value = 99
+            elif value < -99:
+                value = -99
 
-        if int(event["event"]) == RIGHT_STICK_Y:
-            # print(event)
-            value = -value
-            if self.isFlip:
+            if int(event["event"]) == RIGHT_STICK_Y:
+                # print(event)
                 value = -value
-            if value == 0:
-                self.motors.stopMotor(self.motors.trailer1.driver1)
-                self.motors.stopMotor(self.motors.trailer5.driver2)
-            else:
-                self.motors.MotorRun(self.motors.trailer1.driver1, value)
-                self.motors.MotorRun(self.motors.trailer5.driver2, -value)
-
-        elif int(event["event"]) == RIGHT_STICK_X:
-                if value ==0:
-                    if not self.isFlip:
-                        self.motors.stopMotor(self.motors.trailer1.turn1)
-                    else:
-                        self.motors.stopMotor(self.motors.trailer5.turn4)
-                else:
-                    if not self.isFlip:
-                        value = -value
-                        self.motors.MotorRun(self.motors.trailer1.turn1, value)
-                    else:
-                        value = -value
-                        self.motors.MotorRun(self.motors.trailer5.turn4, value)
-
-        elif int(event["event"]) == TRIANGLE:
-            self.isFlip = not self.isFlip
-
-            if(self.isFlip):
-                self.currJoint = 0
-            else:
-                self.currJoint = 3
-
-            self.flipCb()
-
-        elif int(event["event"]) == LEFT_ARROW:
-            self.motors.stopMotor(self.joints[self.currJoint][0])
-            self.motors.stopMotor(self.joints[self.currJoint][1])
-
-            if self.isFlip:
-                if self.currJoint < 3:
-                    self.currJoint=(self.currJoint+1)
-            else:
-                if self.currJoint > 0:
-                    self.currJoint=self.currJoint-1
-            print(f"Joing number {self.currJoint} is selected")
-
-
-        elif int(event["event"]) == RIGHT_ARROW: # right_arrow
-            self.motors.stopMotor(self.joints[self.currJoint][0])
-            self.motors.stopMotor(self.joints[self.currJoint][1])
-            if self.isFlip:   
-                if self.currJoint > 0:
-                    self.currJoint=self.currJoint-1
-            else:
-                if self.currJoint < 3:
-                    self.currJoint=(self.currJoint+1)
-            print(f"Joing number {self.currJoint} is selected")
-
-
-        elif int(event["event"]) == LEFT_JOYSTICK:
-            if value ==0:
-                self.motors.stopMotor(self.joints[self.currJoint][0])
-            elif not self.isFlip:
-                
-                self.motors.MotorRun(self.joints[self.currJoint][0], value)
-            else:
-  
-                if self.currJoint == 0:
+                if self.isFlip:
                     value = -value
-                
-                self.motors.MotorRun(self.joints[self.currJoint][0], -value)
-                
-        elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
+                if value == 0:
+                    self.motors.stopMotor(self.motors.trailer1.driver1)
+                    self.motors.stopMotor(self.motors.trailer5.driver2)
+                else:
+                    self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                    self.motors.MotorRun(self.motors.trailer5.driver2, -value)
 
-            if self.currJoint != 3:
-                value = -value
+            elif int(event["event"]) == RIGHT_STICK_X:
+                    if value ==0:
+                        if not self.isFlip:
+                            self.motors.stopMotor(self.motors.trailer1.turn1)
+                        else:
+                            self.motors.stopMotor(self.motors.trailer5.turn4)
+                    else:
+                        if not self.isFlip:
+                            value = -value
+                            self.motors.MotorRun(self.motors.trailer1.turn1, value)
+                        else:
+                            value = -value
+                            self.motors.MotorRun(self.motors.trailer5.turn4, value)
 
-            if value == 0:
+            elif int(event["event"]) == TRIANGLE:
+                self.isFlip = not self.isFlip
+
+                if(self.isFlip):
+                    self.currJoint = 0
+                else:
+                    self.currJoint = 3
+
+                self.flipCb()
+
+            elif int(event["event"]) == LEFT_ARROW:
+                self.motors.stopMotor(self.joints[self.currJoint][0])
                 self.motors.stopMotor(self.joints[self.currJoint][1])
-            else:
-                self.motors.MotorRun(self.joints[self.currJoint][1], value)
 
-        elif int(event["event"]) == CIRCLE: # circle - switch sides
-            self.toggleCb()
+                if self.isFlip:
+                    if self.currJoint < 3:
+                        self.currJoint=(self.currJoint+1)
+                else:
+                    if self.currJoint > 0:
+                        self.currJoint=self.currJoint-1
+                print(f"Joing number {self.currJoint} is selected")
 
-        elif int(event["event"]) == SHARE_PLUS_OPTIONS:
-            self.offset1 = self.angle1
-            self.offset2 = self.angle2
-            self.offset3 = self.angle3
-            self.offset4 = self.angle4
-            self.offset5 = self.angle5
 
-        # elif int(event["event"]) == 29:
-        #     self.currPump = (self.currPump+1) % 4
-            
-        elif int(event["event"]) == GIVE_NAME: # stop pump
-            if value == 0:
-                if self.currPump == 0:
-                    self.motors.stopMotor(self.motors.trailer1.pump1)
-                elif self.currPump == 1:
-                    self.motors.stopMotor(self.motors.trailer1.pump1)
-                elif self.currPump == 2:
-                    self.motors.stopMotor(self.motors.trailer5.pump2)
-                elif self.currPump == 3:
-                    self.motors.stopMotor(self.motors.trailer5.pump2)
-            else:
-                if self.currPump == 0:
-                    self.motors.MotorRun(self.motors.trailer1.pump1, 90)
-                elif self.currPump == 1:
-                    self.motors.MotorRun(self.motors.trailer1.pump1, -90)
-                elif self.currPump == 2:
-                    self.motors.MotorRun(self.motors.trailer5.pump2, 90)
-                elif self.currPump == 3:
-                    self.motors.MotorRun(self.motors.trailer5.pump2, -90)
+            elif int(event["event"]) == RIGHT_ARROW: # right_arrow
+                self.motors.stopMotor(self.joints[self.currJoint][0])
+                self.motors.stopMotor(self.joints[self.currJoint][1])
+                if self.isFlip:   
+                    if self.currJoint > 0:
+                        self.currJoint=self.currJoint-1
+                else:
+                    if self.currJoint < 3:
+                        self.currJoint=(self.currJoint+1)
+                print(f"Joing number {self.currJoint} is selected")
 
+
+            elif int(event["event"]) == LEFT_JOYSTICK:
+                if value ==0:
+                    self.motors.stopMotor(self.joints[self.currJoint][0])
+                elif not self.isFlip:
                     
-        elif int(event["event"]) == GIVE_NAME2:
-            self.ledOn = not self.ledOn
-            if self.ledOn:
-                self.motors.trailer1.addGpio(13,1)
-                self.motors.trailer3.addGpio(17,0)
-                self.motors.trailer5.addGpio(13,1)
-            else:
-                self.motors.trailer1.addGpio(13,0)
-                self.motors.trailer3.addGpio(17,1)
-                self.motors.trailer5.addGpio(13,0)
+                    self.motors.MotorRun(self.joints[self.currJoint][0], value)
+                else:
+    
+                    if self.currJoint == 0:
+                        value = -value
+                    
+                    self.motors.MotorRun(self.joints[self.currJoint][0], -value)
+                    
+            elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
 
-        elif int(event["event"]) == LEFT_STICK_IN:
-            self.motors.StopAllMotors()
+                if self.currJoint != 3:
+                    value = -value
 
-        elif int(event["event"]) == RIGHT_STICK_IN:
-            curr_time = datetime.now()
+                if value == 0:
+                    self.motors.stopMotor(self.joints[self.currJoint][1])
+                else:
+                    self.motors.MotorRun(self.joints[self.currJoint][1], value)
 
-            raise NotImplementedError("recording function not implemented yet.")
+            elif int(event["event"]) == CIRCLE: # circle - switch sides
+                self.toggleCb()
+
+            elif int(event["event"]) == SHARE_PLUS_OPTIONS:
+                self.offsets = self.angles
+
+            # elif int(event["event"]) == 29:
+            #     self.currPump = (self.currPump+1) % 4
+                
+            elif int(event["event"]) == GIVE_NAME: # stop pump
+                if value == 0:
+                    if self.currPump == 0:
+                        self.motors.stopMotor(self.motors.trailer1.pump1)
+                    elif self.currPump == 1:
+                        self.motors.stopMotor(self.motors.trailer1.pump1)
+                    elif self.currPump == 2:
+                        self.motors.stopMotor(self.motors.trailer5.pump2)
+                    elif self.currPump == 3:
+                        self.motors.stopMotor(self.motors.trailer5.pump2)
+                else:
+                    if self.currPump == 0:
+                        self.motors.MotorRun(self.motors.trailer1.pump1, 90)
+                    elif self.currPump == 1:
+                        self.motors.MotorRun(self.motors.trailer1.pump1, -90)
+                    elif self.currPump == 2:
+                        self.motors.MotorRun(self.motors.trailer5.pump2, 90)
+                    elif self.currPump == 3:
+                        self.motors.MotorRun(self.motors.trailer5.pump2, -90)
+
+                        
+            elif int(event["event"]) == GIVE_NAME2:
+                self.ledOn = not self.ledOn
+                if self.ledOn:
+                    self.motors.trailer1.addGpio(13,1)
+                    self.motors.trailer3.addGpio(17,0)
+                    self.motors.trailer5.addGpio(13,1)
+                else:
+                    self.motors.trailer1.addGpio(13,0)
+                    self.motors.trailer3.addGpio(17,1)
+                    self.motors.trailer5.addGpio(13,0)
+
+            elif int(event["event"]) == LEFT_STICK_IN:
+                self.motors.StopAllMotors()
+
+            elif int(event["event"]) == RIGHT_STICK_IN:
+                curr_time = datetime.now()
+
+                raise NotImplementedError("recording function not implemented yet.")
+            
+            elif int(event["event"]) == SHARE_BUTTON:
+                self.autoQueue = queue
+                self.autoDrive.setNanoQueue(AutoDrive)
+                self.autoDrive.start()
 
         
     def KeepAliveHandler(self):
@@ -329,7 +340,6 @@ class RobotMain():
             self.TelemetricInfoSend()
             time.sleep(0.1)
            
-    
     def ReadADC(self):
         global nanoTelemetry
         while True:
@@ -343,19 +353,12 @@ class RobotMain():
     def TelemetricInfoSend(self):
         global nanoTelemetry
         info = {}
-
-        self.angle1 = nanoTelemetry["imu1"]
-        self.angle2 = nanoTelemetry["imu2"]
-        self.angle3 = nanoTelemetry["imu3"]
-        self.angle4 = nanoTelemetry["imu4"]
-        self.angle5 = nanoTelemetry["imu5"]
-
         spare_dict = {"Spare"+str(i):4096 for i in range (2,8)}
         front_cameras_dict = {"Camera-F"+str(i):True for i in range(1,5)}
         side_cameras_dict = {"Camera-S"+str(i):True for i in range(1,5)}
 
         info.update(nanoTelemetry) # insert to info the information from nanoTelemetry
-        info.update({ # insert more info and override imu with calculations
+        info.update({ # insert more info 
             "opcode": CommandOpcode.telemetric.name,
             "activePump": self.currPump+1,
             "pumpingNow": self.isPumpingNow,
@@ -363,13 +366,12 @@ class RobotMain():
             "isToggle": self.isToggle,
             "currentJoint": self.currJoint,
             "battery":nanoTelemetry["batteryRead"],
-            "imu-1" : np.subtract(np.array(self.angle1) , np.array(self.offset1)).tolist(),
-            "imu-2" : np.subtract(np.array(self.angle2) , np.array(self.offset2)).tolist(),
-            "imu-3" : np.subtract(np.array(self.angle3) , np.array(self.offset3)).tolist(),
-            "imu-4" : np.subtract(np.array(self.angle4) , np.array(self.offset4)).tolist(),
-            "imu-5" : np.subtract(np.array(self.angle5) , np.array(self.offset5)).tolist(),
         })
         info.update(spare_dict, front_cameras_dict, side_cameras_dict) # insert static information
+
+        self.angles = nanoTelemetry["imu"]
+        for i in range(0,4): # ovveride imu with normalised imu
+            info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 
         # insert info about camera ports
         queues_list = self.camsCB()
@@ -379,7 +381,8 @@ class RobotMain():
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-
+        if self.autoDrive.nanoQueue is not None:
+            self.autoDrive.nanoQueue.put(info["imu"])
         self.append_to_csv(nanoTelemetry)
 
 if __name__ == "__main__":
