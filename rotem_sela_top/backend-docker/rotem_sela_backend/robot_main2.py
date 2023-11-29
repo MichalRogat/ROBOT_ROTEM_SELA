@@ -13,7 +13,6 @@ import numpy as np
 import traceback
 from functions import callReadNano
 from Entity import ITrailer, IMotor
-import multiprocessing
 import csv
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -44,35 +43,28 @@ GIVE_NAME2 = 35
 
 class RobotMain():
 
-    telemetryChannel = None
-    flipCb = None
-    toggleCb = None
     isFlip = False
     isToggle = False
-    joints = None
-    currJoint = 3
-    ledOn = False
-
-    angle1 = [0, 0, 0]
-    angle2 = [0, 0, 0]
-    angle3 = [0, 0, 0]
-    angle4 = [0, 0, 0]
-    angle5 = [0, 0, 0]
-    offset1 = [0, 0, 0]
-    offset2 = [0, 0, 0]
-    offset3 = [0, 0, 0]
-    offset4 = [0, 0, 0]
-    offset5 = [0, 0, 0]
-    
 
     def __init__(self) -> None:
         self.motors = MotorDriver()
         self.camsCB = None
+        self.flipCB = None
+        self.toggleCb = None
+        self.telemetryChannel = None
+        self.currJoint = 3
+        self.ledOn = False
+        self.angle1 = self.angle2 = self.angle3 = self.angle4 = self.angle5 = [0, 0, 0]
+        self.offset1 = self.offset2 = self.offset3 = self.offset4 = self.offset5 = [0, 0, 0]
+        self.recordFileName = "Record"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M")+".csv"
+        self.fd = None
+        self.writer = None
+
         self.joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
                   [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
                   [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
                   [self.motors.trailer5.turn4,self.motors.trailer4.elevation4]]
-        self.pumps = [self.motors.trailer1.pump1,self.motors.trailer5.pump2]
+        
         self.currPump =0
         print(f"Start robot service {RC}")
         self.currentLightLevel = 1
@@ -107,6 +99,10 @@ class RobotMain():
         # self.a2d_thread.start()
         self.readADC_thread.start()
         self.motors.StopAllMotors()
+
+    def openRecordFile(self):
+        self.fd = open(self.recordFileName, 'a')
+        self.writer = csv.DictWriter(self.fd)
 
     def setTelemetryChannel(self, channel):
         self.telemetryChannel = channel
@@ -339,49 +335,43 @@ class RobotMain():
         while True:
             callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
 
-    def append_to_csv(self, data, filename):
-        with open(filename, 'a', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=data.keys())
-            writer.writerow(data)
+    def append_to_csv(self, data):
+        with open(self.recordFileName, 'a', newline='') as csvfile:
+            self.writer.writerow(data)
 
 
     def TelemetricInfoSend(self):
         global nanoTelemetry
+        info = {}
 
         self.angle1 = nanoTelemetry["imu1"]
-        # print(self.angle1, self.offset1)
         self.angle2 = nanoTelemetry["imu2"]
         self.angle3 = nanoTelemetry["imu3"]
         self.angle4 = nanoTelemetry["imu4"]
         self.angle5 = nanoTelemetry["imu5"]
-        info = {
+
+        spare_dict = {"Spare"+str(i):4096 for i in range (2,8)}
+        front_cameras_dict = {"Camera-F"+str(i):True for i in range(1,5)}
+        side_cameras_dict = {"Camera-S"+str(i):True for i in range(1,5)}
+
+        info.update(nanoTelemetry) # insert to info the information from nanoTelemetry
+        info.update({ # insert more info and override imu with calculations
             "opcode": CommandOpcode.telemetric.name,
             "activePump": self.currPump+1,
             "pumpingNow": self.isPumpingNow,
-            "Spare2": 4096,
-            "Spare3": 4096,
-            "Spare4": 4096,
-            "Spare5": 4096,
-            "Spare6": 4096,
-            "Spare7": 4096,
-            "Camera-F1": True,
-            "Camera-S1": True,
-            "Camera-F2": True,
-            "Camera-S2": True,
-            "Camera-F3": True,
-            "Camera-S3": True,
-            "Camera-F4": True,
-            "Camera-S4": True,
             "isFlip": self.isFlip,
             "isToggle": self.isToggle,
-            "CurrentJoint": self.currJoint,
-            "imu-1" : np.subtract(np.array(nanoTelemetry["imu1"]) , np.array(self.offset1)).tolist(),
-            "imu-2" : np.subtract(np.array(nanoTelemetry["imu2"]) , np.array(self.offset2)).tolist(),
-            "imu-3" : np.subtract(np.array(nanoTelemetry["imu3"]) , np.array(self.offset3)).tolist(),
-            "imu-4" : np.subtract(np.array(nanoTelemetry["imu4"]) , np.array(self.offset4)).tolist(),
-            "imu-5" : np.subtract(np.array(nanoTelemetry["imu5"]) , np.array(self.offset5)).tolist(),
-            "battery":nanoTelemetry["batteryRead"]
-        } 
+            "currentJoint": self.currJoint,
+            "battery":nanoTelemetry["batteryRead"],
+            "imu-1" : np.subtract(np.array(self.angle1) , np.array(self.offset1)).tolist(),
+            "imu-2" : np.subtract(np.array(self.angle2) , np.array(self.offset2)).tolist(),
+            "imu-3" : np.subtract(np.array(self.angle3) , np.array(self.offset3)).tolist(),
+            "imu-4" : np.subtract(np.array(self.angle4) , np.array(self.offset4)).tolist(),
+            "imu-5" : np.subtract(np.array(self.angle5) , np.array(self.offset5)).tolist(),
+        })
+        info.update(spare_dict, front_cameras_dict, side_cameras_dict) # insert static information
+
+        # insert info about camera ports
         queues_list = self.camsCB()
         for q in queues_list: # each queue for each video handler of the four
             item = q.get()
@@ -389,7 +379,8 @@ class RobotMain():
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-        self.append_to_csv(nanoTelemetry, "Record"+datetime.datetime.now())
+
+        self.append_to_csv(nanoTelemetry)
 
 if __name__ == "__main__":
     RobotMain()

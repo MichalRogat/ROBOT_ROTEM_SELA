@@ -19,12 +19,9 @@ CAM_PORTS = [
     ([['3','9'], ['6','10']], 5001),
     ([['6','5'],['3','4']], 5002),
     ([['7','8'],['2','1']], 5003),
-    # ([['9','10'],['9','10']], 5004)
 ]
 
-# Dictionary of cameras; the key is an identifier, the value is the OpenCV VideoCapture object
-cameras = {
-}
+cameras = {}
 devices = {}
 isMain = True
 subQueues = []
@@ -37,17 +34,18 @@ def sendCamsCB():
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
-            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1'},
-            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam2'},
-            '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam3'},
-            '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam4'},
-            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam5'},
-            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam6'},
-            '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam7'},
-            '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam8'},
-            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam9'},
-            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam10'},
+            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1-side'},
+            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-front'},
+            '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam2-front'},
+            '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam2-side'},
+            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-side'},
+            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam3-front'},
+            '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam4-front'},
+            '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam4-side'},
+            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
            }
+    
     print(map)
     return map
     
