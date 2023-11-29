@@ -300,6 +300,11 @@ class RobotMain():
                 self.autoDrive.setNanoQueue(AutoDrive)
                 self.autoDrive.start()
 
+            elif int(event["event"]) == RIGHT_STICK_IN:
+                curr_time = datetime.now()
+                self.append_to_csv(nanoTelemetry)
+                raise NotImplementedError("recording function not implemented yet.")
+
         
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
@@ -343,7 +348,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
@@ -367,23 +372,25 @@ class RobotMain():
             "currentJoint": self.currJoint,
             "battery":nanoTelemetry["batteryRead"],
         })
-        info.update(spare_dict, front_cameras_dict, side_cameras_dict) # insert static information
+        info.update(spare_dict) # insert static information
+        info.update(front_cameras_dict) # insert static information
+        info.update(side_cameras_dict) # insert static information
 
         self.angles = nanoTelemetry["imu"]
         for i in range(0,4): # ovveride imu with normalised imu
             info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 
         # insert info about camera ports
-        queues_list = self.camsCB()
-        for q in queues_list: # each queue for each video handler of the four
-            item = q.get()
-            info[item["port"]]=item["cam_name"]
+        if self.camsCB is not None:
+            queues_list = self.camsCB()
+            for q in queues_list: # each queue for each video handler of the four
+                item = q.get()
+                info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
         if self.autoDrive.nanoQueue is not None:
             self.autoDrive.nanoQueue.put(info["imu"])
-        self.append_to_csv(nanoTelemetry)
 
 if __name__ == "__main__":
     RobotMain()

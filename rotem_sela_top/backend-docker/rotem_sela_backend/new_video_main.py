@@ -82,7 +82,7 @@ def toggleCams():
     for q in subQueues:
         q.put({'opcode':'toggle'})
 
-def videoFeedHandler(port, cam_id, queue, barrier):
+def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global isMain
         isMain = False
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
@@ -129,9 +129,10 @@ def videoFeedHandler(port, cam_id, queue, barrier):
                                     "cam_name":res[cam_id[sideIdx][camIdx]]['name']})
                             break
                         except Exception:
-                            traceback.print_exc()
+                            # traceback.print_exc()
+                            pass
                     except Exception:
-                        traceback.print_exc()
+                        # traceback.print_exc()
                         break
                   
 
@@ -213,6 +214,7 @@ if __name__ == "__main__":
     obj.setTelemetryChannel(ChannelHandler)
     obj.setFlipCallback(flipCams)
     obj.setToggleCallback(toggleCams)
+    obj.setCamsCallback(sendCamsCB)
 
 
     tornado.ioloop.IOLoop.instance().start()
