@@ -67,6 +67,7 @@ class RobotMain():
 
     def __init__(self) -> None:
         self.motors = MotorDriver()
+        self.camsCB = None
         self.joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
                   [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
                   [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
@@ -115,6 +116,9 @@ class RobotMain():
 
     def setToggleCallback(self, toggleCb):
         self.toggleCb = toggleCb
+
+    def setCamsCallback(self, camsCb):
+        self.camsCB = camsCb
 
     def A2dHandler(self):
         self.a2d.listen()
@@ -340,8 +344,10 @@ class RobotMain():
             writer = csv.DictWriter(csvfile, fieldnames=data.keys())
             writer.writerow(data)
 
+
     def TelemetricInfoSend(self):
         global nanoTelemetry
+
         self.angle1 = nanoTelemetry["imu1"]
         # print(self.angle1, self.offset1)
         self.angle2 = nanoTelemetry["imu2"]
@@ -376,6 +382,10 @@ class RobotMain():
             "imu-5" : np.subtract(np.array(nanoTelemetry["imu5"]) , np.array(self.offset5)).tolist(),
             "battery":nanoTelemetry["batteryRead"]
         } 
+        queues_list = self.camsCB()
+        for q in queues_list: # each queue for each video handler of the four
+            item = q.get()
+            info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))

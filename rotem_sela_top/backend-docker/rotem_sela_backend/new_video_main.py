@@ -12,6 +12,7 @@ import threading
 import json
 import multiprocessing
 import time
+import traceback
 
 CAM_PORTS = [
     ([['2','1'],['7','8']], 5000),
@@ -27,21 +28,25 @@ cameras = {
 devices = {}
 isMain = True
 subQueues = []
+txQueues = []
 barrier = multiprocessing.Barrier(4)
+
+def sendCamsCB():
+    return txQueues
 
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
-            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400},
-            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480},
-            '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480},
-            '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400},
-            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400},
-            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480},
-            '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480},
-            '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400},
-            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480},
-            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400},
+            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1'},
+            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam2'},
+            '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam3'},
+            '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam4'},
+            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam5'},
+            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam6'},
+            '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam7'},
+            '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam8'},
+            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam9'},
+            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam10'},
            }
     print(map)
     return map
@@ -122,12 +127,13 @@ def videoFeedHandler(port, cam_id, queue, barrier):
                                 sideIdx = sideIdx+1
                                 if sideIdx > 1:
                                     sideIdx = 0
-                    
+                            qt.put({"port":port,
+                                    "cam_name":res[cam_id[sideIdx][camIdx]]['name']})
                             break
-                        except Exception as e:
-                            pass
-                    except Exception as e:
-                        print(f"video feeding error: {e}")
+                        except Exception:
+                            traceback.print_exc()
+                    except Exception:
+                        traceback.print_exc()
                         break
                   
 
@@ -191,9 +197,11 @@ if __name__ == "__main__":
     
     for item in CAM_PORTS:
         queue = multiprocessing.Queue()
-        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier))
+        qt = multiprocessing.Queue()
+        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier, qt))
         processes.append(process)
         subQueues.append(queue)
+        txQueues.append(qt)
         process.start()
 
     app = tornado.web.Application(ChannelHandler.urls())
