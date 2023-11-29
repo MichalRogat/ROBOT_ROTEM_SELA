@@ -13,7 +13,7 @@ import json
 import numpy as np
 import traceback
 from functions import callReadNano
-from Entity import ITrailer
+from Entity import ITrailer, IMotor
 from Events import KeyboardEvents
 from combinedMotions import CombinedMotions
 
@@ -23,6 +23,24 @@ RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
 
 nanoTelemetry = {'imu1':[0,0,0],'imu2':[0,0,0],'imu3':[0,0,0],'imu4':[0,0,0],'imu5':[0,0,0],"batteryRead":0}
+
+# Events
+KEEP_ALIVE = 99
+LEFT_JOYSTICK = 0
+RIGHT_STICK_X = 2
+RIGHT_STICK_Y = 3
+LEFT_STICK_IN = 7
+RIGHT_STICK_IN = 8
+SHARE_BUTTON = 4
+CIRCLE = 21
+TRIANGLE = 23
+SHARE_PLUS_OPTIONS = 24
+GIVE_NAME = 30
+UP_ARROW = 31
+DOWN_ARROW = 32
+RIGHT_ARROW = 33
+LEFT_ARROW = 34
+GIVE_NAME2 = 35
 
 class RobotMain():
 
@@ -286,6 +304,10 @@ class RobotMain():
 
         elif e in (50,59):
             CombinedMotions.switchStopEvents(self.joints, e, self.motors)
+        elif int(event["event"]) == RIGHT_STICK_IN:
+            curr_time = datetime.now()
+            self.append_to_csv(nanoTelemetry)
+            raise NotImplementedError("recording function not implemented yet.")
 
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
@@ -364,25 +386,22 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry)
-            # print(nanoTelemetry)
-            # time.sleep(0.01)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
+
+    def append_to_csv(self, data):
+        with open(self.recordFileName, 'a', newline='') as csvfile:
+            self.writer.writerow(data)
+
 
     def TelemetricInfoSend(self):
         global nanoTelemetry
         self.angle1 = nanoTelemetry["imu1"]
-        # print(self.angle1, self.offset1)
         self.angle2 = nanoTelemetry["imu2"]
         self.angle3 = nanoTelemetry["imu3"]
         self.angle4 = nanoTelemetry["imu4"]
         self.angle5 = nanoTelemetry["imu5"]
-            # "screen1":camInfo["screen1"]
         info = {
             "opcode": CommandOpcode.telemetric.name,
-            # "elev": self.a2d.values[4],
-            # "turn1": self.a2d.values[3],
-            # "turn2": self.a2d.values[5],
-            # "joint1": self.a2d.values[6],
             "activePump": self.currPump+1,
             "pumpingNow": self.isPumpingNow,
             "Spare2": 4096,
@@ -401,21 +420,24 @@ class RobotMain():
             "Camera-S4": True,
             "isFlip": self.isFlip,
             "isToggle": self.isToggle,
-            "CurrentJoint": self.currJoint,
-            "imu-1" : np.subtract(np.array(nanoTelemetry["imu1"]) , np.array(self.offset1)).tolist(),
-            "imu-2" : np.subtract(np.array(nanoTelemetry["imu2"]) , np.array(self.offset2)).tolist(),
-            "imu-3" : np.subtract(np.array(nanoTelemetry["imu3"]) , np.array(self.offset3)).tolist(),
-            "imu-4" : np.subtract(np.array(nanoTelemetry["imu4"]) , np.array(self.offset4)).tolist(),
-            "imu-5" : np.subtract(np.array(nanoTelemetry["imu5"]) , np.array(self.offset5)).tolist(),
-            # "screen1":camInfo["screen1"]
-            "battery":nanoTelemetry["batteryRead"]
-        } 
-        # print(f"Send telemetry ")
+            "currentJoint": self.currJoint,
+            "battery":nanoTelemetry["batteryRead"],
+            "imu-1" : np.subtract(np.array(self.angle1) , np.array(self.offset1)).tolist(),
+            "imu-2" : np.subtract(np.array(self.angle2) , np.array(self.offset2)).tolist(),
+            "imu-3" : np.subtract(np.array(self.angle3) , np.array(self.offset3)).tolist(),
+            "imu-4" : np.subtract(np.array(self.angle4) , np.array(self.offset4)).tolist(),
+            "imu-5" : np.subtract(np.array(self.angle5) , np.array(self.offset5)).tolist(),
+        }
+
+        # insert info about camera ports
+        if self.camsCB is not None:
+            queues_list = self.camsCB()
+            for q in queues_list: # each queue for each video handler of the four
+                item = q.get()
+                info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-            # print(nanoTelemetry)
-            # self.telemetryChannel.send_message(json.dumps(nanoTelemetry))
 
 if __name__ == "__main__":
     RobotMain()
