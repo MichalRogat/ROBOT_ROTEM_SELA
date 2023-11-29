@@ -62,35 +62,53 @@ def i2c_read(i2c_addr, len):
     
     return res
 
-def callReadNano(trailers, nanoTelemetry, motors):
+def fakeTelemetry(trailer, nanoTelemetry):
+    nanoTelemetry['FullTank'+trailer.name] = 0
+    nanoTelemetry['drive'+trailer.name] = 0
+    nanoTelemetry['m2CS'] = 0
+    nanoTelemetry['m3CS'] = 0
+    nanoTelemetry['batteryRead'] = 0
+    nanoTelemetry['fault1'] = 0
+    nanoTelemetry['fault2'] = 0
+    nanoTelemetry['fault3'] = 0
+    nanoTelemetry['imu'+trailer.name] = [0,0,0]
+    return nanoTelemetry
+
+def callReadNano(trailers, nanoTelemetry, motors, debug=False):
     for trailer in trailers:
         try:
             global pIdx
             if trailer.I2CAddress not in pIdx:
                 pIdx[trailer.I2CAddress] = {'rcv':-1, 'send':0}
             packet = trailer.GetState()
-            ret_byte = i2c_read(trailer.I2CAddress, 32)
-            if ret_byte[0] == 170 and ret_byte[4] == 175:
-                continue
 
-            nanoTelemetry['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little')
-            nanoTelemetry['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little')
-            nanoTelemetry['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little')
-            nanoTelemetry['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little')
-            nanoTelemetry['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little')
-            nanoTelemetry['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little')
-            nanoTelemetry['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little')
-            nanoTelemetry['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little')
+            if not debug:
+                ret_byte = i2c_read(trailer.I2CAddress, 32)
+                if ret_byte[0] == 170 and ret_byte[4] == 175:
+                    continue
+                nanoTelemetry['FullTank'+trailer.name] = int.from_bytes(ret_byte[0:2], byteorder='little')
+                nanoTelemetry['drive'+trailer.name] = int.from_bytes(ret_byte[2:4], byteorder='little')
+                nanoTelemetry['m2CS'] = int.from_bytes(ret_byte[4:6], byteorder='little')
+                nanoTelemetry['m3CS'] = int.from_bytes(ret_byte[6:8], byteorder='little')
+                nanoTelemetry['batteryRead'] = int.from_bytes(ret_byte[8:10], byteorder='little')
+                nanoTelemetry['fault1'] = int.from_bytes(ret_byte[10:11], byteorder='little')
+                nanoTelemetry['fault2'] = int.from_bytes(ret_byte[11:12], byteorder='little')
+                nanoTelemetry['fault3'] = int.from_bytes(ret_byte[12:13], byteorder='little')
 
-            nanoTelemetry['imu'+trailer.name] = [int.from_bytes(ret_byte[13:17], byteorder='little', signed=True)/10.0,
-                                                    int.from_bytes(ret_byte[17:21], byteorder='little', signed=True)/10.0,
-                                                    int.from_bytes(ret_byte[21:25], byteorder='little', signed=True)/10.0
-                                                ]
+                nanoTelemetry['imu'+trailer.name] = [int.from_bytes(ret_byte[13:17], byteorder='little', signed=True)/10.0,
+                                                        int.from_bytes(ret_byte[17:21], byteorder='little', signed=True)/10.0,
+                                                        int.from_bytes(ret_byte[21:25], byteorder='little', signed=True)/10.0
+                                                    ]
+                pIdx[trailer.I2CAddress]['rcv'] = ret_byte[25]
+
+
+            else:
+                nanoTelemetry.update(fakeTelemetry(trailer, nanoTelemetry))
+
             for motor in motors:
                 nanoTelemetry["name of motor"] = motor.name
                 nanoTelemetry["speed of motor"] = motor.speed
 
-            pIdx[trailer.I2CAddress]['rcv'] = ret_byte[25]
         except Exception:
             traceback.print_exc()
 
@@ -108,4 +126,5 @@ def stopCalibration():
     i2c_write(0x11, packet.to_array())
 
 if __name__ == "__main__":
-    stopCalibration()
+    callReadNano("motor", "nanotelemetry", "motors", True)
+    callReadNano()

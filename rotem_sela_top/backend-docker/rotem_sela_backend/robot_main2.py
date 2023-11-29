@@ -286,7 +286,7 @@ class RobotMain():
 
         elif int(event["event"]) == RIGHT_STICK_IN:
             curr_time = datetime.now()
-
+            self.append_to_csv(nanoTelemetry)
             raise NotImplementedError("recording function not implemented yet.")
 
         
@@ -333,7 +333,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
@@ -369,18 +369,19 @@ class RobotMain():
             "imu-4" : np.subtract(np.array(self.angle4) , np.array(self.offset4)).tolist(),
             "imu-5" : np.subtract(np.array(self.angle5) , np.array(self.offset5)).tolist(),
         })
-        info.update(spare_dict, front_cameras_dict, side_cameras_dict) # insert static information
+        info.update(spare_dict) # insert static information
+        info.update(front_cameras_dict) # insert static information
+        info.update(side_cameras_dict) # insert static information
 
         # insert info about camera ports
-        queues_list = self.camsCB()
-        for q in queues_list: # each queue for each video handler of the four
-            item = q.get()
-            info[item["port"]]=item["cam_name"]
+        if self.camsCB is not None:
+            queues_list = self.camsCB()
+            for q in queues_list: # each queue for each video handler of the four
+                item = q.get()
+                info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-
-        self.append_to_csv(nanoTelemetry)
 
 if __name__ == "__main__":
     RobotMain()

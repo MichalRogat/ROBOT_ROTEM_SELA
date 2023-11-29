@@ -22,7 +22,7 @@ class IMotor(ABC):
 
     def __init__(self, I2CAddress, name):
         super().__init__()
-        IMotor.instances.append(self)
+        IMotor.motor_instances.append(self)
         self.I2CAddress = I2CAddress
         self.speed = 0
         self.name = name
@@ -42,7 +42,7 @@ class Driver(IMotor):
         self.motorNum = motorNum
         
     def stopMotor(self):
-       
+
         self.speed = 0
 
     def MotorRun(self, speed):
