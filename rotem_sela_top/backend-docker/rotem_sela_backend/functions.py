@@ -4,10 +4,11 @@ from threading import Lock
 import traceback
 import ctypes
 
+DEBUG = True
 # OPCODES
 SET_DRIVER_STATE = 0
 
-bus = SMBus(1)
+# bus = SMBus(1)
 
 lock = Lock()
 
@@ -41,24 +42,29 @@ class Packet:
 
 pIdx = {}
 def i2c_write(i2c_addr, data):
-    
-    try:
-        lock.acquire()
-        bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
-    finally:
-        lock.release()
+    if DEBUG:
+        print(data)
+    else:
+        try:
+            lock.acquire()
+
+            bus.write_i2c_block_data(i2c_addr=i2c_addr, register=0x1, data=data)
+        finally:
+            lock.release()
         
     return
 
 def i2c_read(i2c_addr, len):
     res = None
-    
-    lock.acquire()
-    
-    try:
-        res = bus.read_i2c_block_data(i2c_addr=i2c_addr, register=0x1, length=len)
-    finally:
-        lock.release()
+    if DEBUG:
+        pass
+    else:
+        lock.acquire()
+        
+        try:
+            res = bus.read_i2c_block_data(i2c_addr=i2c_addr, register=0x1, length=len)
+        finally:
+            lock.release()
     
     return res
 

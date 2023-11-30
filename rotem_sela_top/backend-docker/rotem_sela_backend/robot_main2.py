@@ -281,7 +281,7 @@ class RobotMain():
         elif int(event["event"]) == 7:
             self.motors.StopAllMotors()
 
-        elif e is (40,49):
+        elif e in (40,49):
             CombinedMotions.switchRunEvents(self.joints, e, self.motors)
 
         elif e in (50,59):
