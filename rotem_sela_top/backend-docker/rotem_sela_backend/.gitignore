@@ -1,0 +1,6 @@
+*.pyc
+.idea
+.venv/
+venv/
+michal_venv/
+newenv/
