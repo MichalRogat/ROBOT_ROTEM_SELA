@@ -15,6 +15,7 @@ import traceback
 from functions import callReadNano
 from Entity import ITrailer
 from Events import KeyboardEvents
+from combinedMotions import CombinedMotions
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -281,59 +282,7 @@ class RobotMain():
             self.motors.StopAllMotors()
 
         elif e is (40,50):
-            pass
-
-        elif e == KeyboardEvents.K_w:
-            raise NotImplemented
-        
-        elif e == KeyboardEvents.K_q:
-            raise NotImplemented        
-        
-        elif e == KeyboardEvents.K_a:
-            raise NotImplemented
-        
-        elif e == KeyboardEvents.K_s:
-            raise NotImplemented
-        
-        elif e == KeyboardEvents.K_e:
-            raise NotImplemented        
-        
-        elif e == KeyboardEvents.K_d:
-            raise NotImplemented
-        
-        elif e == KeyboardEvents.K_z:
-            raise NotImplemented
-        
-        elif e == KeyboardEvents.K_x:
-            raise NotImplemented
-        
-
-
-        #     if motor == RobotMotor.Turn1:
-        #         motor = RobotMotor.Turn2
-        #     elif motor == RobotMotor.Turn2:
-        #         motor = RobotMotor.Turn1
-        #     elif motor == RobotMotor.Drive1 or motor == RobotMotor.Drive2:
-        #         speed = -speed
-
-        # if motor == RobotMotor.Turn1:
-        #     motor = RobotMotor.Turn2
-        # elif motor == RobotMotor.Turn2:
-        #     motor = RobotMotor.Turn1
-        # elif motor == RobotMotor.Elev1:
-        #     motor = RobotMotor.Joint1
-
-        # elif motor == RobotMotor.Joint1:
-        #     motor = RobotMotor.Elev1
-
-        # if speed == 0:
-        #     self.motors.stopMotor(motor)
-        # else:
-        #     if motor == RobotMotor.Drive1:
-        #         self.motors.MotorRun(motor, speed)
-        #         self.motors.MotorRun(RobotMotor.Drive2, speed)
-        #     else:
-        #         self.motors.MotorRun(motor, speed)
+            CombinedMotions.switchEvents(self.motors, e)
 
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
