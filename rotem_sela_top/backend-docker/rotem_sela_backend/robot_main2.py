@@ -389,8 +389,8 @@ class RobotMain():
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-        if self.autoDrive.nanoQueue is not None:
-            self.autoDrive.nanoQueue.put(info["imu"])
+        if self.autoDrive.running:
+            self.autoDrive.nanoQueue.put(item=info["imu"])
 
 if __name__ == "__main__":
     RobotMain()
