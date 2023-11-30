@@ -29,4 +29,13 @@ class KeyboardEvents(Enum):
     K_d = 45
     K_z = 46
     K_x = 47
+
+    S_w = 50
+    S_q = 51
+    S_a = 52
+    S_s = 53
+    S_e = 54
+    S_d = 55
+    S_z = 56
+    S_x = 57
     

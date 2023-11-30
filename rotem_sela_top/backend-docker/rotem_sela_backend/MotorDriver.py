@@ -23,11 +23,12 @@ class MotorDriver():
     
     @classmethod
     def stopMotor(self, motor:IMotor):
+        print(f"stopping motor {motor}")
         motor.stopMotor()
 
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
-        
+        print(f"running motor {motor} at speed {speed}")
         motor.MotorRun(speed)
         
     @classmethod
