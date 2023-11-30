@@ -77,6 +77,7 @@ class RobotMain():
         self.currentLightLevel = 1
         self.activePump = 1
         self.isPumpingNow = 0
+        self.camsCB = None
 
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
@@ -121,6 +122,9 @@ class RobotMain():
 
     def A2dHandler(self):
         self.a2d.listen()
+
+    def setCamsCallback(self, camsCb):
+        self.camsCB = camsCb
 
     def CommRxHandle(self):
         if RC == "LOCAL":
@@ -301,9 +305,12 @@ class RobotMain():
 
         elif e in (40,49):
             CombinedMotions.switchRunEvents(self.joints, e, self.motors)
+            # example for using generic combined motions
+            CombinedMotions.genericCombinedMotions([(self.joints[0][0], 30)])
 
         elif e in (50,59):
             CombinedMotions.switchStopEvents(self.joints, e, self.motors)
+            
         elif int(event["event"]) == RIGHT_STICK_IN:
             curr_time = datetime.now()
             self.append_to_csv(nanoTelemetry)

@@ -26,9 +26,9 @@ GETGPIO = 4
 
 
 class IMotor(ABC):
-    instances = []
+    motor_instances = []
 
-    def __init__(self, I2CAddress, name):
+    def __init__(self, I2CAddress):
         super().__init__()
         IMotor.motor_instances.append(self)
         self.I2CAddress = I2CAddress

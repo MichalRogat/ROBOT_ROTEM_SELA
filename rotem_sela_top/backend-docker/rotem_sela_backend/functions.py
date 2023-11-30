@@ -43,7 +43,8 @@ class Packet:
 pIdx = {}
 def i2c_write(i2c_addr, data):
     if DEBUG:
-        print(data)
+        # print(data)
+        pass
     else:
         try:
             lock.acquire()
@@ -111,9 +112,9 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
             else:
                 nanoTelemetry.update(fakeTelemetry(trailer, nanoTelemetry))
 
-            for motor in motors:
-                nanoTelemetry["name of motor"] = motor.name
-                nanoTelemetry["speed of motor"] = motor.speed
+            # for motor in motors:
+            #     nanoTelemetry["name of motor"] = motor.name
+            #     nanoTelemetry["speed of motor"] = motor.speed
         except Exception:
             traceback.print_exc()
 

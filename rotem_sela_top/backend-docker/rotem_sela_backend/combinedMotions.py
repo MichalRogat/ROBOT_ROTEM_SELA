@@ -14,6 +14,10 @@ T1 = T2 = T3 = T4 = 0
 E1 = E2 = E3 = E4 = 1
 
 class CombinedMotions():
+
+    def genericCombinedMotions(drivers:list[tuple]):
+        for driver, speed in drivers:
+            driver.MotorRun(speed)
     
     def switchRunEvents(joints:[[Entity.Driver]], e, motors:Entity.Driver):
         if e == KeyboardEvents.K_w:
