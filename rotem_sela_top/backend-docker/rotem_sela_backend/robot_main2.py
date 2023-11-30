@@ -14,6 +14,7 @@ import numpy as np
 import traceback
 from functions import callReadNano
 from Entity import ITrailer
+from Events import KeyboardEvents
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -156,6 +157,7 @@ class RobotMain():
         elif value < -99:
             value = -99
         # motor = RobotMotor(event["motor"])
+        e = int(event["event"])
         if int(event["event"]) == 3: # right_stick_y
             # print(event)
             value = -value
@@ -278,16 +280,33 @@ class RobotMain():
         elif int(event["event"]) == 7:
             self.motors.StopAllMotors()
 
+        elif e is (40,50):
+            pass
+
+        elif e == KeyboardEvents.K_w:
+            raise NotImplemented
         
-
-
-                
-                
-
-
-
-
-
+        elif e == KeyboardEvents.K_q:
+            raise NotImplemented        
+        
+        elif e == KeyboardEvents.K_a:
+            raise NotImplemented
+        
+        elif e == KeyboardEvents.K_s:
+            raise NotImplemented
+        
+        elif e == KeyboardEvents.K_e:
+            raise NotImplemented        
+        
+        elif e == KeyboardEvents.K_d:
+            raise NotImplemented
+        
+        elif e == KeyboardEvents.K_z:
+            raise NotImplemented
+        
+        elif e == KeyboardEvents.K_x:
+            raise NotImplemented
+        
 
 
         #     if motor == RobotMotor.Turn1:
