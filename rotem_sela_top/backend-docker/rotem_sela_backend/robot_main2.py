@@ -47,6 +47,7 @@ class RobotMain():
 
     isFlip = False
     isToggle = False
+    currJoint = 3
 
     def __init__(self) -> None:
         self.motors = MotorDriver()
@@ -54,7 +55,7 @@ class RobotMain():
         self.flipCB = None
         self.toggleCb = None
         self.telemetryChannel = None
-        self.currJoint = 3
+        CurrentJoint = 3
         self.ledOn = False
         self.angles = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
         self.offsets = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
@@ -105,6 +106,9 @@ class RobotMain():
         # self.a2d_thread.start()
         self.readADC_thread.start()
         self.motors.StopAllMotors()
+
+    def changeCurrentJoint(self, joint:int):
+        RobotMain.CurrentJoint = joint
 
     def openRecordFile(self):
         self.fd = open(self.recordFileName, 'a')
@@ -192,59 +196,59 @@ class RobotMain():
                 self.isFlip = not self.isFlip
 
                 if(self.isFlip):
-                    self.currJoint = 0
+                    RobotMain.CurrentJoint = 0
                 else:
-                    self.currJoint = 3
+                    RobotMain.CurrentJoint = 3
 
                 self.flipCb()
 
             elif int(event["event"]) == LEFT_ARROW:
-                self.motors.stopMotor(self.joints[self.currJoint][0])
-                self.motors.stopMotor(self.joints[self.currJoint][1])
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
 
                 if self.isFlip:
-                    if self.currJoint < 3:
-                        self.currJoint=(self.currJoint+1)
+                    if RobotMain.CurrentJoint < 3:
+                        RobotMain.CurrentJoint=(RobotMain.CurrentJoint+1)
                 else:
-                    if self.currJoint > 0:
-                        self.currJoint=self.currJoint-1
-                print(f"Joing number {self.currJoint} is selected")
+                    if RobotMain.CurrentJoint > 0:
+                        RobotMain.CurrentJoint=RobotMain.CurrentJoint-1
+                print(f"Joing number {RobotMain.CurrentJoint} is selected")
 
 
             elif int(event["event"]) == RIGHT_ARROW: # right_arrow
-                self.motors.stopMotor(self.joints[self.currJoint][0])
-                self.motors.stopMotor(self.joints[self.currJoint][1])
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
                 if self.isFlip:   
-                    if self.currJoint > 0:
-                        self.currJoint=self.currJoint-1
+                    if RobotMain.CurrentJoint > 0:
+                        RobotMain.CurrentJoint=RobotMain.CurrentJoint-1
                 else:
-                    if self.currJoint < 3:
-                        self.currJoint=(self.currJoint+1)
-                print(f"Joing number {self.currJoint} is selected")
+                    if RobotMain.CurrentJoint < 3:
+                        RobotMain.CurrentJoint=(RobotMain.CurrentJoint+1)
+                print(f"Joing number {RobotMain.CurrentJoint} is selected")
 
 
             elif int(event["event"]) == LEFT_JOYSTICK:
                 if value ==0:
-                    self.motors.stopMotor(self.joints[self.currJoint][0])
+                    self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
                 elif not self.isFlip:
                     
-                    self.motors.MotorRun(self.joints[self.currJoint][0], value)
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                 else:
     
-                    if self.currJoint == 0:
+                    if RobotMain.CurrentJoint == 0:
                         value = -value
                     
-                    self.motors.MotorRun(self.joints[self.currJoint][0], -value)
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], -value)
                     
             elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
 
-                if self.currJoint != 3:
+                if RobotMain.CurrentJoint != 3:
                     value = -value
 
                 if value == 0:
-                    self.motors.stopMotor(self.joints[self.currJoint][1])
+                    self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
                 else:
-                    self.motors.MotorRun(self.joints[self.currJoint][1], value)
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][1], value)
 
             elif int(event["event"]) == CIRCLE: # circle - switch sides
                 self.toggleCb()
@@ -369,7 +373,7 @@ class RobotMain():
             "pumpingNow": self.isPumpingNow,
             "isFlip": self.isFlip,
             "isToggle": self.isToggle,
-            "currentJoint": self.currJoint,
+            "currentJoint": RobotMain.CurrentJoint,
             "battery":nanoTelemetry["batteryRead"],
         })
         info.update(spare_dict) # insert static information
