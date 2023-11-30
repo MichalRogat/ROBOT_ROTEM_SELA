@@ -43,6 +43,7 @@ GIVE_NAME2 = 35
 
 
 
+
 class RobotMain():
 
     isFlip = False
@@ -53,6 +54,7 @@ class RobotMain():
         self.camsCB = None
         self.flipCB = None
         self.toggleCb = None
+        self.commandCb= None
         self.telemetryChannel = None
         self.currJoint = 3
         self.ledOn = False
@@ -116,6 +118,9 @@ class RobotMain():
     def setFlipCallback(self, flipCb):
         self.flipCb = flipCb
 
+    def setCommandKB (self, commandCb): #michal - cameras
+        self.commandCb = commandCb
+        
     def setToggleCallback(self, toggleCb):
         self.toggleCb = toggleCb
 
@@ -144,7 +149,7 @@ class RobotMain():
 
                 for key in events:
                     event = events[key]
-                    self.MotorHandler(event)
+                    self.MotorHandler(event, False)
 
             except Exception as e:
                 traceback.print_exc()
@@ -157,6 +162,7 @@ class RobotMain():
             if event['event'] == KEEP_ALIVE:
                 pass
             value = int(event["value"])
+            print(value)
             if value > 99:
                 value = 99
             elif value < -99:
@@ -197,6 +203,10 @@ class RobotMain():
                     self.currJoint = 3
 
                 self.flipCb()
+
+            elif int(event["event"]) in (80): #michal - cameras
+                print("hi")
+                self.commandCb(80)
 
             elif int(event["event"]) == LEFT_ARROW:
                 self.motors.stopMotor(self.joints[self.currJoint][0])

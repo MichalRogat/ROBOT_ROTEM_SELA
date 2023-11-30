@@ -12,13 +12,12 @@ import threading
 import json
 import multiprocessing
 import time
-import traceback
 
 CAM_PORTS = [
-    ([['2','1'],['7','8']], 5000),
-    ([['3','9'], ['6','10']], 5001),
-    ([['6','5'],['3','4']], 5002),
-    ([['7','8'],['2','1']], 5003),
+    (['2','7'], 5000),
+    (['3', '9'], 5001),
+    (['7','2','5','10','4'], 5002),
+    (['9','3','6','8','1'], 5003),
 ]
 
 cameras = {}
@@ -76,28 +75,26 @@ def websocket_server(port):
        
 def flipCams():
     for q in subQueues:
-        q.put({'opcode':'flip'})
+        q.put({'event':'flip'})
 
-def toggleCams():
+def toggleCams(event):
     for q in subQueues:
-        q.put({'opcode':'toggle'})
+        q.put({'event':f'{event}'})
 
 def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global isMain
         isMain = False
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
         webSocket_thread.start()
-
         res = map_cams()
         global cameras
         global devices
         camIdx = 0
-        sideIdx = 0
 
         while True:
-            video_dev = res[cam_id[sideIdx][camIdx]]['dev']
+            video_dev = res[cam_id[camIdx]]['dev']
             if video_dev not in cameras:
-                cameras[cam_id[sideIdx][camIdx]] = video_dev
+                cameras[cam_id[camIdx]] = video_dev
 
             print(f"{cam_id} start feed")
             print(f"Open video device {video_dev}")
@@ -106,8 +103,8 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
             startTS = time.time()
             
             with v4l2py.Device(video_dev) as device:
-                devices[cam_id[sideIdx][camIdx]] = device
-                device.set_format(buffer_type=1, width=res[cam_id[sideIdx][camIdx]]['width'], height=res[cam_id[sideIdx][camIdx]]['height'], pixel_format='MJPG')
+                devices[cam_id[camIdx]] = device
+                device.set_format(buffer_type=1, width=res[cam_id[camIdx]]['width'], height=res[cam_id[camIdx]]['height'], pixel_format='MJPG')
                 device.set_fps(buffer_type=1, fps=10)
                 for frame in device:
                     try:
@@ -117,22 +114,56 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                         ChannelHandler.send_message(frame.data)
                         try:
                             item = queue.get(block=False)
-                            if item['opcode'] == 'toggle':
-                                camIdx = camIdx+1
-                                if camIdx > 1:
+
+                            # if item['opcode'] == 'toggle':
+                            #     camIdx = camIdx+1
+                            #     if camIdx > 1:
+                            #         camIdx = 0
+                            # else:
+                            #     sideIdx = sideIdx+1
+                            #     if sideIdx > 1:
+                            #         sideIdx = 0
+                            if item['event'] == 'flip':
+                                camIdx += 1
+                                if camIdx == 1:
                                     camIdx = 0
-                            else:
-                                sideIdx = sideIdx+1
-                                if sideIdx > 1:
-                                    sideIdx = 0
+
+                            if item['event'] == '80':
+                                print("1 press")
+                                if port == '5002':
+                                    camIdx = 0
+                                if port == '5003':
+                                    camIdx = 2
+                            
+                            if item['event'] == '81':
+                                print("2 press")
+                                if port == '5002':
+                                    camIdx = 2
+                                if port == '5003':
+                                    camIdx = 3
+
+                            if item['event'] == '82':
+                                print("3 press")
+                                if port == '5002':
+                                    camIdx = 3 
+                                if port == '5003':
+                                    camIdx = 4 
+
+                            if item['event'] == '83':
+                                print("4 press")
+                                if port == '5002':
+                                    camIdx = 4
+                                if port == '5003':
+                                    camIdx = 2
+                            
                             qt.put({"port":port,
-                                    "cam_name":res[cam_id[sideIdx][camIdx]]['name']})
+                                    "cam_name":res[cam_id[camIdx]]['name']})
                             break
                         except Exception:
                             # traceback.print_exc()
                             pass
                     except Exception:
-                        # traceback.print_exc()
+                        # traceback.print_exc()11111111
                         break
                   
 
@@ -213,7 +244,8 @@ if __name__ == "__main__":
     obj = RobotMain()
     obj.setTelemetryChannel(ChannelHandler)
     obj.setFlipCallback(flipCams)
-    obj.setToggleCallback(toggleCams)
+    obj.setCommandKB(toggleCams) #michal - cameras, toggle from keyboard
+    # obj.setToggleCallback(toggleCams) -> no toggle from button circle
     obj.setCamsCallback(sendCamsCB)
 
 
