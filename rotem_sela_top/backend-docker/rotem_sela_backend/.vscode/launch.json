@@ -5,15 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: ADC File",
-            "type": "python",
-            "request": "launch",
-            "program": "test_adc.py",
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: main File",
+            "name": "Python: new_video_main File",
             "type": "python",
             "request": "launch",
             "program": "new_video_main.py",
