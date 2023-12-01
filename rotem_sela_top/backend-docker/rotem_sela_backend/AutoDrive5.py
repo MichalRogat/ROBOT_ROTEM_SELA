@@ -5,9 +5,12 @@ import traceback
 from threading import Thread
 
 DEBUG = True
+rErr = 0
+pErr = 1
+yErr = 2
 
 class AutoDrive(Thread):
-    def __init__(self, motors, motorQ:Queue):
+    def __init__(self, motors, motorQ:Queue,pRobotCurrentJoint):
         super().__init__()
         self.motors = motors
         self.desired_role = 0
@@ -18,9 +21,18 @@ class AutoDrive(Thread):
         self.priority_lock = None
         self.nanoQueue = Queue
         self.running = False
+        self.trailersError = []
+
+    def setCurrentJointCallback(self, CurrentJointCb):
+        self.CurrentJointCb = CurrentJointCb
 
     def setNanoQueue(self, nanoQueue):
         self.nanoQueue = nanoQueue
+
+    def updateError(self, trailer):
+            self.trailersError[trailer.name][rErr] = (self.desired_role - self.imu[int(trailer.name)])*self.Kp
+            self.trailersError[trailer.name][pErr] = (self.desired_pitch - self.imu[int(trailer.name)])*self.Kp
+            self.trailersError[trailer.name][yErr] = (self.desired_yaw - self.imu[int(trailer.name)])*self.Kp
 
     def start(self):
         while True:
@@ -35,13 +47,8 @@ class AutoDrive(Thread):
                 self.imu = callReadNano()
 
             for trailer in Entity.ITrailer.trailer_instances:
-                rErr = self.desired_role - self.imu[int(trailer.name)]*self.Kp
-                self.motorq.put(rErr)
-                pErr = self.desired_pitch - self.imu[int(trailer.name)]*self.Kp
-                self.motorq.put(pErr)
-                yErr = self.desired_yaw - self.imu[int(trailer.name)]*self.Kp
-                self.motorq.put(yErr)
-                
+                self.updateError(trailer)
+                self.sendRoleFixCommand(trailer)
 
     def run(self):
         pass
@@ -49,3 +56,8 @@ class AutoDrive(Thread):
     def stop(self):
         self.nanoQueue = None
         self.priority_lock = None
+
+    def sendRoleFixCommand(self, trailer):
+        self.nanoQueue.put({
+            
+        })
