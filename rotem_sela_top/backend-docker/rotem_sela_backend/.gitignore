@@ -4,3 +4,4 @@
 venv/
 michal_venv/
 newenv/
+*.csv

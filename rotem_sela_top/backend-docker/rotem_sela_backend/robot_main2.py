@@ -15,7 +15,7 @@ import traceback
 from functions import callReadNano
 from Entity import ITrailer, IMotor
 from Events import KeyboardEvents
-from combinedMotions import CombinedMotions
+from combinedMotions import CombinedMotions,combinedMotionsMap
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -303,10 +303,11 @@ class RobotMain():
         elif int(event["event"]) == 7:
             self.motors.StopAllMotors()
 
-        elif e in (40,49):
-            CombinedMotions.switchRunEvents(self.joints, e, self.motors)
-            # example for using generic combined motions
-            CombinedMotions.genericCombinedMotions([(self.joints[0][0], 30)])
+        elif e in (ord('q'), ord('w'), ord('a'), ord('s'), ord('e'), ord('d'), ord('z'), ord('x')):
+            with open('combinedMotios.json','r') as file:
+                jsonMotions = json.load(file)
+                item = jsonMotions.get(chr(e))
+                CombinedMotions.genericCombinedMotions(item.get("motors"), item.get("speed"))
 
         elif e in (50,59):
             CombinedMotions.switchStopEvents(self.joints, e, self.motors)

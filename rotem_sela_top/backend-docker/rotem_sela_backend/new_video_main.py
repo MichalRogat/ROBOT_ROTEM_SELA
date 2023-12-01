@@ -79,6 +79,12 @@ def flipCams():
     for q in subQueues:
         q.put({'opcode':'flip'})
 
+def sendCommand(command:int):
+    for q in subQueues:
+        q.put({
+            'command':command
+        })
+
 def toggleCams():
     for q in subQueues:
         q.put({'opcode':'toggle'})

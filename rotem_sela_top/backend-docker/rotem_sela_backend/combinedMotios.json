@@ -1,0 +1,42 @@
+{
+    "w":{
+        "motors":["elevation4", "elevation3"],
+        "speed":[100, 100]
+    },
+    "q":{
+        
+        "motors":["elevation1", "elevation2"],
+        "speed":[100, 100]
+    },
+    "a":{
+        
+        "motors":["elevation1", "elevation2"],
+        "speed":[100, 100]
+    },
+    
+    "s":{
+        
+        "motors":["elevation4","elevation3"],
+        "speed":[100, 100]
+    },
+    "e":{
+        
+        "motors":["elevation2","elevation1"],
+        "speed":[100,30]
+    },
+    "d":{
+        
+        "motors":["elevation2","elevation1"],
+        "speed":[100,30]
+    },
+    "z":{
+        
+        "motors":["turn1","driver1","driver2", "turn2"],
+        "speed":[100, 30, 30, 100]
+    },
+    "x":{
+        
+        "motors":["turn1","elevation1","elevation2","turn2","elevation3","turn3"],
+        "speed":[30, 30, 30, 30, 30]
+    }
+}
