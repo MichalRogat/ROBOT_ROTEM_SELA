@@ -13,12 +13,33 @@ import json
 import multiprocessing
 import time
 
-CAM_PORTS = [
-    (['7','6','5','10','4'], 5000),
-    (['9', '3','2','8','1'], 5001),
-    (['6','7'], 5002),
-    (['3','9'], 5003),
-]
+# 1 - on roof front
+# 2 - on roof side
+# 3 - front front
+# 4 - front side
+# 5 - Floor front
+# 6 - foor side (ceiling)
+# 7 - Robot body front
+# 8 - Robot body side
+# 9 - Back front
+# 10 - Back side
+
+CAM_PORTS_FLIP = {
+            5000 : ['7','7','8','4','6'],
+            5001: ['9','1','2','10','10'],
+            5002: ['5','5','5','5','1'],
+            5003: ['3','3','3','1','3']
+            }
+
+CAM_PORTS_NOT_FLIP = {
+           
+            5000: ['5','5','5','5','1'],
+            5001: ['3','3','3','1','3'],
+            5002 : ['7','7','8','4','6'],
+            5003: ['9','1','2','10','10'],
+            }
+
+CAM_PORTS = CAM_PORTS_FLIP
 
 cameras = {}
 devices = {}
@@ -33,12 +54,12 @@ def sendCamsCB():
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
     map = {
-            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1-side'},
-            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-front'},
+            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-side'},
+            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1-front'},
             '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam2-front'},
             '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam2-side'},
-            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-side'},
-            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam3-front'},
+            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam3-side'},
+            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-front'},
             '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam4-front'},
             '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam4-side'},
             '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
@@ -90,6 +111,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global cameras
         global devices
         camIdx = 0
+        isFlip = True
 
         while True:
             video_dev = res[cam_id[camIdx]]['dev']
@@ -115,47 +137,29 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                         try:
                             item = queue.get(block=False)
 
-                            # if item['opcode'] == 'toggle':
-                            #     camIdx = camIdx+1
-                            #     if camIdx > 1:
-                            #         camIdx = 0
-                            # else:
-                            #     sideIdx = sideIdx+1
-                            #     if sideIdx > 1:
-                            #         sideIdx = 0
                             if item['event'] == 'flip':
-                                camIdx += 1
-                                if camIdx == 2:
-                                    camIdx = 0
+                                isFlip = not isFlip
+                                if isFlip:
+                                    cam_id = CAM_PORTS_FLIP[port]
+                                else:
+                                    cam_id = CAM_PORTS_NOT_FLIP[port]
 
+                            if item['event'] == '79':
+                                print("0 press")
+                                camIdx = 0
                             if item['event'] == '80':
                                 print("1 press")
-                                if port == '5002':
-                                    camIdx = 0
-                                if port == '5003':
-                                    camIdx = 2
-                            
+                                camIdx = 1
                             if item['event'] == '81':
                                 print("2 press")
-                                if port == '5002':
-                                    camIdx = 2
-                                if port == '5003':
-                                    camIdx = 3
-
+                                camIdx = 2
                             if item['event'] == '82':
                                 print("3 press")
-                                if port == '5002':
-                                    camIdx = 3 
-                                if port == '5003':
-                                    camIdx = 4 
-
+                                camIdx = 3
                             if item['event'] == '83':
                                 print("4 press")
-                                if port == '5002':
-                                    camIdx = 4
-                                if port == '5003':
-                                    camIdx = 2
-                            
+                                camIdx = 4
+                                
                             qt.put({"port":port,
                                     "cam_name":res[cam_id[camIdx]]['name']})
                             break
@@ -228,7 +232,7 @@ if __name__ == "__main__":
     for item in CAM_PORTS:
         queue = multiprocessing.Queue()
         qt = multiprocessing.Queue()
-        process = multiprocessing.Process(target=videoFeedHandler, args=(item[1], item[0], queue, barrier, qt))
+        process = multiprocessing.Process(target=videoFeedHandler, args=(item, CAM_PORTS[item], queue, barrier, qt))
         processes.append(process)
         subQueues.append(queue)
         txQueues.append(qt)

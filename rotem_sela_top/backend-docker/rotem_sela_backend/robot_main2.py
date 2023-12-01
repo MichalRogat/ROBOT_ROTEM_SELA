@@ -56,6 +56,8 @@ class RobotMain():
         self.flipCB = None
         self.toggleCb = None
         self.commandCb= None
+        self.toggleState = 1
+
         self.telemetryChannel = None
         self.ledOn = False
         self.angles = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
@@ -207,7 +209,8 @@ class RobotMain():
 
                 self.flipCb()
 
-            if int(event["event"]) in (80, 81, 82, 83):  # michal - cameras
+            if int(event["event"]) in (79, 80, 81, 82, 83):  # michal - cameras
+                self.toggleState = int(event["event"])
                 self.commandCb(int(event["event"]))
 
 
@@ -384,6 +387,7 @@ class RobotMain():
             "isToggle": self.isToggle,
             "currentJoint": RobotMain.CurrentJoint,
             "battery":nanoTelemetry["batteryRead"],
+            "toggleState": self.toggleState
         })
         info.update(spare_dict) # insert static information
         info.update(front_cameras_dict) # insert static information
