@@ -204,9 +204,10 @@ class RobotMain():
 
                 self.flipCb()
 
-            elif int(event["event"]) in (80): #michal - cameras
+            if int(event["event"]) in (80, 81, 82, 83):  # michal - cameras
                 print("hi")
-                self.commandCb(80)
+                self.commandCb(int(event["event"]))
+
 
             elif int(event["event"]) == LEFT_ARROW:
                 self.motors.stopMotor(self.joints[self.currJoint][0])
