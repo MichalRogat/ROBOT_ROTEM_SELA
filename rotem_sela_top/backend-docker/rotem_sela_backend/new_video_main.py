@@ -134,6 +134,8 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             break
                        
                         ChannelHandler.send_message(frame.data)
+                        qt.put({"port":port,
+                                    "cam_name":res[cam_id[camIdx]]['name']})
                         try:
                             item = queue.get(block=False)
 

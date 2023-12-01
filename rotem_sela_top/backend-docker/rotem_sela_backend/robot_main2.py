@@ -30,7 +30,7 @@ RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
 LEFT_STICK_IN = 7
 RIGHT_STICK_IN = 8
-SHARE_BUTTON = 4
+SHARE_BUTTON = 49
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
@@ -80,7 +80,7 @@ class RobotMain():
 
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
-        # self.autoDrive = AutoDrive(self.motors, self.rx_q)
+        self.autoDrive = AutoDrive(self.motors)
 
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(
@@ -154,16 +154,12 @@ class RobotMain():
 
                 for key in events:
                     event = events[key]
-                    self.MotorHandler(event, False)
+                    self.MotorHandler(event)
 
             except Exception as e:
                 traceback.print_exc()
 
-    def MotorHandler(self, event, isAutoDrive):
-        if isAutoDrive:
-            self.handleAutoDriveCommands(event)
-        
-        else:
+    def MotorHandler(self, event):
             if event['event'] == KEEP_ALIVE:
                 return
             value = int(event["value"])
@@ -312,9 +308,12 @@ class RobotMain():
                 raise NotImplementedError("recording function not implemented yet.")
             
             elif int(event["event"]) == SHARE_BUTTON:
-                self.autoQueue = queue
-                self.autoDrive.setNanoQueue(AutoDrive)
-                self.autoDrive.start()
+                if self.isAutoDrive:
+                    self.autoDrive.stop()
+                    self.isAutoDrive = False
+                else:
+                    self.isAutoDrive = True
+                    self.autoDrive.start()
 
             elif int(event["event"]) == RIGHT_STICK_IN:
                 curr_time = datetime.now()
