@@ -112,6 +112,8 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             break
                        
                         ChannelHandler.send_message(frame.data)
+                        qt.put({"port":port,
+                                    "cam_name":res[cam_id[camIdx]]['name']})
                         try:
                             item = queue.get(block=False)
 
@@ -156,8 +158,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                                 if port == '5003':
                                     camIdx = 2
                             
-                            qt.put({"port":port,
-                                    "cam_name":res[cam_id[camIdx]]['name']})
+
                             break
                         except Exception:
                             # traceback.print_exc()
