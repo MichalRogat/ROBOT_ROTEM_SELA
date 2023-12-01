@@ -165,7 +165,7 @@ class RobotMain():
                 self.motors.stopMotor(self.motors.trailer1.driver1)
                 self.motors.stopMotor(self.motors.trailer5.driver2)
             else:
-                self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                self.motors.MotorRun(self.motors.trailer1.driver1, -value)
                 self.motors.MotorRun(self.motors.trailer5.driver2, -value)
         elif int(event["event"]) == 2:
                 # print(event)
