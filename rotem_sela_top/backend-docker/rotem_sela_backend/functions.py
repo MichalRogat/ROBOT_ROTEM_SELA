@@ -124,7 +124,3 @@ def stopCalibration():
     packet.opcode = 1 # calibration
     packet.checksum = packet.calculate_checksum()
     i2c_write(0x11, packet.to_array())
-
-if __name__ == "__main__":
-    callReadNano("motor", "nanotelemetry", "motors", True)
-    callReadNano()
