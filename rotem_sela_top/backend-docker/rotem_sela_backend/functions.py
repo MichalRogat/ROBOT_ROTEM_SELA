@@ -83,6 +83,7 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
             packet = trailer.GetState()
 
             if not debug:
+                i2c_write(trailer.I2CAddress, packet.to_array())
                 ret_byte = i2c_read(trailer.I2CAddress, 32)
                 if ret_byte[0] == 170 and ret_byte[4] == 175:
                     continue

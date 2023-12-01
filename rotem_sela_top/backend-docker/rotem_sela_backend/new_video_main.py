@@ -14,10 +14,10 @@ import multiprocessing
 import time
 
 CAM_PORTS = [
-    (['2','7'], 5000),
-    (['3', '9'], 5001),
-    (['7','2','5','10','4'], 5002),
-    (['9','3','6','8','1'], 5003),
+    (['7','6','5','10','4'], 5000),
+    (['9', '3','2','8','1'], 5001),
+    (['6','7'], 5002),
+    (['3','9'], 5003),
 ]
 
 cameras = {}
@@ -125,7 +125,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             #         sideIdx = 0
                             if item['event'] == 'flip':
                                 camIdx += 1
-                                if camIdx == 1:
+                                if camIdx == 2:
                                     camIdx = 0
 
                             if item['event'] == '80':

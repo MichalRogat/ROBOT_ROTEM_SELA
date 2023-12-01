@@ -46,9 +46,9 @@ GIVE_NAME2 = 35
 
 class RobotMain():
 
-    isFlip = False
+    isFlip = True
     isToggle = False
-    currJoint = 3
+    CurrentJoint = 3
 
     def __init__(self) -> None:
         self.motors = MotorDriver()
@@ -57,7 +57,6 @@ class RobotMain():
         self.toggleCb = None
         self.commandCb= None
         self.telemetryChannel = None
-        CurrentJoint = 3
         self.ledOn = False
         self.angles = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
         self.offsets = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
@@ -79,7 +78,7 @@ class RobotMain():
 
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
-        self.autoDrive = AutoDrive(self.motors, self.rx_q)
+        # self.autoDrive = AutoDrive(self.motors, self.rx_q)
 
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(
@@ -164,9 +163,9 @@ class RobotMain():
         
         else:
             if event['event'] == KEEP_ALIVE:
-                pass
+                return
             value = int(event["value"])
-            print(value)
+            # print(value)
             if value > 99:
                 value = 99
             elif value < -99:
@@ -181,7 +180,7 @@ class RobotMain():
                     self.motors.stopMotor(self.motors.trailer1.driver1)
                     self.motors.stopMotor(self.motors.trailer5.driver2)
                 else:
-                    self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                    self.motors.MotorRun(self.motors.trailer1.driver1, -value)
                     self.motors.MotorRun(self.motors.trailer5.driver2, -value)
 
             elif int(event["event"]) == RIGHT_STICK_X:
@@ -209,7 +208,6 @@ class RobotMain():
                 self.flipCb()
 
             if int(event["event"]) in (80, 81, 82, 83):  # michal - cameras
-                print("hi")
                 self.commandCb(int(event["event"]))
 
 
@@ -363,7 +361,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
@@ -396,11 +394,11 @@ class RobotMain():
             info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 
         # insert info about camera ports
-        if self.camsCB is not None:
-            queues_list = self.camsCB()
-            for q in queues_list: # each queue for each video handler of the four
-                item = q.get()
-                info[item["port"]]=item["cam_name"]
+        # if self.camsCB is not None:
+        #     queues_list = self.camsCB()
+        #     for q in queues_list: # each queue for each video handler of the four
+        #         item = q.get()
+        #         info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
