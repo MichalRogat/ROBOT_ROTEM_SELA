@@ -15,7 +15,7 @@ import traceback
 from functions import callReadNano
 from Entity import ITrailer, IMotor
 from Events import KeyboardEvents
-from combinedMotions import CombinedMotions,combinedMotionsMap
+from combinedMotions import CombinedMotions
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -190,7 +190,7 @@ class RobotMain():
                 self.motors.stopMotor(self.motors.trailer1.driver1)
                 self.motors.stopMotor(self.motors.trailer5.driver2)
             else:
-                self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                self.motors.MotorRun(self.motors.trailer1.driver1, -value)
                 self.motors.MotorRun(self.motors.trailer5.driver2, -value)
         elif int(event["event"]) == 2:
                 # print(event)
@@ -394,7 +394,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, False)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
@@ -438,11 +438,11 @@ class RobotMain():
         }
 
         # insert info about camera ports
-        if self.camsCB is not None:
-            queues_list = self.camsCB()
-            for q in queues_list: # each queue for each video handler of the four
-                item = q.get()
-                info[item["port"]]=item["cam_name"]
+        # if self.camsCB is not None:
+        #     queues_list = self.camsCB()
+        #     for q in queues_list: # each queue for each video handler of the four
+        #         item = q.get()
+        #         info[item["port"]]=item["cam_name"]
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))

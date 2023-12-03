@@ -4,11 +4,11 @@ from threading import Lock
 import traceback
 import ctypes
 
-DEBUG = True
+DEBUG = False
 # OPCODES
 SET_DRIVER_STATE = 0
 
-# bus = SMBus(1)
+bus = SMBus(1)
 
 lock = Lock()
 
