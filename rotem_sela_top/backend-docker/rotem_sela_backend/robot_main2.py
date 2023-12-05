@@ -110,6 +110,8 @@ class RobotMain():
         self.readADC_thread.start()
         self.motors.StopAllMotors()
 
+        self.motors.MotorRun(self.motors.trailer3.cooler, -30)
+
     def changeCurrentJoint(self, joint:int):
         RobotMain.CurrentJoint = joint
 
@@ -243,8 +245,6 @@ class RobotMain():
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                 else:
     
-                    if RobotMain.CurrentJoint == 0:
-                        value = -value
                     
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], -value)
                     

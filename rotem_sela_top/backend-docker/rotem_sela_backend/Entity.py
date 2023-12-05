@@ -108,9 +108,10 @@ class Trailer3(ITrailer):
         self.I2CAddress = I2CAddress
         self.turn2 = Driver(I2CAddress,1, "turn2")
         self.turn3 = Driver(I2CAddress,2, "turn3")
+        self.cooler = Driver(I2CAddress,3, "cooler")
 
     def GetState(self):
-        return Packet([self.turn2.speed, self.turn3.speed, 0]+self.GetGpioState(), 0x33)
+        return Packet([self.turn2.speed, self.turn3.speed, self.cooler.speed]+self.GetGpioState(), 0x33)
 
 class Trailer4(ITrailer):
 
