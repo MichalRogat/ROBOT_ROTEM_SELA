@@ -47,6 +47,10 @@ isMain = True
 subQueues = []
 txQueues = []
 barrier = multiprocessing.Barrier(4)
+txQueues = []
+
+def sendCamsCB():
+    return txQueues
 
 def sendCamsCB():
     return txQueues
@@ -102,6 +106,12 @@ def toggleCams(event):
     for q in subQueues:
         q.put({'event':f'{event}'})
 
+def sendCommand(command:int):
+    for q in subQueues:
+        q.put({
+            'command':command
+        })
+        
 def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global isMain
         isMain = False
@@ -169,7 +179,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             # traceback.print_exc()
                             pass
                     except Exception:
-                        # traceback.print_exc()11111111
+                        # traceback.print_exc()
                         break
                   
 

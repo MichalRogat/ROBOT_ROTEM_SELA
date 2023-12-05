@@ -35,24 +35,30 @@ class IMotor(ABC):
     def MotorRun():
         pass
 
+    def getByName(name):
+        for motor in IMotor.motor_instances:
+            if motor.name == name:
+                return motor
+
 class Driver(IMotor):
 
     def __init__(self, I2CAddress, motorNum, name):
         super().__init__(I2CAddress, name)
         self.motorNum = motorNum
+        self.name = name
         
     def stopMotor(self):
-
+        print(f"stopped motor {self.name}")
         self.speed = 0
 
     def MotorRun(self, speed):
-       
         if speed >= 90:
             speed = 90
         if speed <= -90:
             speed = -90
-
+        print(f"motor run {self.name} {self.speed}")
         self.speed = speed
+
 
 class ITrailer(ABC):
     trailer_instances = []

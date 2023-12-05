@@ -7,7 +7,7 @@ HIGH = 1
 LOW = 0
 
 class MotorDriver():
-# 
+
     def __init__(self):
         self.trailer1 = Entity.Trailer1(I2CAddress = 0x11)
         self.trailer2 = Entity.Trailer2(I2CAddress = 0x22)
