@@ -46,7 +46,7 @@ GIVE_NAME2 = 35
 
 class RobotMain():
 
-    isFlip = True
+    isFlip = False
     isToggle = False
     CurrentJoint = 3
 
@@ -189,7 +189,7 @@ class RobotMain():
                             self.motors.stopMotor(self.motors.trailer5.turn4)
                     else:
                         if not self.isFlip:
-                            value = -value
+                            
                             self.motors.MotorRun(self.motors.trailer1.turn1, value)
                         else:
                             value = -value
@@ -250,7 +250,7 @@ class RobotMain():
                     
             elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
 
-                if RobotMain.CurrentJoint != 3:
+                if RobotMain.CurrentJoint != 3 and RobotMain.CurrentJoint != 0:
                     value = -value
 
                 if value == 0:

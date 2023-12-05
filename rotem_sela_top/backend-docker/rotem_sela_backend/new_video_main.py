@@ -39,7 +39,7 @@ CAM_PORTS_NOT_FLIP = {
             5003: ['9','1','2','10','10'],
             }
 
-CAM_PORTS = CAM_PORTS_FLIP
+CAM_PORTS = CAM_PORTS_NOT_FLIP
 
 cameras = {}
 devices = {}
@@ -111,7 +111,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global cameras
         global devices
         camIdx = 0
-        isFlip = True
+        isFlip = False
 
         while True:
             video_dev = res[cam_id[camIdx]]['dev']

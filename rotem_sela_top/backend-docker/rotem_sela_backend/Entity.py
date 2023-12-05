@@ -129,8 +129,8 @@ class Trailer5(ITrailer):
         super().__init__()
         self.name = '5'
         self.I2CAddress = I2CAddress
-        self.driver2 = Driver(I2CAddress,1, "driver2")
-        self.turn4 = Driver(I2CAddress,2, "turn4")
+        self.driver2 = Driver(I2CAddress,2, "driver2")
+        self.turn4 = Driver(I2CAddress,1, "turn4")
         self.pump2 = Driver(I2CAddress,3, "pump2")
 
     def GetState(self):
