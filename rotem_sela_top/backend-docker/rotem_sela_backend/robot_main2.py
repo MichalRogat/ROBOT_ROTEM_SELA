@@ -307,10 +307,13 @@ class RobotMain():
             with open('combinedMotios.json','r') as file:
                 jsonMotions = json.load(file)
                 item = jsonMotions.get(chr(e))
-                CombinedMotions.genericCombinedMotions(item.get("motors"), item.get("speed"))
+                CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
 
-        elif e in (50,59):
-            CombinedMotions.switchStopEvents(self.joints, e, self.motors)
+        elif e in (ord('q')+10, ord('w')+10, ord('a')+10, ord('s')+10, ord('e')+10, ord('d')+10, ord('z')+10, ord('x')+10):
+            with open('combinedMotios.json','r') as file:
+                jsonMotions = json.load(file)
+                item = jsonMotions.get(chr(e))
+                CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
             
         elif int(event["event"]) == RIGHT_STICK_IN:
             curr_time = datetime.now()

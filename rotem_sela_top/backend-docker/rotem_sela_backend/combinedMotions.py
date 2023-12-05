@@ -15,6 +15,10 @@ E1 = E2 = E3 = E4 = 1
 
 class CombinedMotions():
 
-    def genericCombinedMotions(drivers:list, speeds:list):
+    def combinedMotionsMotorRun(drivers:list, speeds:list):
         for driver, speed in zip(drivers,speeds):
             Entity.IMotor.getByName(driver).MotorRun(speed)
+
+    def combinedMotionsMotorStop(drivers:list):
+        for driver in drivers:
+            Entity.IMotor.getByName(driver).stopMotor()
