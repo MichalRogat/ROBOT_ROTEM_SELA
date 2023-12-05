@@ -4,7 +4,7 @@ from threading import Lock
 import traceback
 import ctypes
 
-DEBUG = False
+DEBUG = True
 # OPCODES
 SET_DRIVER_STATE = 0
 

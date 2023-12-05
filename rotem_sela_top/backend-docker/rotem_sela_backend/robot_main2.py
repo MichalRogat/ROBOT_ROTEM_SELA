@@ -53,7 +53,7 @@ RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
 LEFT_STICK_IN = 7
 RIGHT_STICK_IN = 8
-SHARE_BUTTON = 4
+SHARE_BUTTON = 49
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
@@ -71,6 +71,8 @@ class RobotMain():
     CurrentJoint = 3
 
     def __init__(self) -> None:
+        global nanoTelemetry
+        
         self.motors = MotorDriver()
         self.camsCB = None
         self.flipCB = None
@@ -102,6 +104,7 @@ class RobotMain():
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.autoDrive = AutoDrive(self.motors)
+        self.autoDrive.setNanotelemetryCallback(nanoTelemetry)
 
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(
@@ -345,7 +348,7 @@ class RobotMain():
             elif e in (ord('q')+10, ord('w')+10, ord('a')+10, ord('s')+10, ord('e')+10, ord('d')+10, ord('z')+10, ord('x')+10):
                 with open('combinedMotios.json','r') as file:
                     jsonMotions = json.load(file)
-                    item = jsonMotions.get(chr(e))
+                    item = jsonMotions.get(chr(e-10))
                     CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
                 
             elif e == RIGHT_STICK_IN:
@@ -395,7 +398,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, False)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:

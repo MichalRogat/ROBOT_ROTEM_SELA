@@ -55,9 +55,9 @@ class Driver(IMotor):
         if speed >= 90:
             speed = 90
         if speed <= -90:
-            speed = -90
-        print(f"motor run {self.name} {self.speed}")
+            speed = -90        
         self.speed = speed
+        print(f"motor run {self.name} {self.speed}")
 
 
 class ITrailer(ABC):
