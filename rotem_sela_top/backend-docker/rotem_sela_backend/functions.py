@@ -5,6 +5,8 @@ import traceback
 import ctypes
 import serial
 from gpiozero import CPUTemperature
+
+DEBUG = True
 # OPCODES
 SET_DRIVER_STATE = 0
 

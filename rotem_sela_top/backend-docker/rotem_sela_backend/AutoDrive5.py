@@ -18,7 +18,10 @@ class AutoDrive(Thread):
         self.desired_yaw = 0
         self.Kp = 1.0
         self._stop_event = Event()
+        self.nanoTelemetry = None
 
+    def setNanotelemetryCallback(self, callback):
+        self.nanoTelemetry = callback
 
     def updateError(self, trailer):
             rErr = (self.desired_role - self.imu[int(trailer.name)][0])*self.Kp
@@ -37,7 +40,7 @@ class AutoDrive(Thread):
                             [random(),random(),random()],
                             [random(),random(),random()]]
             else:
-                self.imu = callReadNano()
+                self.imu = self.nanoTelemetry["imu"]
 
             for trailer in Entity.ITrailer.trailer_instances:
                 if trailer.name == '1':

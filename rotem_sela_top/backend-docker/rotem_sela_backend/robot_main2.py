@@ -15,6 +15,8 @@ import traceback
 from functions import callReadNano
 from Entity import ITrailer, IMotor
 import csv
+from Events import KeyboardEvents
+from combinedMotions import CombinedMotions
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -44,6 +46,24 @@ GIVE_NAME2 = 35
 
 
 
+# Events
+KEEP_ALIVE = 99
+LEFT_JOYSTICK = 0
+RIGHT_STICK_X = 2
+RIGHT_STICK_Y = 3
+LEFT_STICK_IN = 7
+RIGHT_STICK_IN = 8
+SHARE_BUTTON = 49
+CIRCLE = 21
+TRIANGLE = 23
+SHARE_PLUS_OPTIONS = 24
+GIVE_NAME = 30
+UP_ARROW = 31
+DOWN_ARROW = 32
+RIGHT_ARROW = 33
+LEFT_ARROW = 34
+GIVE_NAME2 = 35
+
 class RobotMain():
 
     isFlip = False
@@ -51,6 +71,8 @@ class RobotMain():
     CurrentJoint = 3
 
     def __init__(self) -> None:
+        global nanoTelemetry
+        
         self.motors = MotorDriver()
         self.camsCB = None
         self.flipCB = None
@@ -77,10 +99,12 @@ class RobotMain():
         self.currentLightLevel = 1
         self.activePump = 1
         self.isPumpingNow = 0
+        self.camsCB = None
 
         self.comm_thread = threading.Thread(target=self.CommRxHandle)
         self.rx_q = queue.Queue()
         self.autoDrive = AutoDrive(self.motors)
+        self.autoDrive.setNanotelemetryCallback(nanoTelemetry)
 
         if RC == "LOCAL":
             self.ps4Conroller = ps4_controller.RobotPS4(
@@ -137,6 +161,9 @@ class RobotMain():
     def A2dHandler(self):
         self.a2d.listen()
 
+    def setCamsCallback(self, camsCb):
+        self.camsCB = camsCb
+
     def CommRxHandle(self):
         if RC == "LOCAL":
             self.ps4Conroller.listen()
@@ -170,7 +197,7 @@ class RobotMain():
                 value = 99
             elif value < -99:
                 value = -99
-
+            e = int(event["event"])
             if int(event["event"]) == RIGHT_STICK_Y:
                 # print(event)
                 value = -value
@@ -263,9 +290,6 @@ class RobotMain():
 
             elif int(event["event"]) == SHARE_PLUS_OPTIONS:
                 self.offsets = self.angles
-
-            # elif int(event["event"]) == 29:
-            #     self.currPump = (self.currPump+1) % 4
                 
             elif int(event["event"]) == GIVE_NAME: # stop pump
                 if value == 0:
@@ -315,12 +339,23 @@ class RobotMain():
                     self.isAutoDrive = True
                     self.autoDrive.start()
 
-            elif int(event["event"]) == RIGHT_STICK_IN:
+            elif e in (ord('q'), ord('w'), ord('a'), ord('s'), ord('e'), ord('d'), ord('z'), ord('x')):
+                with open('combinedMotios.json','r') as file:
+                    jsonMotions = json.load(file)
+                    item = jsonMotions.get(chr(e))
+                    CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
+
+            elif e in (ord('q')+10, ord('w')+10, ord('a')+10, ord('s')+10, ord('e')+10, ord('d')+10, ord('z')+10, ord('x')+10):
+                with open('combinedMotios.json','r') as file:
+                    jsonMotions = json.load(file)
+                    item = jsonMotions.get(chr(e-10))
+                    CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
+                
+            elif e == RIGHT_STICK_IN:
                 curr_time = datetime.now()
                 self.append_to_csv(nanoTelemetry)
                 raise NotImplementedError("recording function not implemented yet.")
 
-        
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
         self.motors.disable_motors = False
@@ -363,7 +398,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
@@ -405,8 +440,6 @@ class RobotMain():
 
         if self.telemetryChannel is not None:
             self.telemetryChannel.send_message(json.dumps(info))
-        # if self.autoDrive.running:
-        #     self.autoDrive.nanoQueue.put(item=info["imu"])
 
 if __name__ == "__main__":
     RobotMain()
