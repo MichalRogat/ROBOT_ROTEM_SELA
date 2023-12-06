@@ -30,8 +30,8 @@ class MotorDriver():
         print("Disable Motors")
         # if not MotorDriver.disable_motors:
         for instance in IMotor.motor_instances:
-           
-            instance.stopMotor()
+            if instance.name != 'cooler': 
+                instance.stopMotor()
         self.disable_motors = False
 
     @classmethod

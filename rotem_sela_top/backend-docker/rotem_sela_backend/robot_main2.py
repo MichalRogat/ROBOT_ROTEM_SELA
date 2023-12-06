@@ -234,7 +234,7 @@ class RobotMain():
 
                 self.flipCb()
 
-            if int(event["event"]) in (79, 80, 81, 82, 83):  # michal - cameras
+            if int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
                 self.toggleState = int(event["event"])
                 self.commandCb(int(event["event"]))
 
@@ -339,17 +339,14 @@ class RobotMain():
                     self.isAutoDrive = True
                     self.autoDrive.start()
 
-            elif e in (ord('q'), ord('w'), ord('a'), ord('s'), ord('e'), ord('d'), ord('z'), ord('x')):
+            elif int(event["event"]) in (48,122):
                 with open('combinedMotios.json','r') as file:
                     jsonMotions = json.load(file)
                     item = jsonMotions.get(chr(e))
-                    CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
-
-            elif e in (ord('q')+10, ord('w')+10, ord('a')+10, ord('s')+10, ord('e')+10, ord('d')+10, ord('z')+10, ord('x')+10):
-                with open('combinedMotios.json','r') as file:
-                    jsonMotions = json.load(file)
-                    item = jsonMotions.get(chr(e-10))
-                    CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
+                    if value == 1:
+                        CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
+                    else:
+                        CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
                 
             elif e == RIGHT_STICK_IN:
                 curr_time = datetime.now()
@@ -398,7 +395,7 @@ class RobotMain():
     def ReadADC(self):
         global nanoTelemetry
         while True:
-            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, True)
+            callReadNano(ITrailer.trailer_instances, nanoTelemetry, IMotor.motor_instances, False)
 
     def append_to_csv(self, data):
         with open(self.recordFileName, 'a', newline='') as csvfile:
