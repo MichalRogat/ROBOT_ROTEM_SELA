@@ -25,7 +25,7 @@ import time
 # 10 - Back side
 
 CAM_PORTS_FLIP = {
-            5000 : ['7','7','8','4','6'],
+            5000 :['7','7','8','4','6'],
             5001: ['9','1','2','10','10'],
             5002: ['5','5','5','5','1'],
             5003: ['3','3','3','1','3']
@@ -156,19 +156,19 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                                 else:
                                     cam_id = CAM_PORTS_NOT_FLIP[port]
 
-                            if item['event'] == '79':
+                            if item['event'] == str(ord('0')):
                                 print("0 press")
                                 camIdx = 0
-                            if item['event'] == '80':
+                            if item['event'] ==  str(ord('1')):
                                 print("1 press")
                                 camIdx = 1
-                            if item['event'] == '81':
+                            if item['event'] == str(ord('2')):
                                 print("2 press")
                                 camIdx = 2
-                            if item['event'] == '82':
+                            if item['event'] == str(ord('3')):
                                 print("3 press")
                                 camIdx = 3
-                            if item['event'] == '83':
+                            if item['event'] == str(ord('4')):
                                 print("4 press")
                                 camIdx = 4
                                 

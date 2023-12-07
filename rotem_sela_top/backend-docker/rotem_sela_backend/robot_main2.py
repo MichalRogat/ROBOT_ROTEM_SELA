@@ -339,7 +339,7 @@ class RobotMain():
                     self.isAutoDrive = True
                     self.autoDrive.start()
 
-            elif int(event["event"]) in (48,122):
+            elif 48 <= int(event["event"]) <= 122:
                 with open('combinedMotios.json','r') as file:
                     jsonMotions = json.load(file)
                     item = jsonMotions.get(chr(e))
