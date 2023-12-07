@@ -180,6 +180,9 @@ class RobotMain():
                 while self.rx_q.qsize() > 0:
                     event = self.rx_q.get(0.5)
                     events[event['event']] = event
+                
+                if len(events) == 0:
+                    time.sleep(0.01)
 
                 for key in events:
                     event = events[key]
@@ -424,7 +427,12 @@ class RobotMain():
         info.update(front_cameras_dict) # insert static information
         info.update(side_cameras_dict) # insert static information
 
-        self.angles = nanoTelemetry["imu"]
+        if 'imu1' in nanoTelemetry: self.angles[0] = nanoTelemetry["imu1"]
+        if 'imu2' in nanoTelemetry: self.angles[1] = nanoTelemetry["imu2"]
+        if 'imu3' in nanoTelemetry: self.angles[2] = nanoTelemetry["imu3"]
+        if 'imu4' in nanoTelemetry: self.angles[3] = nanoTelemetry["imu4"]
+        if 'imu5' in nanoTelemetry: self.angles[4] = nanoTelemetry["imu5"]
+       
         for i in range(0,4): # ovveride imu with normalised imu
             info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 

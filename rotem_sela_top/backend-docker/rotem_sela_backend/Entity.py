@@ -92,7 +92,7 @@ class Trailer1(ITrailer):
         self.pump1 = Driver(I2CAddress, 3, "pump1")
     
     def GetState(self):
-        return Packet([self.turn1.speed, self.driver1.speed, self.pump1.speed]+self.GetGpioState(), 0x11)
+        return Packet([self.turn1.speed, self.driver1.speed, self.pump1.speed]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer2(ITrailer):
 
@@ -104,7 +104,7 @@ class Trailer2(ITrailer):
         self.elevation2 = Driver(I2CAddress,2, "elevation2")
 
     def GetState(self):
-        return Packet([self.elevation1.speed, self.elevation2.speed, 0]+self.GetGpioState(), 0x22)
+        return Packet([self.elevation1.speed, self.elevation2.speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer3(ITrailer):
 
@@ -117,7 +117,7 @@ class Trailer3(ITrailer):
         self.cooler = Driver(I2CAddress,3, "cooler")
 
     def GetState(self):
-        return Packet([self.turn2.speed, self.turn3.speed, self.cooler.speed]+self.GetGpioState(), 0x33)
+        return Packet([self.turn2.speed, self.turn3.speed, self.cooler.speed]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer4(ITrailer):
 
@@ -128,7 +128,7 @@ class Trailer4(ITrailer):
         self.elevation3 = Driver(I2CAddress,2, "elevation3")
         self.elevation4 = Driver(I2CAddress,1, "elevation4")
     def GetState(self):
-        return Packet([self.elevation4.speed, self.elevation3.speed, 0]+self.GetGpioState(), 0x44)
+        return Packet([self.elevation4.speed, self.elevation3.speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer5(ITrailer):
 
@@ -141,4 +141,4 @@ class Trailer5(ITrailer):
         self.pump2 = Driver(I2CAddress,3, "pump2")
 
     def GetState(self):
-        return Packet([self.driver2.speed, self.turn4.speed, self.pump2.speed]+self.GetGpioState(), 0x55)
+        return Packet([self.driver2.speed, self.turn4.speed, self.pump2.speed]+self.GetGpioState(), pIdx=self.I2CAddress)
