@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from functions import Packet
-from functions import pIdx
 
 
 HIGH = 1
@@ -112,12 +111,12 @@ class Trailer3(ITrailer):
         super().__init__()
         self.name = '3'
         self.I2CAddress = I2CAddress
-        self.turn2 = Driver(I2CAddress,1, "turn2")
-        self.turn3 = Driver(I2CAddress,2, "turn3")
+        self.turn2 = Driver(I2CAddress,2, "turn2")
+        self.turn3 = Driver(I2CAddress,1, "turn3")
         self.cooler = Driver(I2CAddress,3, "cooler")
 
     def GetState(self):
-        return Packet([self.turn2.speed, self.turn3.speed, self.cooler.speed]+self.GetGpioState(), pIdx=self.I2CAddress)
+        return Packet([self.turn3.speed, self.turn2.speed, self.cooler.speed]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer4(ITrailer):
 
@@ -128,7 +127,7 @@ class Trailer4(ITrailer):
         self.elevation3 = Driver(I2CAddress,2, "elevation3")
         self.elevation4 = Driver(I2CAddress,1, "elevation4")
     def GetState(self):
-        return Packet([self.elevation4.speed, self.elevation3.speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
+        return Packet([self.elevation4.speed,self.elevation3.speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer5(ITrailer):
 

@@ -68,22 +68,13 @@ class Packet:
     def __repr__(self) -> str:
         return f"op: {self.opcode}, pIdx: {self.packetIdx}, payload_length: {self.payload_length}, payload: {self.payload}" 
 
-pIdx = {}
-
 def serial_write(data):
      ser.write(data)
 
 def serial_read(len):
     res = ser.read(len)
     return res
-    # byteCount = 0
-    # while ser.inWaiting():
-    #     received_data = ser.read()              #read serial port
-    #     sleep(0.03)
-    #     data_left = ser.inWaiting()             #check for remaining byte
-    #     received_data += ser.read(data_left)
-    #     print (received_data)                   #print received data
-    #     ser.write(received_data)
+   
 
 def i2c_write(i2c_addr, data):
     
@@ -177,14 +168,11 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
 
     for trailer in trailers:
         try:
-            global pIdx
-            if trailer.I2CAddress not in pIdx:
-                pIdx[trailer.I2CAddress] = {'rcv':-1, 'send':0}
+            
             packet = trailer.GetState()
 
             if not debug:
 
-                
                 # print("I@C trans")
                 # i2c_write(trailer.I2CAddress, packet.to_array())
                 # ret_byte = i2c_read(trailer.I2CAddress, 32)
@@ -219,8 +207,9 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
                                                     ]
                         
 
-                        print("Telemetry "+trailer.name)
-                        print(str(nanoTelemetry))
+                        # if trailer.name == '2':
+                        # print("Telemetry "+trailer.name)
+                            # print(str(nanoTelemetry["imu"+trailer.name]))
                 else:
                     print("Error "+str(trailer.I2CAddress))
                     continue

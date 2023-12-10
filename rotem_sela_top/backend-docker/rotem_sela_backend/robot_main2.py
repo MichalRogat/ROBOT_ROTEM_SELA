@@ -26,7 +26,7 @@ stopVideo = False
 nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0}
 
 # Events
-KEEP_ALIVE = 99
+KEEP_ALIVE = 300
 LEFT_JOYSTICK = 0
 RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
@@ -36,6 +36,7 @@ SHARE_BUTTON = 49
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
+CHOOSE_PUMP = 29
 GIVE_NAME = 30
 UP_ARROW = 31
 DOWN_ARROW = 32
@@ -43,32 +44,13 @@ RIGHT_ARROW = 33
 LEFT_ARROW = 34
 GIVE_NAME2 = 35
 
-
-
-
-# Events
-KEEP_ALIVE = 99
-LEFT_JOYSTICK = 0
-RIGHT_STICK_X = 2
-RIGHT_STICK_Y = 3
-LEFT_STICK_IN = 7
-RIGHT_STICK_IN = 8
-SHARE_BUTTON = 49
-CIRCLE = 21
-TRIANGLE = 23
-SHARE_PLUS_OPTIONS = 24
-GIVE_NAME = 30
-UP_ARROW = 31
-DOWN_ARROW = 32
-RIGHT_ARROW = 33
-LEFT_ARROW = 34
-GIVE_NAME2 = 35
 
 class RobotMain():
 
     isFlip = False
     isToggle = False
     CurrentJoint = 3
+    pitchLoweringActive = False
 
     def __init__(self) -> None:
         global nanoTelemetry
@@ -134,7 +116,7 @@ class RobotMain():
         self.readADC_thread.start()
         self.motors.StopAllMotors()
 
-        self.motors.MotorRun(self.motors.trailer3.cooler, -30)
+        self.motors.MotorRun(self.motors.trailer3.cooler, -50)
 
     def changeCurrentJoint(self, joint:int):
         RobotMain.CurrentJoint = joint
@@ -174,6 +156,7 @@ class RobotMain():
     def RobotMessageHandler(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        lastEvent = 0
         while True:
             try:
                 events = {}
@@ -182,6 +165,8 @@ class RobotMain():
                     events[event['event']] = event
                 
                 if len(events) == 0:
+                    if lastEvent > 0 and time.time() - lastEvent > 3:
+                        self.motors.StopAllMotors()
                     time.sleep(0.01)
 
                 for key in events:
@@ -190,6 +175,46 @@ class RobotMain():
 
             except Exception as e:
                 traceback.print_exc()
+
+    def runPitchLowering(self):
+
+        trailerNum = 1
+        while self.pitchLoweringActive:
+            if trailerNum == 1:
+                if abs(nanoTelemetry["imu1"][1]) > 2:
+                    self.motors.MotorRun(self.motors.trailer2.elevation1)
+                else:
+                    self.motors.stopMotor(self.motors.trailer2.elevation1)
+                    trailerNum+=1
+            elif trailerNum == 2:
+                if abs(nanoTelemetry["imu2"][1]) > 2:
+                    self.motors.MotorRun(self.motors.trailer2.elevation2)
+                else:
+                    self.motors.stopMotor(self.motors.trailer2.elevation2)
+                    trailerNum+=1
+            elif trailerNum == 3:
+                if abs(nanoTelemetry["imu3"][1]) > 2:
+                    self.motors.MotorRun(self.motors.trailer4.elevation3)
+                else:
+                    self.motors.stopMotor(self.motors.trailer4.elevation3)
+                    trailerNum+=1
+            elif trailerNum == 4:
+                if abs(nanoTelemetry["imu4"][1]) > 2:
+                    self.motors.MotorRun(self.motors.trailer4.elevation3)
+                else:
+                    self.motors.stopMotor(self.motors.trailer4.elevation3)
+                    trailerNum+=1
+        
+        self.motors.stopMotor(self.motors.trailer2.elevation1)
+        self.motors.stopMotor(self.motors.trailer2.elevation2)
+        self.motors.stopMotor(self.motors.trailer4.elevation3)
+        self.motors.stopMotor(self.motors.trailer4.elevation4)
+
+    def pitchLowering(self, value):
+        if value == 1:
+            threading.Thread(target=self.runPitchLowering)
+        else:
+            self.pitchLoweringActive = False
 
     def MotorHandler(self, event):
             if event['event'] == KEEP_ALIVE:
@@ -272,6 +297,8 @@ class RobotMain():
                     self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
                 elif not self.isFlip:
                     
+                    if self.CurrentJoint == 1:
+                        value = -value
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                 else:
     
@@ -293,7 +320,12 @@ class RobotMain():
 
             elif int(event["event"]) == SHARE_PLUS_OPTIONS:
                 self.offsets = self.angles
-                
+
+            elif int(event["event"]) == CHOOSE_PUMP: 
+
+                self.currPump += 1
+                if self.currPump > 3:
+                    self.currPump = 0
             elif int(event["event"]) == GIVE_NAME: # stop pump
                 if value == 0:
                     if self.currPump == 0:
@@ -306,13 +338,13 @@ class RobotMain():
                         self.motors.stopMotor(self.motors.trailer5.pump2)
                 else:
                     if self.currPump == 0:
-                        self.motors.MotorRun(self.motors.trailer1.pump1, 90)
+                        self.motors.MotorRun(self.motors.trailer1.pump1, 100)
                     elif self.currPump == 1:
-                        self.motors.MotorRun(self.motors.trailer1.pump1, -90)
+                        self.motors.MotorRun(self.motors.trailer1.pump1, -100)
                     elif self.currPump == 2:
-                        self.motors.MotorRun(self.motors.trailer5.pump2, 90)
+                        self.motors.MotorRun(self.motors.trailer5.pump2, 100)
                     elif self.currPump == 3:
-                        self.motors.MotorRun(self.motors.trailer5.pump2, -90)
+                        self.motors.MotorRun(self.motors.trailer5.pump2, -100)
 
                         
             elif int(event["event"]) == GIVE_NAME2:
@@ -342,15 +374,19 @@ class RobotMain():
                     self.isAutoDrive = True
                     self.autoDrive.start()
 
-            elif 48 <= int(event["event"]) <= 122:
+            elif 32 <= int(event["event"]) <= 122:
                 with open('combinedMotios.json','r') as file:
                     jsonMotions = json.load(file)
                     item = jsonMotions.get(chr(e))
-                    if value == 1:
-                        CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
+                    if "type" in item:
+                        if item["type"] == "pitch_lowering":
+                            self.pitchLowering(value)
                     else:
-                        CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
-                
+                        if value == 1:
+                            CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
+                        else:
+                            CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
+                    
             elif e == RIGHT_STICK_IN:
                 curr_time = datetime.now()
                 self.append_to_csv(nanoTelemetry)
@@ -433,7 +469,7 @@ class RobotMain():
         if 'imu4' in nanoTelemetry: self.angles[3] = nanoTelemetry["imu4"]
         if 'imu5' in nanoTelemetry: self.angles[4] = nanoTelemetry["imu5"]
        
-        for i in range(0,4): # ovveride imu with normalised imu
+        for i in range(0,5): # ovveride imu with normalised imu
             info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 
         # insert info about camera ports

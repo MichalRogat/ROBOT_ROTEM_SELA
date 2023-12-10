@@ -13,31 +13,22 @@ import json
 import multiprocessing
 import time
 
-# 1 - on roof front
-# 2 - on roof side
-# 3 - front front
-# 4 - front side
-# 5 - Floor front
-# 6 - foor side (ceiling)
-# 7 - Robot body front
-# 8 - Robot body side
-# 9 - Back front
-# 10 - Back side
-
 CAM_PORTS_FLIP = {
-            5000 :['7','7','8','4','6'],
-            5001: ['9','1','2','10','10'],
-            5002: ['5','5','5','5','1'],
-            5003: ['3','3','3','1','3']
+            5000 : ['5.1','3.1','3.2','5.2','1.2'],
+            5001: ['6.1','4.1','4.2','2.2','6.2'],
+            5002: ['1.1','1.1','1.1','1.1','4.1'],
+            5003: ['2.1','2.1','2.1','3.1','2.1']
+           
             }
 
 CAM_PORTS_NOT_FLIP = {
            
-            5000: ['5','5','5','5','1'],
-            5001: ['3','3','3','1','3'],
-            5002 : ['7','7','8','4','6'],
-            5003: ['9','1','2','10','10'],
+            5000: ['1.1','1.1','1.1','1.1','4.1'],
+            5001: ['2.1','2.1','2.1','3.1','2.1'],
+            5002 : ['5.1','3.1','3.2','5.2','1.2'],
+            5003: ['6.1','4.1','4.2','2.2','6.2']
             }
+
 
 CAM_PORTS = CAM_PORTS_NOT_FLIP
 
@@ -55,19 +46,26 @@ def sendCamsCB():
 def sendCamsCB():
     return txQueues
 
+
+
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
+
+    id2name = {"1.1":3,"1.2.1":2,"1.2.2":1,"1.2.3":6,"1.2.4":5,"1.4":4}
+
     map = {
-            '1':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-side'},
-            '2':{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1-front'},
-            '3':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam2-front'},
-            '4':{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam2-side'},
-            '5':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam3-side'},
-            '6':{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-front'},
-            '7':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam4-front'},
-            '8':{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam4-side'},
-            '9':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
-            '10':{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+            str(id2name[cameras[0][0].split("-")[1]])+".1":{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-side'},
+            str(id2name[cameras[0][0].split("-")[1]])+".2":{'dev' : cameras[0][1], 'width' : 640 ,'height' : 400, 'name':'cam1-front'},
+            str(id2name[cameras[1][0].split("-")[1]])+".1":{'dev' : cameras[1][1], 'width' : 640 ,'height' : 480, 'name':'cam2-front'},
+            str(id2name[cameras[1][0].split("-")[1]])+".2":{'dev' : cameras[1][1], 'width' : 640 ,'height' : 400, 'name':'cam2-side'},
+            str(id2name[cameras[2][0].split("-")[1]])+".1":{'dev' : cameras[2][1], 'width' : 640 ,'height' : 480, 'name':'cam3-side'},
+            str(id2name[cameras[2][0].split("-")[1]])+".2":{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-front'},
+            str(id2name[cameras[3][0].split("-")[1]])+".1":{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam4-front'},
+            str(id2name[cameras[3][0].split("-")[1]])+".2":{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam4-side'},
+            str(id2name[cameras[4][0].split("-")[1]])+".1":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+            str(id2name[cameras[4][0].split("-")[1]])+".2":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+            str(id2name[cameras[5][0].split("-")[1]])+".1":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+            str(id2name[cameras[5][0].split("-")[1]])+".2":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
            }
     
     print(map)
