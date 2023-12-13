@@ -162,10 +162,11 @@ class RobotMain():
                 events = {}
                 while self.rx_q.qsize() > 0:
                     event = self.rx_q.get(0.5)
+                    lastEvent = time.time()
                     events[event['event']] = event
                 
                 if len(events) == 0:
-                    if lastEvent > 0 and time.time() - lastEvent > 3:
+                    if lastEvent > 0 and time.time() - lastEvent > 1: 
                         self.motors.StopAllMotors()
                     time.sleep(0.01)
 
@@ -302,7 +303,8 @@ class RobotMain():
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                 else:
     
-                    
+                    if self.CurrentJoint == 1:
+                        value = -value
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], -value)
                     
             elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
