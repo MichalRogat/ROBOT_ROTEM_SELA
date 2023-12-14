@@ -295,15 +295,16 @@ class RobotMain():
             elif int(event["event"]) == LEFT_JOYSTICK:
                 if value ==0:
                     self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
-                elif not self.isFlip:
-                    
-                    if self.CurrentJoint == 1:
-                        value = -value
-                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
+               
                 else:
-    
                     
-                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], -value)
+                    if not self.isFlip:
+                        if self.CurrentJoint == 1:
+                            value = -value
+                    else:
+                        value = -value
+
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                     
             elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
 
