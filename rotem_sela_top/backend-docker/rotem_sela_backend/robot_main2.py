@@ -263,7 +263,7 @@ class RobotMain():
 
                 self.flipCb()
 
-            if int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
+            elif int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
                 self.toggleState = int(event["event"])
                 self.commandCb(int(event["event"]))
 
