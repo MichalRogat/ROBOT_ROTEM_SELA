@@ -162,10 +162,11 @@ class RobotMain():
                 events = {}
                 while self.rx_q.qsize() > 0:
                     event = self.rx_q.get(0.5)
+                    lastEvent = time.time()
                     events[event['event']] = event
                 
                 if len(events) == 0:
-                    if lastEvent > 0 and time.time() - lastEvent > 3:
+                    if lastEvent > 0 and time.time() - lastEvent > 1: 
                         self.motors.StopAllMotors()
                     time.sleep(0.01)
 
@@ -262,7 +263,7 @@ class RobotMain():
 
                 self.flipCb()
 
-            if int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
+            elif int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
                 self.toggleState = int(event["event"])
                 self.commandCb(int(event["event"]))
 
@@ -367,13 +368,13 @@ class RobotMain():
 
                 raise NotImplementedError("recording function not implemented yet.")
             
-            elif int(event["event"]) == SHARE_BUTTON:
-                if self.isAutoDrive:
-                    self.autoDrive.stop()
-                    self.isAutoDrive = False
-                else:
-                    self.isAutoDrive = True
-                    self.autoDrive.start()
+            # elif int(event["event"]) == SHARE_BUTTON:
+            #     if self.isAutoDrive:
+            #         self.autoDrive.stop()
+            #         self.isAutoDrive = False
+            #     else:
+            #         self.isAutoDrive = True
+            #         self.autoDrive.start()
 
             elif 32 <= int(event["event"]) <= 122:
                 with open('combinedMotios.json','r') as file:
