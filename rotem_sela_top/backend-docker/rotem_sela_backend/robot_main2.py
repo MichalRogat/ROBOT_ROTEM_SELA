@@ -321,7 +321,8 @@ class RobotMain():
                 self.toggleCb()
 
             elif int(event["event"]) == SHARE_PLUS_OPTIONS:
-                self.offsets = self.angles
+                self.offsets = self.angles.copy()
+                
 
             elif int(event["event"]) == CHOOSE_PUMP: 
 
