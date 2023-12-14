@@ -368,13 +368,13 @@ class RobotMain():
 
                 raise NotImplementedError("recording function not implemented yet.")
             
-            elif int(event["event"]) == SHARE_BUTTON:
-                if self.isAutoDrive:
-                    self.autoDrive.stop()
-                    self.isAutoDrive = False
-                else:
-                    self.isAutoDrive = True
-                    self.autoDrive.start()
+            # elif int(event["event"]) == SHARE_BUTTON:
+            #     if self.isAutoDrive:
+            #         self.autoDrive.stop()
+            #         self.isAutoDrive = False
+            #     else:
+            #         self.isAutoDrive = True
+            #         self.autoDrive.start()
 
             elif 32 <= int(event["event"]) <= 122:
                 with open('combinedMotios.json','r') as file:
