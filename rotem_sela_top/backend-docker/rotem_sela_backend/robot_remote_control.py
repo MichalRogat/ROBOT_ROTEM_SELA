@@ -49,6 +49,9 @@ class RobotRemoteControl():
             try:
                 requestData = self.client_socket.recv(1024)
                 request = requestData.decode('utf-8')
+                if len(requestData) == 0:
+                    self.client_socket.close()
+                    raise Exception()
                 for event_str in request.split('}'):
                     try:
                         event_str += '}'
