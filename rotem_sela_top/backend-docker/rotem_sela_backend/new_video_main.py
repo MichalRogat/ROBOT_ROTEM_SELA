@@ -251,7 +251,7 @@ if __name__ == "__main__":
     app = tornado.web.Application(ChannelHandler.urls())
     http_server = tornado.httpserver.HTTPServer(app)
     # Setup HTTP Server
-    http_server.listen(8888, '0.0.0.0')
+    [[http_server.listen(8888, '0.0.0.0')]]
     print(f"Websocket started")
     # Start IO/Event loop
    

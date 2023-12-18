@@ -303,7 +303,8 @@ class RobotMain():
                         if self.CurrentJoint == 1:
                             value = -value
                     else:
-                        value = -value
+                        if self.CurrentJoint != 1:
+                            value = -value
 
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
                     
