@@ -31,7 +31,7 @@ KEEP_ALIVE = 300
 LEFT_JOYSTICK = 0
 RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
-LEFT_STICK_IN = 7
+STOP_ALL = 7
 RIGHT_STICK_IN = 8
 SHARE_BUTTON = 49
 CIRCLE = 21
@@ -366,7 +366,7 @@ class RobotMain():
                     self.motors.trailer3.addGpio(17,1)
                     self.motors.trailer5.addGpio(13,0)
 
-            elif int(event["event"]) == LEFT_STICK_IN:
+            elif int(event["event"]) == STOP_ALL:
                 self.motors.StopAllMotors()
 
             elif int(event["event"]) == RIGHT_STICK_IN:
