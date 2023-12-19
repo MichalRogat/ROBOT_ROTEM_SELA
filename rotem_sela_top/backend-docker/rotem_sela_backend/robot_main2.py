@@ -17,6 +17,7 @@ from Entity import ITrailer, IMotor
 import csv
 from Events import KeyboardEvents
 from combinedMotions import CombinedMotions
+from gpiozero import CPUTemperature
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
@@ -61,7 +62,7 @@ class RobotMain():
         self.toggleCb = None
         self.commandCb= None
         self.toggleState = 1
-
+        self.record = False
         self.telemetryChannel = None
         self.ledOn = False
         self.angles = [[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0],[0, 0, 0]]
@@ -116,7 +117,7 @@ class RobotMain():
         self.readADC_thread.start()
         self.motors.StopAllMotors()
 
-        self.motors.MotorRun(self.motors.trailer3.cooler, -50)
+        self.motors.MotorRun(self.motors.trailer3.cooler, 25)
 
     def changeCurrentJoint(self, joint:int):
         RobotMain.CurrentJoint = joint
@@ -319,7 +320,10 @@ class RobotMain():
                     self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][1], value)
 
             elif int(event["event"]) == CIRCLE: # circle - switch sides
-                self.toggleCb()
+                if not self.record:
+                    self.record = True
+                else:
+                    self.record = False
 
             elif int(event["event"]) == SHARE_PLUS_OPTIONS:
                 self.offsets = self.angles.copy()
@@ -460,7 +464,9 @@ class RobotMain():
             "isFlip": self.isFlip,
             "isToggle": self.isToggle,
             "currentJoint": RobotMain.CurrentJoint,
+            "CPU_tmp": CPUTemperature().temperature,
             "battery":nanoTelemetry["batteryRead"],
+            "record": self.record,
             "toggleState": self.toggleState
         })
         info.update(spare_dict) # insert static information
