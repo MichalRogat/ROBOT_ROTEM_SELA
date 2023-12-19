@@ -117,7 +117,8 @@ class RobotMain():
         self.readADC_thread.start()
         self.motors.StopAllMotors()
 
-        self.motors.MotorRun(self.motors.trailer3.cooler, 25)
+        self.coolerSpeed = 25
+        self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
 
     def changeCurrentJoint(self, joint:int):
         RobotMain.CurrentJoint = joint
@@ -383,17 +384,33 @@ class RobotMain():
             #         self.autoDrive.start()
 
             elif 32 <= int(event["event"]) <= 122:
+                if int(event["event"]) == 117 and value == 1: #'u' keyboard - increase
+                    self.coolerSpeed = self.coolerSpeed + 1
+                    if self.coolerSpeed > 100:
+                        self.coolerSpeed = 100
+                    self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
+
+                if int(event["event"]) == 108 and value == 1: #'l' keyboard - decrease
+                    self.coolerSpeed = self.coolerSpeed - 1
+
+                    if self.coolerSpeed < 0:
+                        self.coolerSpeed = 0
+
+                    self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
+
                 with open('combinedMotios.json','r') as file:
                     jsonMotions = json.load(file)
                     item = jsonMotions.get(chr(e))
-                    if "type" in item:
+                    if item is not None and "type" in item:
                         if item["type"] == "pitch_lowering":
                             self.pitchLowering(value)
-                    else:
+                    elif item is not None:
                         if value == 1:
                             CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
                         else:
                             CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
+
+
                     
             elif e == RIGHT_STICK_IN:
                 curr_time = datetime.now()
