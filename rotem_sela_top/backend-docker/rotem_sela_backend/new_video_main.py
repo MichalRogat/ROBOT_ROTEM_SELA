@@ -12,6 +12,8 @@ import threading
 import json
 import multiprocessing
 import time
+from datetime import datetime
+
 
 CAM_PORTS_FLIP = {
             5000 : ['5.1','3.1','3.2','5.2','1.2'],
@@ -39,6 +41,7 @@ subQueues = []
 txQueues = []
 barrier = multiprocessing.Barrier(4)
 txQueues = []
+startTS = time.time()
 
 def sendCamsCB():
     return txQueues
@@ -130,12 +133,11 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
             print(f"Open video device {video_dev}")
             barrier.wait();
             
-            startTS = time.time()
             
             with v4l2py.Device(video_dev) as device:
                 devices[cam_id[camIdx]] = device
                 device.set_format(buffer_type=1, width=res[cam_id[camIdx]]['width'], height=res[cam_id[camIdx]]['height'], pixel_format='MJPG')
-                device.set_fps(buffer_type=1, fps=10)
+                device.set_fps(buffer_type=1, fps=15)
                 for frame in device:
                     try:
                         if stopVideo:
@@ -179,6 +181,9 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                     except Exception:
                         # traceback.print_exc()
                         break
+                    # if port == 5000:
+                    #     print("Cam "+str(port)+" "+str(time.time()))
+                    time.sleep(0.067)
                   
 
 def make_app():
@@ -192,6 +197,8 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
 
     def open(self):
         ChannelHandler.clients.add(self)
+        print("client add " ,time.time())
+
 
     def on_close(self):
         try:
@@ -199,22 +206,26 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
         except Exception as e:
             print(str(e))
 
+    
     @classmethod
-    def send_message(cls, message: str):
+    def send_message(cls, message):
         # print(f"Sending message {message} to {len(cls.clients)} client(s).")
-        
         try:
             for client in cls.clients:
                 try:
                     if isMain:
                         client.write_message(message, binary=False)
                     else:
-                        client.write_message(message, binary=True)
+                        ts = int((time.time() - startTS)*1000)
+                        client.write_message(ts.to_bytes(4, byteorder='big') + message, binary=True)
+                        
                 except Exception as e:
-                    cls.clients.remove(client)
+                   
+                    print("error " ,str(e))
                     break
         except Exception as e:
             print(str(e))
+          
           
     """
     Handler that handles a websocket channel
