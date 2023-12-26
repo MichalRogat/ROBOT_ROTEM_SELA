@@ -19,10 +19,13 @@ from Events import KeyboardEvents
 from combinedMotions import CombinedMotions
 from gpiozero import CPUTemperature
 
+
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
 RC = "REMOTE"  # RC=Remote Control
 stopVideo = False
+
+startTS = time.time()
 
 nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0}
 
@@ -37,13 +40,15 @@ SHARE_BUTTON = 49
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
+DRIVE1 = 27
+DRIVE2 = 28
 CHOOSE_PUMP = 29
-GIVE_NAME = 30
+ACT_PUMP = 30
 UP_ARROW = 31
 DOWN_ARROW = 32
 RIGHT_ARROW = 33
 LEFT_ARROW = 34
-GIVE_NAME2 = 35
+LED_CTRL = 35
 
 
 class RobotMain():
@@ -117,8 +122,9 @@ class RobotMain():
         self.readADC_thread.start()
         self.motors.StopAllMotors()
 
-        self.coolerSpeed = 25
+        self.coolerSpeed = 0
         self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
+        
 
     def changeCurrentJoint(self, joint:int):
         RobotMain.CurrentJoint = joint
@@ -335,7 +341,7 @@ class RobotMain():
                 self.currPump += 1
                 if self.currPump > 3:
                     self.currPump = 0
-            elif int(event["event"]) == GIVE_NAME: # stop pump
+            elif int(event["event"]) == ACT_PUMP:
                 if value == 0:
                     if self.currPump == 0:
                         self.motors.stopMotor(self.motors.trailer1.pump1)
@@ -356,7 +362,7 @@ class RobotMain():
                         self.motors.MotorRun(self.motors.trailer5.pump2, -100)
 
                         
-            elif int(event["event"]) == GIVE_NAME2:
+            elif int(event["event"]) == LED_CTRL or int(event["event"]) == 25:
                 self.ledOn = not self.ledOn
                 if self.ledOn:
                     self.motors.trailer1.addGpio(13,1)
@@ -366,6 +372,31 @@ class RobotMain():
                     self.motors.trailer1.addGpio(13,0)
                     self.motors.trailer3.addGpio(17,1)
                     self.motors.trailer5.addGpio(13,0)
+            elif int(event["event"]) == DRIVE1:
+                # print(event)
+                value = -value
+                motor = self.motors.trailer1.driver1
+                if self.isFlip:
+                    value = -value
+                    motor = self.motors.trailer5.driver2
+
+                if value == 0:
+                    self.motors.stopMotor(motor)
+                else:
+                    self.motors.MotorRun(motor, -value)
+                    
+            elif int(event["event"]) == DRIVE2:
+                # print(event)
+                value = -value
+                motor = self.motors.trailer5.driver2
+                if self.isFlip:
+                    value = -value
+                    motor = self.motors.trailer1.driver1
+
+                if value == 0:
+                    self.motors.stopMotor(motor)
+                else:
+                    self.motors.MotorRun(motor, -value)
 
             elif int(event["event"]) == STOP_ALL:
                 self.motors.StopAllMotors()
@@ -386,15 +417,15 @@ class RobotMain():
             elif 32 <= int(event["event"]) <= 122:
                 if int(event["event"]) == 117 and value == 1: #'u' keyboard - increase
                     self.coolerSpeed = self.coolerSpeed + 1
-                    if self.coolerSpeed > 100:
-                        self.coolerSpeed = 100
+                    if self.coolerSpeed > 99:
+                        self.coolerSpeed = 99
                     self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
 
                 if int(event["event"]) == 108 and value == 1: #'l' keyboard - decrease
                     self.coolerSpeed = self.coolerSpeed - 1
 
-                    if self.coolerSpeed < 0:
-                        self.coolerSpeed = 0
+                    if self.coolerSpeed < -99:
+                        self.coolerSpeed = -99
 
                     self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
 
@@ -484,7 +515,9 @@ class RobotMain():
             "CPU_tmp": CPUTemperature().temperature,
             "battery":nanoTelemetry["batteryRead"],
             "record": self.record,
-            "toggleState": self.toggleState
+            "toggleState": self.toggleState,
+            "cooler_speed": self.coolerSpeed,
+            "CPU_time" : round(startTS*1000)
         })
         info.update(spare_dict) # insert static information
         info.update(front_cameras_dict) # insert static information
