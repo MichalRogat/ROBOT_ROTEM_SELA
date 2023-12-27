@@ -36,7 +36,7 @@ RIGHT_STICK_X = 2
 RIGHT_STICK_Y = 3
 STOP_ALL = 7
 RIGHT_STICK_IN = 8
-SHARE_BUTTON = 49
+# SHARE_BUTTON = 49
 CIRCLE = 21
 TRIANGLE = 23
 SHARE_PLUS_OPTIONS = 24
@@ -191,29 +191,41 @@ class RobotMain():
         while self.pitchLoweringActive:
             if trailerNum == 1:
                 if abs(nanoTelemetry["imu1"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer2.elevation1)
+                    self.motors.MotorRun(self.motors.trailer2.elevation1, -50)
                 else:
                     self.motors.stopMotor(self.motors.trailer2.elevation1)
-                    trailerNum+=1
+                    trailerNum += 1
             elif trailerNum == 2:
                 if abs(nanoTelemetry["imu2"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer2.elevation2)
+                    self.motors.MotorRun(self.motors.trailer2.elevation1, 50)
+                    self.motors.MotorRun(self.motors.trailer2.elevation2, -50)
                 else:
+                    self.motors.stopMotor(self.motors.trailer2.elevation1)
                     self.motors.stopMotor(self.motors.trailer2.elevation2)
-                    trailerNum+=1
+                    trailerNum += 1
             elif trailerNum == 3:
                 if abs(nanoTelemetry["imu3"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer4.elevation3)
+                    self.motors.MotorRun(self.motors.trailer2.elevation2, 50)
+                    self.motors.MotorRun(self.motors.trailer4.elevation3, -50)
                 else:
+                    self.motors.stopMotor(self.motors.trailer2.elevation2)
                     self.motors.stopMotor(self.motors.trailer4.elevation3)
-                    trailerNum+=1
+                    trailerNum += 1
             elif trailerNum == 4:
                 if abs(nanoTelemetry["imu4"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer4.elevation3)
+                    self.motors.MotorRun(self.motors.trailer4.elevation3, 50)
+                    self.motors.MotorRun(self.motors.trailer4.elevation4, -50)
                 else:
                     self.motors.stopMotor(self.motors.trailer4.elevation3)
-                    trailerNum+=1
-        
+                    self.motors.stopMotor(self.motors.trailer4.elevation4)
+                    trailerNum += 1
+            elif trailerNum == 5:
+                if abs(nanoTelemetry["imu5"][1]) > 2:
+                    self.motors.MotorRun(self.motors.trailer4.elevation4, 50)
+                else:
+                    self.motors.stopMotor(self.motors.trailer4.elevation4)
+                    trailerNum += 1
+
         self.motors.stopMotor(self.motors.trailer2.elevation1)
         self.motors.stopMotor(self.motors.trailer2.elevation2)
         self.motors.stopMotor(self.motors.trailer4.elevation3)
@@ -221,232 +233,351 @@ class RobotMain():
 
     def pitchLowering(self, value):
         if value == 1:
-            threading.Thread(target=self.runPitchLowering)
+            self.pitchLoweringActive = True
+            pitch_thread = threading.Thread(target=self.runPitchLowering)
+            pitch_thread.start()
         else:
             self.pitchLoweringActive = False
+    
+    def runPitchLeveling(self):
+        hysteresis = 1
+
+        needsLeveling = True
+        counter = 9000
+
+        with open('../../../../entitiesFlipping.json', 'r') as file:
+            json_data = json.load(file)
+        reverse_dir_list = json_data.get("reverseDir", [])
+        imu_flipping = json_data.get("imu", [])
+
+        correction1 = -1 if (self.motors.trailer2.elevation1.name in reverse_dir_list) else 1
+        correction2 = -1 if (self.motors.trailer2.elevation2.name in reverse_dir_list) else 1
+        correction3 = -1 if (self.motors.trailer4.elevation3.name in reverse_dir_list) else 1
+        correction4 = -1 if (self.motors.trailer4.elevation3.name in reverse_dir_list) else 1
+        correction5 = -1 if (self.motors.trailer4.elevation4.name in reverse_dir_list) else 1
+        correctionDriver1 = -1 if (self.motors.trailer1.driver1.name in reverse_dir_list) else 1 
+        correctionDriver2 = -1 if (self.motors.trailer5.driver2.name in reverse_dir_list) else 1
+        imu1Correction = -1 if ("imu1" in imu_flipping) else 1
+        imu2Correction = -1 if ("imu2" in imu_flipping) else 1
+        imu3Correction = -1 if ("imu3" in imu_flipping) else 1
+        imu4Correction = -1 if ("imu4" in imu_flipping) else 1
+        imu5Correction = -1 if ("imu5" in imu_flipping) else 1
+        
+        while needsLeveling:
+            counter -= 1
+            didSomething = 5
+            if (abs(nanoTelemetry["imu1"][1] - self.offsets[0][1]) > hysteresis):
+                if ((nanoTelemetry["imu1"][1]*imu1Correction > self.offsets[0][1]*imu1Correction)):
+                    self.motors.MotorRun(self.motors.trailer2.elevation1, 70 * correction1)
+                else:
+                    self.motors.MotorRun(self.motors.trailer2.elevation1, -70 * correction1)
+                    self.motors.MotorRun(self.motors.trailer1.driver1, 30 * correctionDriver1)
+            else:
+                self.motors.stopMotor(self.motors.trailer2.elevation1)
+                self.motors.stopMotor(self.motors.trailer1.driver1)
+                didSomething -= 1
+
+            if (abs(nanoTelemetry["imu2"][1] - self.offsets[1][1]) > hysteresis):
+                if (((nanoTelemetry["imu2"][1]*imu2Correction) > self.offsets[1][1]*imu2Correction)):
+                    self.motors.MotorRun(self.motors.trailer2.elevation2, 70 * correction2)
+                else:
+                    self.motors.MotorRun(self.motors.trailer2.elevation2, -70 * correction2)
+            else:
+                self.motors.stopMotor(self.motors.trailer2.elevation2)
+                didSomething -= 1
+
+            if abs(nanoTelemetry["imu3"][1] - self.offsets[2][1]) > hysteresis:
+                print("imu3: ", nanoTelemetry["imu3"][1], "offset3: ", self.offsets[2][1])
+                if ((nanoTelemetry["imu3"][1]*imu3Correction > self.offsets[2][1]*imu3Correction)):
+                    self.motors.MotorRun(self.motors.trailer4.elevation3, 70 * correction3)
+                else:
+                    self.motors.MotorRun(self.motors.trailer4.elevation3, -70 * correction3)
+            else:
+                # self.motors.stopMotor(self.motors.trailer4.elevation3)
+                didSomething -= 1
+                if abs(nanoTelemetry["imu4"][1] - self.offsets[3][1]) > hysteresis:
+                    print("imu4: ", nanoTelemetry["imu4"][1], "offset4: ", self.offsets[3][1])
+                    if ((nanoTelemetry["imu4"][1]*imu4Correction > self.offsets[3][1]*imu4Correction)):
+                        self.motors.MotorRun(self.motors.trailer4.elevation3, -70 * correction4)
+                    else:
+                        self.motors.MotorRun(self.motors.trailer4.elevation3, 70 * correction4)
+                else:
+                    self.motors.stopMotor(self.motors.trailer4.elevation3)
+                    didSomething -= 1
+
+            if abs(nanoTelemetry["imu5"][1] - self.offsets[4][1]) > hysteresis:
+                print("imu5: ", nanoTelemetry["imu5"][1], "offset5: ", self.offsets[4][1])
+                if ((nanoTelemetry["imu5"][1]*imu5Correction > self.offsets[4][1]*imu5Correction)):
+                    self.motors.MotorRun(self.motors.trailer4.elevation4, -70 * correction5)
+                    self.motors.MotorRun(self.motors.trailer5.driver2, -30 * correctionDriver2)
+                else:
+                    self.motors.MotorRun(self.motors.trailer4.elevation4, 70 * correction5)
+            else:
+                self.motors.stopMotor(self.motors.trailer4.elevation4)
+                self.motors.stopMotor(self.motors.trailer5.driver2)
+                didSomething -= 1
+            
+            
+            if(counter <= 10 or didSomething <= 0):
+                needsLeveling = False
+
+        self.motors.stopMotor(self.motors.trailer2.elevation1)
+        self.motors.stopMotor(self.motors.trailer2.elevation2)
+        self.motors.stopMotor(self.motors.trailer4.elevation3)
+        self.motors.stopMotor(self.motors.trailer4.elevation4)
+        self.motors.stopMotor(self.motors.trailer1.driver1)
+        self.motors.stopMotor(self.motors.trailer5.driver2)
+
+    def pitchLeveling(self, value):
+        if value == 1:
+            self.pitchLevelingActive = True
+            pitch_level_thread = threading.Thread(target=self.runPitchLeveling)
+            pitch_level_thread.start()
+        else:
+            self.pitchLevelingActive = False
+
 
     def MotorHandler(self, event):
-            if event['event'] == KEEP_ALIVE:
-                return
-            value = int(event["value"])
-            # print(value)
-            if value > 99:
-                value = 99
-            elif value < -99:
-                value = -99
-            e = int(event["event"])
-            if int(event["event"]) == RIGHT_STICK_Y:
-                # print(event)
-                value = -value
+        with open('../../../../entitiesFlipping.json', 'r') as file:
+            json_data = json.load(file)
+        reverse_dir_list = json_data.get("reverseDir", [])
+        # print(reverse_dir_list)
+        
+        if event['event'] == KEEP_ALIVE:
+            return
+        value = int(event["value"])
+        # print(value)
+        if value > 99:
+            value = 99
+        elif value < -99:
+            value = -99
+        e = int(event["event"])
+        if int(event["event"]) == RIGHT_STICK_Y:
+            # print(event)
+            # value = -value ??? it was there
+            if value == 0:
+                self.motors.stopMotor(self.motors.trailer1.driver1)
+                self.motors.stopMotor(self.motors.trailer5.driver2)
+            else:
                 if self.isFlip:
                     value = -value
-                if value == 0:
-                    self.motors.stopMotor(self.motors.trailer1.driver1)
-                    self.motors.stopMotor(self.motors.trailer5.driver2)
-                else:
-                    self.motors.MotorRun(self.motors.trailer1.driver1, -value)
-                    self.motors.MotorRun(self.motors.trailer5.driver2, -value)
-
-            elif int(event["event"]) == RIGHT_STICK_X:
-                    if value ==0:
-                        if not self.isFlip:
-                            self.motors.stopMotor(self.motors.trailer1.turn1)
-                        else:
-                            self.motors.stopMotor(self.motors.trailer5.turn4)
-                    else:
-                        if not self.isFlip:
-                            
-                            self.motors.MotorRun(self.motors.trailer1.turn1, value)
-                        else:
-                            value = -value
-                            self.motors.MotorRun(self.motors.trailer5.turn4, value)
-
-            elif int(event["event"]) == TRIANGLE:
-                self.isFlip = not self.isFlip
-
-                if(self.isFlip):
-                    RobotMain.CurrentJoint = 0
-                else:
-                    RobotMain.CurrentJoint = 3
-
-                self.flipCb()
-
-            elif int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
-                self.toggleState = int(event["event"])
-                self.commandCb(int(event["event"]))
-
-
-            elif int(event["event"]) == LEFT_ARROW:
-                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
-                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
-
-                if self.isFlip:
-                    if RobotMain.CurrentJoint < 3:
-                        RobotMain.CurrentJoint=(RobotMain.CurrentJoint+1)
-                else:
-                    if RobotMain.CurrentJoint > 0:
-                        RobotMain.CurrentJoint=RobotMain.CurrentJoint-1
-                print(f"Joing number {RobotMain.CurrentJoint} is selected")
-
-
-            elif int(event["event"]) == RIGHT_ARROW: # right_arrow
-                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
-                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
-                if self.isFlip:   
-                    if RobotMain.CurrentJoint > 0:
-                        RobotMain.CurrentJoint=RobotMain.CurrentJoint-1
-                else:
-                    if RobotMain.CurrentJoint < 3:
-                        RobotMain.CurrentJoint=(RobotMain.CurrentJoint+1)
-                print(f"Joing number {RobotMain.CurrentJoint} is selected")
-
-
-            elif int(event["event"]) == LEFT_JOYSTICK:
-                if value ==0:
-                    self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
-               
-                else:
-                    
-                    if not self.isFlip:
-                        if self.CurrentJoint == 1:
-                            value = -value
-                    else:
-                        if self.CurrentJoint != 1:
-                            value = -value
-
-                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
-                    
-            elif int(event["event"]) in (UP_ARROW, DOWN_ARROW): # up_arrow - elevation up for current joint
-
-                if RobotMain.CurrentJoint != 3 and RobotMain.CurrentJoint != 0:
-                    value = -value
-
-                if value == 0:
-                    self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
-                else:
-                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][1], value)
-
-            elif int(event["event"]) == CIRCLE: # circle - switch sides
-                if not self.record:
-                    self.record = True
-                else:
-                    self.record = False
-
-            elif int(event["event"]) == SHARE_PLUS_OPTIONS:
-                self.offsets = self.angles.copy()
                 
-
-            elif int(event["event"]) == CHOOSE_PUMP: 
-
-                self.currPump += 1
-                if self.currPump > 3:
-                    self.currPump = 0
-            elif int(event["event"]) == ACT_PUMP:
-                if value == 0:
-                    if self.currPump == 0:
-                        self.motors.stopMotor(self.motors.trailer1.pump1)
-                    elif self.currPump == 1:
-                        self.motors.stopMotor(self.motors.trailer1.pump1)
-                    elif self.currPump == 2:
-                        self.motors.stopMotor(self.motors.trailer5.pump2)
-                    elif self.currPump == 3:
-                        self.motors.stopMotor(self.motors.trailer5.pump2)
+                if self.motors.trailer1.driver1.name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(self.motors.trailer1.driver1, -value)
+                    
+                if self.motors.trailer5.driver2.name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(self.motors.trailer5.driver2, -value)
+                    
                 else:
-                    if self.currPump == 0:
-                        self.motors.MotorRun(self.motors.trailer1.pump1, 100)
-                    elif self.currPump == 1:
-                        self.motors.MotorRun(self.motors.trailer1.pump1, -100)
-                    elif self.currPump == 2:
-                        self.motors.MotorRun(self.motors.trailer5.pump2, 100)
-                    elif self.currPump == 3:
-                        self.motors.MotorRun(self.motors.trailer5.pump2, -100)
+                    self.motors.MotorRun(self.motors.trailer1.driver1, value)
+                    self.motors.MotorRun(self.motors.trailer5.driver2, value)
 
-                        
-            elif int(event["event"]) == LED_CTRL or int(event["event"]) == 25:
-                self.ledOn = not self.ledOn
-                if self.ledOn:
-                    self.motors.trailer1.addGpio(13,1)
-                    self.motors.trailer3.addGpio(17,0)
-                    self.motors.trailer5.addGpio(13,1)
+        elif int(event["event"]) == RIGHT_STICK_X:
+            if value == 0:
+                if not self.isFlip:
+                    self.motors.stopMotor(self.motors.trailer1.turn1)
                 else:
-                    self.motors.trailer1.addGpio(13,0)
-                    self.motors.trailer3.addGpio(17,1)
-                    self.motors.trailer5.addGpio(13,0)
-            elif int(event["event"]) == DRIVE1:
-                # print(event)
-                value = -value
-                motor = self.motors.trailer1.driver1
+                    self.motors.stopMotor(self.motors.trailer5.turn4)
+            else:
+                if not self.isFlip:
+                    if self.motors.trailer1.turn1.name in reverse_dir_list: #checks in json file
+                        self.motors.MotorRun(self.motors.trailer1.turn1, -value)
+                    else:
+                        self.motors.MotorRun(self.motors.trailer1.turn1, value)
+                else:
+                    if self.motors.trailer5.turn4.name in reverse_dir_list: #checks in json file
+                        self.motors.MotorRun(self.motors.trailer5.turn4, value)
+                    else:
+                        self.motors.MotorRun(self.motors.trailer5.turn4, -value)
+
+        elif int(event["event"]) == TRIANGLE:
+            self.isFlip = not self.isFlip
+
+            if (self.isFlip):
+                RobotMain.CurrentJoint = 0
+            else:
+                RobotMain.CurrentJoint = 3
+
+            self.flipCb()
+
+        elif int(event["event"]) in (48, 49, 50, 51, 52):  # michal - cameras
+            self.toggleState = int(event["event"])
+            self.commandCb(int(event["event"]))
+
+        elif int(event["event"]) == LEFT_ARROW:
+            self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
+            self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
+
+            if self.isFlip:
+                if RobotMain.CurrentJoint < 3:
+                    RobotMain.CurrentJoint = (RobotMain.CurrentJoint+1)
+            else:
+                if RobotMain.CurrentJoint > 0:
+                    RobotMain.CurrentJoint = RobotMain.CurrentJoint-1
+            print(f"Joint number {RobotMain.CurrentJoint} is selected")
+
+        elif int(event["event"]) == RIGHT_ARROW:  # right_arrow
+            self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
+            self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
+            if self.isFlip:
+                if RobotMain.CurrentJoint > 0:
+                    RobotMain.CurrentJoint = RobotMain.CurrentJoint-1
+            else:
+                if RobotMain.CurrentJoint < 3:
+                    RobotMain.CurrentJoint = (RobotMain.CurrentJoint+1)
+            print(f"Joint number {RobotMain.CurrentJoint} is selected")
+
+        elif int(event["event"]) == LEFT_JOYSTICK:
+            print(RobotMain.CurrentJoint)
+            if value == 0:
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
+
+            else:
                 if self.isFlip:
                     value = -value
-                    motor = self.motors.trailer5.driver2
-
-                if value == 0:
-                    self.motors.stopMotor(motor)
+                if self.joints[RobotMain.CurrentJoint][0].name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], -value)
                 else:
-                    self.motors.MotorRun(motor, -value)
-                    
-            elif int(event["event"]) == DRIVE2:
-                # print(event)
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][0], value)
+                # if not self.isFlip: ---------before
+                #     if self.CurrentJoint == 1:
+                #         value = -value
+                # else:
+                #     value = -value
+
+                # self.motors.MotorRun(
+                #     self.joints[RobotMain.CurrentJoint][0], value)
+
+        # up_arrow - elevation up for current joint
+        elif int(event["event"]) in (UP_ARROW, DOWN_ARROW):
+
+            # if RobotMain.CurrentJoint != 3 and RobotMain.CurrentJoint != 0:
+            #     value = -value
+
+            if value == 0:
+                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
+                
+            else:
+                if self.joints[RobotMain.CurrentJoint][1].name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(self.joints[RobotMain.CurrentJoint][1], -value)     
+                else:
+                    self.motors.MotorRun(
+                        self.joints[RobotMain.CurrentJoint][1], value)
+
+        elif int(event["event"]) == CIRCLE:  # circle - switch sides
+            self.toggleCb()
+
+        elif int(event["event"]) == SHARE_PLUS_OPTIONS:
+            self.offsets = self.angles.copy()
+
+        elif int(event["event"]) == CHOOSE_PUMP:
+
+            self.currPump += 1
+            if self.currPump > 3:
+                self.currPump = 0
+        
+        elif int(event["event"]) == ACT_PUMP:
+            if value == 0:
+                if self.currPump == 0:
+                    self.motors.stopMotor(self.motors.trailer1.pump1)
+                elif self.currPump == 1:
+                    self.motors.stopMotor(self.motors.trailer1.pump1)
+                elif self.currPump == 2:
+                    self.motors.stopMotor(self.motors.trailer5.pump2)
+                elif self.currPump == 3:
+                    self.motors.stopMotor(self.motors.trailer5.pump2)
+            else:
+                if self.currPump == 0:
+                    self.motors.MotorRun(self.motors.trailer1.pump1, 100)
+                elif self.currPump == 1:
+                    self.motors.MotorRun(self.motors.trailer1.pump1, -100)
+                elif self.currPump == 2:
+                    self.motors.MotorRun(self.motors.trailer5.pump2, 100)
+                elif self.currPump == 3:
+                    self.motors.MotorRun(self.motors.trailer5.pump2, -100)
+
+        elif int(event["event"]) == LED_CTRL or int(event["event"]) == 25:
+            self.ledOn = not self.ledOn
+            if self.ledOn:
+                self.motors.trailer1.addGpio(13,1)
+                self.motors.trailer3.addGpio(17,0)
+                self.motors.trailer5.addGpio(13,1)
+            else:
+                self.motors.trailer1.addGpio(13,0)
+                self.motors.trailer3.addGpio(17,1)
+                self.motors.trailer5.addGpio(13,0)
+
+        elif int(event["event"]) == DRIVE1:
+            # print(event)
+            value = -value
+            motor = self.motors.trailer1.driver1
+            if self.isFlip:
                 value = -value
                 motor = self.motors.trailer5.driver2
-                if self.isFlip:
-                    value = -value
-                    motor = self.motors.trailer1.driver1
 
-                if value == 0:
-                    self.motors.stopMotor(motor)
-                else:
-                    self.motors.MotorRun(motor, -value)
-
-            elif int(event["event"]) == STOP_ALL:
-                self.motors.StopAllMotors()
-
-            elif int(event["event"]) == RIGHT_STICK_IN:
-                curr_time = datetime.now()
-
-                raise NotImplementedError("recording function not implemented yet.")
-            
-            # elif int(event["event"]) == SHARE_BUTTON:
-            #     if self.isAutoDrive:
-            #         self.autoDrive.stop()
-            #         self.isAutoDrive = False
-            #     else:
-            #         self.isAutoDrive = True
-            #         self.autoDrive.start()
-
-            elif 32 <= int(event["event"]) <= 122:
-                if int(event["event"]) == 117 and value == 1: #'u' keyboard - increase
-                    self.coolerSpeed = self.coolerSpeed + 1
-                    if self.coolerSpeed > 99:
-                        self.coolerSpeed = 99
-                    self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
-
-                if int(event["event"]) == 108 and value == 1: #'l' keyboard - decrease
-                    self.coolerSpeed = self.coolerSpeed - 1
-
-                    if self.coolerSpeed < -99:
-                        self.coolerSpeed = -99
-
-                    self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
-
-                with open('combinedMotios.json','r') as file:
-                    jsonMotions = json.load(file)
-                    item = jsonMotions.get(chr(e))
-                    if item is not None and "type" in item:
-                        if item["type"] == "pitch_lowering":
-                            self.pitchLowering(value)
-                    elif item is not None:
-                        if value == 1:
-                            CombinedMotions.combinedMotionsMotorRun(item.get("motors"), item.get("speed"))
-                        else:
-                            CombinedMotions.combinedMotionsMotorStop(item.get("motors"))
-
-
+            if value == 0:
+                self.motors.stopMotor(motor)
+            else:
+                self.motors.MotorRun(motor, -value)
                     
-            elif e == RIGHT_STICK_IN:
-                curr_time = datetime.now()
-                self.append_to_csv(nanoTelemetry)
-                raise NotImplementedError("recording function not implemented yet.")
+        elif int(event["event"]) == DRIVE2:
+            # print(event)
+            value = -value
+            motor = self.motors.trailer5.driver2
+            if self.isFlip:
+                value = -value
+                motor = self.motors.trailer1.driver1
+
+            if value == 0:
+                self.motors.stopMotor(motor)
+            else:
+                self.motors.MotorRun(motor, -value)
+
+        elif int(event["event"]) == STOP_ALL:
+            self.motors.StopAllMotors()
+
+        elif int(event["event"]) == RIGHT_STICK_IN:
+            curr_time = datetime.now()
+
+            raise NotImplementedError(
+                "recording function not implemented yet.")
+
+        # elif int(event["event"]) == SHARE_BUTTON:
+        #     if self.isAutoDrive:
+        #         self.autoDrive.stop()
+        #         self.isAutoDrive = False
+        #     else:
+        #         self.isAutoDrive = True
+        #         self.autoDrive.start()
+
+        elif 32 <= int(event["event"]) <= 122:
+            with open('combinedMotios.json', 'r') as file:
+                jsonMotions = json.load(file)
+                item = jsonMotions.get(chr(e))
+                if int(event["event"]) == 105:  # pitch_lowering - i keyboard
+                    self.pitchLowering(value)
+                elif int(event["event"]) == 42:  # pitch_leveling - * keyboard
+                    self.pitchLeveling(value)
+                elif int(event["event"]) == 106:  # autodrive - j keyboard
+                    if self.isAutoDrive:
+                        self.autoDrive.stop()
+                        self.isAutoDrive = False
+                    else:
+                        self.isAutoDrive = True
+                        self.autoDrive.start()
+                else:
+                    if value == 1:
+                        CombinedMotions.combinedMotionsMotorRun(
+                            item.get("motors"), item.get("speed"))
+                    else:
+                        CombinedMotions.combinedMotionsMotorStop(
+                            item.get("motors"))
+
+        elif e == RIGHT_STICK_IN:
+            curr_time = datetime.now()
+            self.append_to_csv(nanoTelemetry)
+            raise NotImplementedError(
+                "recording function not implemented yet.")
 
     def KeepAliveHandler(self):
         self.last_keep_alive = datetime.datetime.now()
@@ -532,6 +663,23 @@ class RobotMain():
         for i in range(0,5): # ovveride imu with normalised imu
             info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
 
+        # just correct imu pitch for telemetry--------------------------------------
+        with open('../../../../entitiesFlipping.json', 'r') as file:
+            json_data = json.load(file)
+        imu_flipping = json_data.get("imu", [])
+
+        imu1Correction = -1 if ("imu1" in imu_flipping) else 1
+        imu2Correction = -1 if ("imu2" in imu_flipping) else 1
+        imu3Correction = -1 if ("imu3" in imu_flipping) else 1
+        imu4Correction = -1 if ("imu4" in imu_flipping) else 1
+        imu5Correction = -1 if ("imu5" in imu_flipping) else 1
+
+        info["imu"][0][1] *= imu1Correction
+        info["imu"][1][1] *= imu2Correction
+        info["imu"][2][1] *= imu3Correction
+        info["imu"][3][1] *= imu4Correction
+        info["imu"][4][1] *= imu5Correction
+        #-----------------------------------------------------------------------------------
         # insert info about camera ports
         # if self.camsCB is not None:
         #     queues_list = self.camsCB()
