@@ -1,0 +1,24 @@
+#this should be a json file
+#../../../../entitiesFlipping.json
+
+bottom platform 192.168.1.134
+{
+"reverseDir": ["driver1","turn1","turn2","turn4","turn3","elevation1","elevation3"],
+    "imu": ["imu2", "imu4", "imu5"],
+    "trailer1": ["turn1", "driver1", "pump1"],
+    "trailer2": ["elevation1", "elevation2"],
+    "trailer3": ["turn2", "turn3", "cooler"],
+    "trailer4": ["elevation3", "elevation4"],
+    "trailer5": ["driver2", "turn4", "pump2"]
+}
+
+top platform (old and first) 192.168.2.100
+{
+"reverseDir": ["turn2", "elevation2", "elevation3"],
+    "imu": ["imu5"],
+    "trailer1": ["turn1", "driver1", "pump1"],
+    "trailer2": ["elevation1", "elevation2"],
+    "trailer3": ["turn3", "turn2", "cooler"],
+    "trailer4": ["elevation4", "elevation3"],
+    "trailer5": ["driver2", "turn4", "pump2"]
+}
