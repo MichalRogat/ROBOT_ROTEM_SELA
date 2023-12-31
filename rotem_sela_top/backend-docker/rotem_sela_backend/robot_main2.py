@@ -551,6 +551,19 @@ class RobotMain():
         #         self.autoDrive.start()
 
         elif 32 <= int(event["event"]) <= 122:
+            if int(event["event"]) == 117 and value == 1: #'u' keyboard - increase
+                self.coolerSpeed = self.coolerSpeed + 1
+                if self.coolerSpeed > 99:
+                    self.coolerSpeed = 99
+                self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
+
+            if int(event["event"]) == 108 and value == 1: #'l' keyboard - decrease
+                self.coolerSpeed = self.coolerSpeed - 1
+
+                if self.coolerSpeed < -99:
+                    self.coolerSpeed = -99
+
+                self.motors.MotorRun(self.motors.trailer3.cooler, self.coolerSpeed)
             with open('combinedMotios.json', 'r') as file:
                 jsonMotions = json.load(file)
                 item = jsonMotions.get(chr(e))
