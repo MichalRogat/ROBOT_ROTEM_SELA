@@ -431,7 +431,6 @@ class RobotMain():
             print(RobotMain.CurrentJoint)
             if value == 0:
                 self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
-                self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
 
             else:
                 if self.isFlip:
@@ -466,10 +465,7 @@ class RobotMain():
                         self.joints[RobotMain.CurrentJoint][1], value)
 
         elif int(event["event"]) == CIRCLE:  # circle - switch sides
-            if not self.record:
-                    self.record = True
-            else:
-                self.record = False
+            self.toggleCb()
 
         elif int(event["event"]) == SHARE_PLUS_OPTIONS:
             self.offsets = self.angles.copy()
@@ -513,7 +509,7 @@ class RobotMain():
 
         elif int(event["event"]) == DRIVE1:
             # print(event)
-            #value = -value
+            value = -value
             motor = self.motors.trailer1.driver1
             if self.isFlip:
                 value = -value
@@ -522,14 +518,11 @@ class RobotMain():
             if value == 0:
                 self.motors.stopMotor(motor)
             else:
-                if motor.name in reverse_dir_list:
-                    self.motors.MotorRun(motor, -value)
-                else:
-                    self.motors.MotorRun(motor, value)
+                self.motors.MotorRun(motor, -value)
                     
         elif int(event["event"]) == DRIVE2:
             # print(event)
-            #value = -value
+            value = -value
             motor = self.motors.trailer5.driver2
             if self.isFlip:
                 value = -value
@@ -538,10 +531,7 @@ class RobotMain():
             if value == 0:
                 self.motors.stopMotor(motor)
             else:
-                if motor.name in reverse_dir_list:
-                    self.motors.MotorRun(motor, -value)
-                else:
-                    self.motors.MotorRun(motor, value)
+                self.motors.MotorRun(motor, -value)
 
         elif int(event["event"]) == STOP_ALL:
             self.motors.StopAllMotors()
