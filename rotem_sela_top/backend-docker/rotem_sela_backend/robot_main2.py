@@ -465,7 +465,10 @@ class RobotMain():
                         self.joints[RobotMain.CurrentJoint][1], value)
 
         elif int(event["event"]) == CIRCLE:  # circle - switch sides
-            self.toggleCb()
+            if not self.record:
+                self.record = True
+            else:
+                self.record = False
 
         elif int(event["event"]) == SHARE_PLUS_OPTIONS:
             self.offsets = self.angles.copy()
