@@ -4,11 +4,13 @@ After=network.target
 
 [Service]
 User=rogat
-Restart=alwaysRestart=always
-ExecStart=/home/rogat/ROBOT-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/start_my_app.sh
+Restart=always
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/rogat/Projects/ROBOT_ROTEM_SELA/rotem_sela_top/backend-docker/rotem_sela_backend/start_my_app.sh
 WorkingDirectory=/home/rogat
-#/home/rogat/ROBOT-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend
-Environment=PYTHONPATH=/home/rogat/ESP32-ROTEM-SELA/rotem_sela_top/backend-docker/rotem_sela_backend/.venv/lib/python3.11
+#/home/rogat/Projects/ROBOT_ROTEM_SELA/rotem_sela_top/backend-docker/rotem_sela_backend
+Environment=PYTHONPATH=/home/rogat/Projects/ROBOT_ROTEM_SELA/rotem_sela_top/backend-docker/rotem_sela_backend/venv_name/bin/python
 
 [Install]
 WantedBy=multi-user.target
+
