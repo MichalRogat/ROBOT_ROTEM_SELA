@@ -20,7 +20,6 @@ from combinedMotions import CombinedMotions
 from gpiozero import CPUTemperature
 
 
-
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
 
 RC = "REMOTE"  # RC=Remote Control
@@ -50,7 +49,7 @@ DOWN_ARROW = 32
 RIGHT_ARROW = 33
 LEFT_ARROW = 34
 LED_CTRL = 35
-
+startRec=False
 
 class RobotMain():
 
@@ -475,6 +474,8 @@ class RobotMain():
 
         elif int(event["event"]) == SHARE_PLUS_OPTIONS:
             self.offsets = self.angles.copy()
+            global startRec
+            startRec=True
 
         elif int(event["event"]) == CHOOSE_PUMP:
 
@@ -684,9 +685,41 @@ class RobotMain():
         if 'imu3' in nanoTelemetry: self.angles[2] = nanoTelemetry["imu3"]
         if 'imu4' in nanoTelemetry: self.angles[3] = nanoTelemetry["imu4"]
         if 'imu5' in nanoTelemetry: self.angles[4] = nanoTelemetry["imu5"]
-       
+
+        def write_to_csv(data, filename):
+            with open(filename, mode='a', newline='') as csv_file:
+                csv_writer = csv.writer(csv_file)
+                csv_writer.writerow(data)
+
         for i in range(0,5): # ovveride imu with normalised imu
-            info["imu"][i] = np.subtract(np.array(self.angles[i]) , np.array(self.offsets[i])).tolist()
+            info["imu"][i] = np.subtract(np.array(self.angles[i]), np.array(self.offsets[i])).tolist()
+
+        global startRec
+        if startRec:
+            csv_data = []
+
+            # Add imu data to the CSV list
+            for imu_num in range(1, 6):
+                for axis_num in range(3):
+                    column_title = f"imu{imu_num}_{axis_num}"
+                    csv_data.append(info["imu"][imu_num-1][axis_num])
+                    csv_data.append(column_title)
+
+            # Add gyro data to the CSV list
+            for gyro_num in range(1, 6):
+                for axis_num in range(3):
+                    column_title = f"gyro{gyro_num}_{axis_num}"
+                    csv_data.append(nanoTelemetry["gyro"+str(gyro_num)][axis_num])
+
+
+            # Add accel data to the CSV list
+            for accel_num in range(1, 6):
+                for axis_num in range(3):
+                    column_title = f"accel{accel_num}_{axis_num}"
+                    csv_data.append(nanoTelemetry["accel"+str(accel_num)][axis_num])
+
+            # Write the CSV list to the file
+            write_to_csv(csv_data, "imuData.csv")
 
         # just correct imu pitch for telemetry--------------------------------------
         with open('../../../../entitiesFlipping.json', 'r') as file:
