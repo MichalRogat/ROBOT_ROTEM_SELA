@@ -124,7 +124,7 @@ class Trailer2(ITrailer):
 
     def __init__(self, I2CAddress):
         super().__init__()
-        self.I2CAddress = 0x44
+        self.I2CAddress = I2CAddress
         self.name = '2'
         self.driver_array = [{}, {}, {}]
 
@@ -184,7 +184,7 @@ class Trailer4(ITrailer):
 
     def __init__(self, I2CAddress):
         super().__init__()
-        self.I2CAddress = 0x22
+        self.I2CAddress = I2CAddress
         self.name = '4'
         self.driver_array = [{}, {}, {}]
 
