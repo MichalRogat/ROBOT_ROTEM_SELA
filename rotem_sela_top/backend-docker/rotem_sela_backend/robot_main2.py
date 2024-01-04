@@ -191,13 +191,13 @@ class RobotMain():
         while self.pitchLoweringActive:
             if trailerNum == 1:
                 if abs(nanoTelemetry["imu1"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer2.elevation1, -50)
+                    self.motors.MotorRun(self.motors.trailer1.elevation1, -50)
                 else:
-                    self.motors.stopMotor(self.motors.trailer2.elevation1)
+                    self.motors.stopMotor(self.motors.trailer1.elevation1)
                     trailerNum += 1
             elif trailerNum == 2:
                 if abs(nanoTelemetry["imu2"][1]) > 2:
-                    self.motors.MotorRun(self.motors.trailer2.elevation1, 50)
+                    self.motors.MotorRun(self.motors.trailer1.elevation1, 50)
                     self.motors.MotorRun(self.motors.trailer2.elevation2, -50)
                 else:
                     self.motors.stopMotor(self.motors.trailer2.elevation1)
@@ -226,10 +226,10 @@ class RobotMain():
                     self.motors.stopMotor(self.motors.trailer4.elevation4)
                     trailerNum += 1
 
-        self.motors.stopMotor(self.motors.trailer2.elevation1)
+        self.motors.stopMotor(self.motors.trailer1.elevation1)
         self.motors.stopMotor(self.motors.trailer2.elevation2)
         self.motors.stopMotor(self.motors.trailer4.elevation3)
-        self.motors.stopMotor(self.motors.trailer4.elevation4)
+        self.motors.stopMotor(self.motors.trailer5.elevation4)
 
     def pitchLowering(self, value):
         if value == 1:
