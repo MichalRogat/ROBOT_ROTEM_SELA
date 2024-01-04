@@ -106,10 +106,11 @@ class Trailer1(ITrailer):
             self.driver1 = Driver(I2CAddress, driver1_index+1, "driver1")
             self.driver_array[driver1_index] = self.driver1
             
-        if "turn1" in trailer1_list:
-            turn1_index = trailer1_list.index("turn1")
-            self.turn1 = Driver(I2CAddress, turn1_index+1, "turn1")
-            self.driver_array[turn1_index] = self.turn1
+        if "elevation1" in trailer1_list:
+            elevation1_index = trailer1_list.index("elevation1")
+            self.elevation1 = Driver(I2CAddress, elevation1_index+1, "elevation1")
+            self.driver_array[elevation1_index] = self.elevation1
+        
 
         if "pump1" in trailer1_list:
             pump1_index = trailer1_list.index("pump1")
@@ -123,26 +124,31 @@ class Trailer2(ITrailer):
 
     def __init__(self, I2CAddress):
         super().__init__()
-        self.I2CAddress = I2CAddress
+        self.I2CAddress = 0x44
         self.name = '2'
         self.driver_array = [{}, {}, {}]
 
         with open('../../../../entitiesFlipping.json', 'r') as file:
             json_data = json.load(file)
             trailer2_list = json_data.get("trailer2", [])
-
-        if "elevation1" in trailer2_list:
-            elevation1_index = trailer2_list.index("elevation1")
-            self.elevation1 = Driver(I2CAddress, elevation1_index+1, "elevation1")
-            self.driver_array[elevation1_index] = self.elevation1
-            
+        
+        if "turn1" in trailer2_list:
+            turn1_index = trailer2_list.index("turn1")
+            self.turn1 = Driver(I2CAddress, turn1_index+1, "turn1")
+            self.driver_array[turn1_index] = self.turn1
+        
         if "elevation2" in trailer2_list:
             elevation2_index = trailer2_list.index("elevation2")
             self.elevation2 = Driver(I2CAddress, elevation2_index+1, "elevation2")
             self.driver_array[elevation2_index] = self.elevation2
 
+        if "turn2" in trailer2_list:
+            turn2_index = trailer2_list.index("turn2")
+            self.turn2 = Driver(I2CAddress, turn2_index+1, "turn2")
+            self.driver_array[turn2_index] = self.turn2
+
     def GetState(self):
-        return Packet([self.driver_array[0].speed, self.driver_array[1].speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
+        return Packet([self.driver_array[0].speed, self.driver_array[1].speed, self.driver_array[2].speed]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer3(ITrailer):
 
@@ -156,15 +162,15 @@ class Trailer3(ITrailer):
             json_data = json.load(file)
             trailer3_list = json_data.get("trailer3", [])
 
-        if "turn2" in trailer3_list:
-            turn2_index = trailer3_list.index("turn2")
-            self.turn2 = Driver(I2CAddress, turn2_index+1, "turn2")
-            self.driver_array[turn2_index] = self.turn2
+        # if "turn2" in trailer3_list:
+        #     turn2_index = trailer3_list.index("turn2")
+        #     self.turn2 = Driver(I2CAddress, turn2_index+1, "turn2")
+        #     self.driver_array[turn2_index] = self.turn2
             
-        if "turn3" in trailer3_list:
-            turn3_index = trailer3_list.index("turn3")
-            self.turn3 = Driver(I2CAddress, turn3_index+1, "turn3")
-            self.driver_array[turn3_index] = self.turn3
+        # if "turn3" in trailer3_list:
+        #     turn3_index = trailer3_list.index("turn3")
+        #     self.turn3 = Driver(I2CAddress, turn3_index+1, "turn3")
+        #     self.driver_array[turn3_index] = self.turn3
 
         if "cooler" in trailer3_list:
             cooler_index = trailer3_list.index("cooler")
@@ -172,13 +178,13 @@ class Trailer3(ITrailer):
             self.driver_array[cooler_index] = self.cooler
 
     def GetState(self):
-        return Packet([self.driver_array[0].speed, self.driver_array[1].speed, self.driver_array[2].speed]+self.GetGpioState(), pIdx=self.I2CAddress)
+        return Packet([self.driver_array[0].speed, 0, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer4(ITrailer):
 
     def __init__(self, I2CAddress):
         super().__init__()
-        self.I2CAddress = I2CAddress
+        self.I2CAddress = 0x22
         self.name = '4'
         self.driver_array = [{}, {}, {}]
 
@@ -186,18 +192,23 @@ class Trailer4(ITrailer):
             json_data = json.load(file)
             trailer4_list = json_data.get("trailer4", [])
 
-        if "elevation4" in trailer4_list:
-            elevation4_index = trailer4_list.index("elevation4")
-            self.elevation4 = Driver(I2CAddress, elevation4_index+1, "elevation4")
-            self.driver_array[elevation4_index] = self.elevation4
+        if "turn4" in trailer4_list:
+            turn4_index = trailer4_list.index("turn4")
+            self.turn4 = Driver(I2CAddress, turn4_index+1, "turn4")
+            self.driver_array[turn4_index] = self.turn4
 
         if "elevation3" in trailer4_list:
             elevation3_index = trailer4_list.index("elevation3")
-            self.elevation3 = Driver(I2CAddress, elevation4_index+1, "elevation3")
+            self.elevation3 = Driver(I2CAddress, elevation3_index+1, "elevation3")
             self.driver_array[elevation3_index] = self.elevation3
 
+        if "turn3" in trailer4_list:
+            turn3_index = trailer4_list.index("turn3")
+            self.turn3 = Driver(I2CAddress, turn3_index+1, "turn3")
+            self.driver_array[turn3_index] = self.turn3
+
     def GetState(self):
-        return Packet([self.driver_array[0].speed, self.driver_array[1].speed, 0]+self.GetGpioState(), pIdx=self.I2CAddress)
+        return Packet([self.driver_array[0].speed, self.driver_array[1].speed, self.driver_array[2].speed]+self.GetGpioState(), pIdx=self.I2CAddress)
 
 class Trailer5(ITrailer):
 
@@ -217,10 +228,10 @@ class Trailer5(ITrailer):
             self.driver2 = Driver(I2CAddress, driver2_index+1, "driver2")
             self.driver_array[driver2_index] = self.driver2
 
-        if "turn4" in trailer5_list:
-            turn4_index = trailer5_list.index("turn4")
-            self.turn4 = Driver(I2CAddress, turn4_index+1, "turn4")
-            self.driver_array[turn4_index] = self.turn4
+        if "elevation4" in trailer5_list:
+            elevation4_index = trailer5_list.index("elevation4")
+            self.elevation4 = Driver(I2CAddress, elevation4_index+1, "elevation4")
+            self.driver_array[elevation4_index] = self.elevation4
 
         if "pump2" in trailer5_list:
             pump2_index = trailer5_list.index("pump2")

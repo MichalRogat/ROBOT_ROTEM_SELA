@@ -77,10 +77,10 @@ class RobotMain():
         self.writer = None
         self.isAutoDrive = False
 
-        self.joints = [[self.motors.trailer1.turn1,self.motors.trailer2.elevation1],
-                  [self.motors.trailer3.turn2,self.motors.trailer2.elevation2],
-                  [self.motors.trailer3.turn3,self.motors.trailer4.elevation3],
-                  [self.motors.trailer5.turn4,self.motors.trailer4.elevation4]]
+        self.joints = [[self.motors.trailer2.turn1,self.motors.trailer1.elevation1],
+                  [self.motors.trailer2.turn2,self.motors.trailer2.elevation2],
+                  [self.motors.trailer4.turn3,self.motors.trailer4.elevation3],
+                  [self.motors.trailer4.turn4,self.motors.trailer5.elevation4]]
         
         self.currPump =0
         print(f"Start robot service {RC}")
@@ -364,31 +364,32 @@ class RobotMain():
                 
                 if self.motors.trailer1.driver1.name in reverse_dir_list: #checks in json file
                     self.motors.MotorRun(self.motors.trailer1.driver1, -value)
-                    
+                else:
+                    self.motors.MotorRun(self.motors.trailer1.driver1, value)
+
                 if self.motors.trailer5.driver2.name in reverse_dir_list: #checks in json file
                     self.motors.MotorRun(self.motors.trailer5.driver2, -value)
                     
                 else:
-                    self.motors.MotorRun(self.motors.trailer1.driver1, value)
                     self.motors.MotorRun(self.motors.trailer5.driver2, value)
 
         elif int(event["event"]) == RIGHT_STICK_X:
             if value == 0:
                 if not self.isFlip:
-                    self.motors.stopMotor(self.motors.trailer1.turn1)
+                    self.motors.stopMotor(self.motors.trailer2.turn1)
                 else:
-                    self.motors.stopMotor(self.motors.trailer5.turn4)
+                    self.motors.stopMotor(self.motors.trailer4.turn4)
             else:
                 if not self.isFlip:
-                    if self.motors.trailer1.turn1.name in reverse_dir_list: #checks in json file
-                        self.motors.MotorRun(self.motors.trailer1.turn1, -value)
+                    if self.motors.trailer2.turn1.name in reverse_dir_list: #checks in json file
+                        self.motors.MotorRun(self.motors.trailer2.turn1, -value)
                     else:
-                        self.motors.MotorRun(self.motors.trailer1.turn1, value)
+                        self.motors.MotorRun(self.motors.trailer2.turn1, value)
                 else:
-                    if self.motors.trailer5.turn4.name in reverse_dir_list: #checks in json file
-                        self.motors.MotorRun(self.motors.trailer5.turn4, value)
+                    if self.motors.trailer4.turn4.name in reverse_dir_list: #checks in json file
+                        self.motors.MotorRun(self.motors.trailer4.turn4, value)
                     else:
-                        self.motors.MotorRun(self.motors.trailer5.turn4, -value)
+                        self.motors.MotorRun(self.motors.trailer4.turn4, -value)
 
         elif int(event["event"]) == TRIANGLE:
             self.isFlip = not self.isFlip
@@ -407,7 +408,7 @@ class RobotMain():
         elif int(event["event"]) == LEFT_ARROW:
             self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
             self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
-
+            
             if self.isFlip:
                 if RobotMain.CurrentJoint < 3:
                     RobotMain.CurrentJoint = (RobotMain.CurrentJoint+1)
@@ -419,6 +420,7 @@ class RobotMain():
         elif int(event["event"]) == RIGHT_ARROW:  # right_arrow
             self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][0])
             self.motors.stopMotor(self.joints[RobotMain.CurrentJoint][1])
+            
             if self.isFlip:
                 if RobotMain.CurrentJoint > 0:
                     RobotMain.CurrentJoint = RobotMain.CurrentJoint-1
@@ -512,7 +514,7 @@ class RobotMain():
 
         elif int(event["event"]) == DRIVE1:
             # print(event)
-            value = -value
+            # value = -value
             motor = self.motors.trailer1.driver1
             if self.isFlip:
                 value = -value
@@ -521,11 +523,14 @@ class RobotMain():
             if value == 0:
                 self.motors.stopMotor(motor)
             else:
-                self.motors.MotorRun(motor, -value)
+                if motor.name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(motor, -value)
+                else:
+                    self.motors.MotorRun(motor, value)
                     
         elif int(event["event"]) == DRIVE2:
             # print(event)
-            value = -value
+            # value = -value
             motor = self.motors.trailer5.driver2
             if self.isFlip:
                 value = -value
@@ -534,7 +539,10 @@ class RobotMain():
             if value == 0:
                 self.motors.stopMotor(motor)
             else:
-                self.motors.MotorRun(motor, -value)
+                if motor.name in reverse_dir_list: #checks in json file
+                    self.motors.MotorRun(motor, -value)
+                else:
+                    self.motors.MotorRun(motor, value)
 
         elif int(event["event"]) == STOP_ALL:
             self.motors.StopAllMotors()
