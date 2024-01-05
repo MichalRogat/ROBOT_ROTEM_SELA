@@ -38,6 +38,9 @@ class IMotor(ABC):
     @abstractmethod
     def stopMotor():
         pass
+    @abstractmethod
+    def slowMotor():
+        pass
 
     @abstractmethod
     def MotorRun():
@@ -59,6 +62,10 @@ class Driver(IMotor):
         print(f"stopped motor {self.name}")
         self.speed = 0
 
+    def slowMotor(self):
+        print(f"slow motor {self.name}")
+        self.speed = self.speed/2
+        
     def MotorRun(self, speed):
         if speed >= 90:
             speed = 90

@@ -30,6 +30,11 @@ class MotorDriver():
     @classmethod
     def MotorRun(self, motor:IMotor, speed=0):
         motor.MotorRun(speed)
+     
+    @classmethod
+    def slowMotor(self):
+        self.speed=self.speed/2    
+        
         
     @classmethod
     def StopAllMotors(self):

@@ -5,6 +5,8 @@ import traceback
 import ctypes
 import serial
 from gpiozero import CPUTemperature
+import MotorDriver
+import Entity
 
 DEBUG = True
 # OPCODES
@@ -12,6 +14,8 @@ SET_DRIVER_STATE = 0
 CALIBRATE = 1
 CONFIG = 2
 TELEMETRY = 3
+STOP_ROBOT=4
+SLOW_DOWN=5
 ACK = 255
 
 bus = SMBus(1)
@@ -210,9 +214,14 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
                         # if trailer.name == '2':
                         # print("Telemetry "+trailer.name)
                             # print(str(nanoTelemetry["imu"+trailer.name]))
+                    elif p.opcode==STOP_ROBOT:
+                        MotorDriver.MotorDriver.StopAllMotors()
+                    elif p.opcode==SLOW_DOWN:
+                        MotorDriver.MotorDriver.slowMotor()
                 else:
                     print("Error "+str(trailer.I2CAddress))
                     continue
+                
                 
 
             else:
