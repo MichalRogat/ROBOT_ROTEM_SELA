@@ -28,7 +28,7 @@ stopVideo = False
 
 startTS = time.time()
 
-nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0}
+nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0, "Tcell":0, "m1CS3":0, "m2CS3":0}
 
 # Events
 KEEP_ALIVE = 300
@@ -662,19 +662,23 @@ class RobotMain():
 
         info.update(nanoTelemetry) # insert to info the information from nanoTelemetry
         info.update({ # insert more info 
-            "opcode": CommandOpcode.telemetric.name,
-            "activePump": self.currPump+1,
-            "pumpingNow": self.isPumpingNow,
-            "isFlip": self.isFlip,
-            "isToggle": self.isToggle,
-            "currentJoint": RobotMain.CurrentJoint,
-            "CPU_tmp": CPUTemperature().temperature,
-            "battery":nanoTelemetry["batteryRead"],
-            "record": self.record,
-            "toggleState": self.toggleState,
-            "cooler_speed": self.coolerSpeed,
-            "CPU_time" : round(startTS*1000)
-        })
+                    "opcode": CommandOpcode.telemetric.name,
+                    "activePump": self.currPump+1,
+                    "pumpingNow": self.isPumpingNow,
+                    "isFlip": self.isFlip,
+                    "isToggle": self.isToggle,
+                    "currentJoint": RobotMain.CurrentJoint,
+                    "CPU_tmp": CPUTemperature().temperature,
+                    "battery":nanoTelemetry["batteryRead"],
+                    "record": self.record,
+                    "toggleState": self.toggleState,
+                    "cooler_speed": self.coolerSpeed,
+                    "CPU_time" : round(startTS*1000),
+                    "spooler_current": nanoTelemetry['m1CS3'],
+                    "arranger_current": nanoTelemetry['m2CS3'],
+                    "Tcell": nanoTelemetry["Tcell"]
+                })
+
         info.update(spare_dict) # insert static information
         info.update(front_cameras_dict) # insert static information
         info.update(side_cameras_dict) # insert static information

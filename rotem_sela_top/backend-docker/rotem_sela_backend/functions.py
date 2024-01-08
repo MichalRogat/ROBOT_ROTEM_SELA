@@ -210,6 +210,7 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
                                                         int.from_bytes(p.payload[42:46], byteorder='little', signed=True)/10.0
                                                     ]
                         
+                        nanoTelemetry['Tcell']= int.from_bytes(p.payload[46:50], byteorder='little')
 
                         # if trailer.name == '2':
                         # print("Telemetry "+trailer.name)
