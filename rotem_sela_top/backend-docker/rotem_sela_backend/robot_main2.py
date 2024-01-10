@@ -582,7 +582,8 @@ class RobotMain():
                 if int(event["event"]) == 105:  # pitch_lowering - i keyboard
                     self.pitchLowering(value)
                 elif int(event["event"]) == 42:  # pitch_leveling - * keyboard
-                    self.pitchLeveling(value)
+                    pass #TODO: after IMU is fixed in 5A we will return to pitch leveling
+                    # self.pitchLeveling(value)
                 elif int(event["event"]) == 106:  # autodrive - j keyboard
                     if self.isAutoDrive:
                         self.autoDrive.stop()
