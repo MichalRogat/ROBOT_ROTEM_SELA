@@ -32,5 +32,6 @@ platform 5-A
     "trailer2": ["turn1", "elevation2", "turn2"],
     "trailer3": ["cooler"],
     "trailer4": ["turn3", "turn4", "elevation3"],
-    "trailer5": ["elevation4","pump2","driver2"]
+    "trailer5": ["elevation4","pump2","driver2"],
+    "fiber_diameter": ["0.6"] //michal - add for calculating Total length of optical fiber
 }
