@@ -12,8 +12,10 @@ import threading
 import json
 import multiprocessing
 import time
+import os
 from datetime import datetime
-
+from ping3 import ping
+import threading
 
 CAM_PORTS_FLIP = {
             5000 : ['5.1','3.1','3.2','5.2','1.2'],
@@ -41,15 +43,37 @@ subQueues = []
 txQueues = []
 barrier = multiprocessing.Barrier(4)
 txQueues = []
-startTS = time.time()
+count=0
+current_date = datetime.now()
 
+
+RECLOCAL = False
+check_network_enabled = False
+host="192.168.1.1" # ip of computer
+
+# TODO: change to env var
+FO_IP_ADDRESS = '192.168.1.251'
 def sendCamsCB():
     return txQueues
 
 def sendCamsCB():
     return txQueues
 
-
+def saveDataOnflash(frame,port):
+        current_datetime = datetime.now()
+        #current_date = datetime.now()
+        date = current_date.strftime("%Y_%m_%d %H_%M_%S.%f")
+        date_time_str = current_datetime.strftime("%Y_%m_%d %H_%M_%S.%f")
+        
+        folderPath = "/home/rogat/rec/"+date+"/"+str(port)
+        os.makedirs(folderPath, exist_ok=True)
+    
+        # {frame.data}
+        os.makedirs(folderPath, exist_ok=True)
+        file_path = os.path.join(folderPath, "frame_"+date_time_str+".jpg")
+        saved_image_path = os.path.join(folderPath, "frame_"+date_time_str+".jpg")
+        with open(file_path, "wb") as file:
+            file.write(frame)
 
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
@@ -73,7 +97,17 @@ def map_cams():
     
     print(map)
     return map
-    
+ 
+def check_network():
+     while check_network_enabled:
+        try:
+            ping(host, timeout=3) 
+            RECLOCAL = False
+        except Exception as e:
+            RECLOCAL = True
+        time.sleep(3)
+thread = threading.Thread(target=check_network)
+        
 class CorsHandler(RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -114,6 +148,7 @@ def sendCommand(command:int):
         })
         
 def videoFeedHandler(port, cam_id, queue, barrier, qt):
+        
         global isMain
         isMain = False
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
@@ -133,6 +168,7 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
             print(f"Open video device {video_dev}")
             barrier.wait();
             
+            startTS = time.time()
             
             with v4l2py.Device(video_dev) as device:
                 devices[cam_id[camIdx]] = device
@@ -144,6 +180,9 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             break
                        
                         ChannelHandler.send_message(frame.data)
+                        if RECLOCAL:
+                            saveDataOnflash(frame.data,port)
+                            
                         qt.put({"port":port,
                                     "cam_name":res[cam_id[camIdx]]['name']})
                         try:
@@ -184,7 +223,6 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                     # if port == 5000:
                     #     print("Cam "+str(port)+" "+str(time.time()))
                     time.sleep(0.067)
-                  
 
 def make_app():
     return Application([
@@ -197,36 +235,41 @@ class ChannelHandler(tornado.websocket.WebSocketHandler):
 
     def open(self):
         ChannelHandler.clients.add(self)
-        print("client add " ,time.time())
-
+        check_network_enabled = False
+        if thread  is not None and RECLOCAL==False:
+            thread.join()
 
     def on_close(self):
         try:
             ChannelHandler.clients.remove(self)
         except Exception as e:
             print(str(e))
-
-    
+        print("Webcock closed")
+        check_network_enabled = True
+        
+        thread.start()
+        
     @classmethod
-    def send_message(cls, message):
+    def send_message(cls, message: str):
         # print(f"Sending message {message} to {len(cls.clients)} client(s).")
+        
         try:
             for client in cls.clients:
                 try:
                     if isMain:
                         client.write_message(message, binary=False)
                     else:
-                        ts = int((time.time() - startTS)*1000)
-                        client.write_message(ts.to_bytes(4, byteorder='big') + message, binary=True)
-                        
+                        client.write_message(message, binary=True)
                 except Exception as e:
-                   
-                    print("error " ,str(e))
+                    cls.clients.remove(client)
                     break
         except Exception as e:
             print(str(e))
-          
-          
+    # """
+    # on disconnet start pinging thread
+    # """     
+    # def on_close(cls):
+       
     """
     Handler that handles a websocket channel
     """
@@ -277,5 +320,14 @@ if __name__ == "__main__":
     tornado.ioloop.IOLoop.instance().start()
     for process in processes:
         process.join()
+        
+        
+   
+        
+        
+        
+            
+            
+        
  
 

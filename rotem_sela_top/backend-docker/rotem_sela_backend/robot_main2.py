@@ -18,7 +18,7 @@ import csv
 from Events import KeyboardEvents
 from combinedMotions import CombinedMotions
 from gpiozero import CPUTemperature
-
+import math
 
 
 KEEP_ALIVE_TIMEOUT_SEC = 1.0
@@ -28,7 +28,7 @@ stopVideo = False
 
 startTS = time.time()
 
-nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0}
+nanoTelemetry = {"imu":[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],"batteryRead":0, "Tcell":0, "m1CS3":0, "m2CS3":0}
 
 # Events
 KEEP_ALIVE = 300
@@ -582,7 +582,8 @@ class RobotMain():
                 if int(event["event"]) == 105:  # pitch_lowering - i keyboard
                     self.pitchLowering(value)
                 elif int(event["event"]) == 42:  # pitch_leveling - * keyboard
-                    self.pitchLeveling(value)
+                    pass #TODO: after IMU is fixed in 5A we will return to pitch leveling
+                    # self.pitchLeveling(value)
                 elif int(event["event"]) == 106:  # autodrive - j keyboard
                     if self.isAutoDrive:
                         self.autoDrive.stop()
@@ -660,21 +661,44 @@ class RobotMain():
         front_cameras_dict = {"Camera-F"+str(i):True for i in range(1,5)}
         side_cameras_dict = {"Camera-S"+str(i):True for i in range(1,5)}
 
+        #----calculating total length FO
+        bobbin_min_diameter = 50 #D
+        bobbin_length = 180 #L
+        with open('../../../../entitiesFlipping.json', 'r') as file:
+            json_data = json.load(file)
+        fiber_diameter_list = json_data.get("fiber_diameter", [])
+        if ("0.6" in fiber_diameter_list):
+            fiber_diameter = 0.6 #F
+        elif ("0.4" in fiber_diameter_list):
+            fiber_diameter = 0.4 #F
+        else:
+            fiber_diameter = 0.2 #F
+        spooler_turns = nanoTelemetry["spoolerTurns"] #N
+        turns_per_length = math.floor(bobbin_length/fiber_diameter) #TL
+        total_layers = math.floor(spooler_turns/turns_per_length)
+
+        total_length = (math.pi(spooler_turns*(bobbin_min_diameter+2*total_layers*fiber_diameter - turns_per_length*fiber_diameter*math.pow(total_layers,2))))/1000
+
         info.update(nanoTelemetry) # insert to info the information from nanoTelemetry
         info.update({ # insert more info 
-            "opcode": CommandOpcode.telemetric.name,
-            "activePump": self.currPump+1,
-            "pumpingNow": self.isPumpingNow,
-            "isFlip": self.isFlip,
-            "isToggle": self.isToggle,
-            "currentJoint": RobotMain.CurrentJoint,
-            "CPU_tmp": CPUTemperature().temperature,
-            "battery":nanoTelemetry["batteryRead"],
-            "record": self.record,
-            "toggleState": self.toggleState,
-            "cooler_speed": self.coolerSpeed,
-            "CPU_time" : round(startTS*1000)
-        })
+                    "opcode": CommandOpcode.telemetric.name,
+                    "activePump": self.currPump+1,
+                    "pumpingNow": self.isPumpingNow,
+                    "isFlip": self.isFlip,
+                    "isToggle": self.isToggle,
+                    "currentJoint": RobotMain.CurrentJoint,
+                    "CPU_tmp": CPUTemperature().temperature,
+                    "battery":nanoTelemetry["batteryRead"],
+                    "record": self.record,
+                    "toggleState": self.toggleState,
+                    "cooler_speed": self.coolerSpeed,
+                    "CPU_time" : round(startTS*1000),
+                    "spooler_current": nanoTelemetry['m1CS3'],
+                    "arranger_current": nanoTelemetry['m2CS3'],
+                    "Tcell": nanoTelemetry["Tcell"],
+                    "fo_length": total_length
+                })
+
         info.update(spare_dict) # insert static information
         info.update(front_cameras_dict) # insert static information
         info.update(side_cameras_dict) # insert static information
