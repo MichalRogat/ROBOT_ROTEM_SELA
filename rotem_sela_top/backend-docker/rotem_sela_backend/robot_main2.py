@@ -506,12 +506,18 @@ class RobotMain():
             self.ledOn = not self.ledOn
             if self.ledOn:
                 self.motors.trailer1.addGpio(13,1)
-                self.motors.trailer3.addGpio(17,0)
                 self.motors.trailer5.addGpio(13,1)
+                self.motors.trailer4.addGpio(2,0)
+                self.motors.trailer2.addGpio(2,0)
+                self.motors.trailer3.addGpio(2,0)
+                self.currentLightLevel = 3
             else:
                 self.motors.trailer1.addGpio(13,0)
-                self.motors.trailer3.addGpio(17,1)
                 self.motors.trailer5.addGpio(13,0)
+                self.motors.trailer4.addGpio(2,1)
+                self.motors.trailer2.addGpio(2,1)
+                self.motors.trailer3.addGpio(2,1)
+                self.currentLightLevel = 1
 
         elif int(event["event"]) == DRIVE1:
             # print(event)
@@ -673,11 +679,11 @@ class RobotMain():
             fiber_diameter = 0.4 #F
         else:
             fiber_diameter = 0.2 #F
-        spooler_turns = nanoTelemetry["spoolerTurns"] #N
-        turns_per_length = math.floor(bobbin_length/fiber_diameter) #TL
-        total_layers = math.floor(spooler_turns/turns_per_length)
+        # spooler_turns = nanoTelemetry["spoolerTurns"] #N
+        # turns_per_length = math.floor(bobbin_length/fiber_diameter) #TL
+        # total_layers = math.floor(spooler_turns/turns_per_length)
 
-        total_length = (math.pi(spooler_turns*(bobbin_min_diameter+2*total_layers*fiber_diameter - turns_per_length*fiber_diameter*math.pow(total_layers,2))))/1000
+        # total_length = (math.pi(spooler_turns*(bobbin_min_diameter+2*total_layers*fiber_diameter - turns_per_length*fiber_diameter*math.pow(total_layers,2))))/1000
 
         info.update(nanoTelemetry) # insert to info the information from nanoTelemetry
         info.update({ # insert more info 
@@ -696,7 +702,7 @@ class RobotMain():
                     "spooler_current": nanoTelemetry['m1CS3'],
                     "arranger_current": nanoTelemetry['m2CS3'],
                     "Tcell": nanoTelemetry["Tcell"],
-                    "fo_length": total_length
+                    # "fo_length": total_length
                 })
 
         info.update(spare_dict) # insert static information
