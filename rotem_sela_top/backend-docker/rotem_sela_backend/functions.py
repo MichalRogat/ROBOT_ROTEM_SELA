@@ -194,10 +194,10 @@ def callReadNano(trailers, nanoTelemetry, motors, debug=False):
                         nanoTelemetry['m2CS'+trailer.name] = int.from_bytes(p.payload[4:6], byteorder='little')
                         nanoTelemetry['m3CS'+trailer.name] = int.from_bytes(p.payload[6:8], byteorder='little')
                         nanoTelemetry['batteryRead'+trailer.name] = int.from_bytes(p.payload[8:10], byteorder='little')
-                       
+                        
                         nanoTelemetry['imu'+trailer.name] = [int.from_bytes(p.payload[10:14], byteorder='little', signed=True)/10.0,
-                                                        int.from_bytes(p.payload[14:18], byteorder='little', signed=True)/10.0,
-                                                        int.from_bytes(p.payload[18:22], byteorder='little', signed=True)/10.0
+                                                             int.from_bytes(p.payload[14:18], byteorder='little', signed=True)/10.0,
+                                                             int.from_bytes(p.payload[18:22], byteorder='little', signed=True)/10.0
                                                     ]
                         
                         nanoTelemetry['accel'+trailer.name] = [int.from_bytes(p.payload[22:26], byteorder='little', signed=True)/10.0,

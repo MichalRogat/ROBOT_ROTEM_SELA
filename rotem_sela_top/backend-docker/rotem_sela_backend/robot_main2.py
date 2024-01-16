@@ -722,19 +722,37 @@ class RobotMain():
         with open('../../../../entitiesFlipping.json', 'r') as file:
             json_data = json.load(file)
         imu_flipping = json_data.get("imu", [])
+        temp=[]
+        ############Pitch,Roll,Yow#########
+        for i in range (5):
+            for p,element in enumerate(imu_flipping[i]):
+                if 'P' in element:
+                   indexP=p
+                   signP=1 if element[:1]=='+' else -1
+                if 'R' in element:
+                   indexR=p
+                   signR=1 if element[:1]=='+' else -1
+                if 'Y' in element:
+                   indexY=p
+                   signY= 1 if element[:1]=='+' else -1     
+            temp.append( info["imu"][i][indexP]*signP)
+            temp.append( info["imu"][i][indexR]*signR)
+            temp.append( info["imu"][i][indexY]*signY)
+            info["imu"][i]=temp
+       
 
-        imu1Correction = -1 if ("imu1" in imu_flipping) else 1
-        imu2Correction = -1 if ("imu2" in imu_flipping) else 1
-        imu3Correction = -1 if ("imu3" in imu_flipping) else 1
-        imu4Correction = -1 if ("imu4" in imu_flipping) else 1
-        imu5Correction = -1 if ("imu5" in imu_flipping) else 1
+        # imu1Correction = -1 if ("imu1" in imu_flipping) else 1
+        # imu2Correction = -1 if ("imu2" in imu_flipping) else 1
+        # imu3Correction = -1 if ("imu3" in imu_flipping) else 1
+        # imu4Correction = -1 if ("imu4" in imu_flipping) else 1
+        # imu5Correction = -1 if ("imu5" in imu_flipping) else 1
 
-        info["imu"][0][1] *= imu1Correction
-        info["imu"][1][1] *= imu2Correction
-        info["imu"][2][1] *= imu3Correction
-        info["imu"][3][1] *= imu4Correction
-        info["imu"][4][1] *= imu5Correction
-        #-----------------------------------------------------------------------------------
+        # info["imu"][0][1] *= imu1Correction
+        # info["imu"][1][1] *= imu2Correction
+        # info["imu"][2][1] *= imu3Correction
+        # info["imu"][3][1] *= imu4Correction
+        # info["imu"][4][1] *= imu5Correction
+        # -----------------------------------------------------------------------------------
         # insert info about camera ports
         # if self.camsCB is not None:
         #     queues_list = self.camsCB()

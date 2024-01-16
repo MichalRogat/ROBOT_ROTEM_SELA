@@ -26,7 +26,7 @@ top platform (old and first) 192.168.2.100
 platform 5-A
 {
 "reverseDir": ["driver2", "elevation1", "elevation2", "elevation3", "elevation4"],
-    "imu": [],
+    "imu": [[+P,-R,-Y],[+P,+Y,-R],[+Y,+P,-R],[+P,+Y,-R],[+P,+Y,-R]],
     "trailers_addresses": ["0x11", "0x44", "0x33", "0x22", "0x55"],
     "trailer1": ["elevation1", "pump1", "driver1"],
     "trailer2": ["turn1", "elevation2", "turn2"],
