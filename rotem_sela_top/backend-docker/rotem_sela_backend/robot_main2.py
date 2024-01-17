@@ -739,7 +739,7 @@ class RobotMain():
             temp.append( info["imu"][i][indexR]*signR)
             temp.append( info["imu"][i][indexY]*signY)
             info["imu"][i]=temp
-       
+            temp=0
 
         # imu1Correction = -1 if ("imu1" in imu_flipping) else 1
         # imu2Correction = -1 if ("imu2" in imu_flipping) else 1
