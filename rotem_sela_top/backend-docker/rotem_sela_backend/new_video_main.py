@@ -13,22 +13,23 @@ import json
 import multiprocessing
 import time
 from datetime import datetime
+import subprocess
 
 
 CAM_PORTS_FLIP = {
-            5000 : ['5.1','3.1','3.2','5.2','1.2'],
-            5001: ['6.1','4.1','4.2','2.2','6.2'],
-            5002: ['1.1','1.1','1.1','1.1','4.1'],
-            5003: ['2.1','2.1','2.1','3.1','2.1']
+            5000 :['5.1','5.1','5.1','5.1','5.1','5.1'],
+            5001: ['4.1','4.1','4.1','4.1','3.1','4.1'],
+            5002: ['1.1','1.1','1.2','3.1','4.2','3.1'],
+            5003: ['6.1','2.1','2.2','6.2','7.2','6.1']
            
             }
 
 CAM_PORTS_NOT_FLIP = {
            
-            5000: ['1.1','1.1','1.1','1.1','4.1'],
-            5001: ['2.1','2.1','2.1','3.1','2.1'],
-            5002 : ['5.1','3.1','3.2','5.2','1.2'],
-            5003: ['6.1','4.1','4.2','2.2','6.2']
+            5000: ['5.1','5.1','5.1','5.1','5.1','5.1'],
+            5001: ['4.1','4.1','4.1','4.1','4.1','4.1'],
+            5002 :['1.1','1.1','1.2','3.1','3.2','3.1'],
+            5003: ['6.1','2.1','2.2','6.2','7.2','6.1']
             }
 
 
@@ -40,11 +41,9 @@ isMain = True
 subQueues = []
 txQueues = []
 barrier = multiprocessing.Barrier(4)
-txQueues = []
 startTS = time.time()
-
-def sendCamsCB():
-    return txQueues
+arrayToReset=[]
+arrayToResetCount=[]
 
 def sendCamsCB():
     return txQueues
@@ -54,7 +53,7 @@ def sendCamsCB():
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
 
-    id2name = {"1.1":3,"1.2.1":2,"1.2.2":1,"1.2.3":6,"1.2.4":5,"1.4":4}
+    id2name = {"1.1":3,"1.2.1":2,"1.2.2":1,"1.2.3":6,"1.2.4":5,"1.4":4, "1.3":7}
 
     map = {
             str(id2name[cameras[0][0].split("-")[1]])+".1":{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-side'},
@@ -69,6 +68,8 @@ def map_cams():
             str(id2name[cameras[4][0].split("-")[1]])+".2":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
             str(id2name[cameras[5][0].split("-")[1]])+".1":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
             str(id2name[cameras[5][0].split("-")[1]])+".2":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+            str(id2name[cameras[6][0].split("-")[1]])+".1":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+            str(id2name[cameras[6][0].split("-")[1]])+".2":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
            }
     
     print(map)
@@ -112,6 +113,16 @@ def sendCommand(command:int):
         q.put({
             'command':command
         })
+def FuncToReset(num):
+    if num in arrayToReset:
+        arrayToResetCount[arrayToReset.index(num)]=arrayToResetCount[arrayToReset.index(num)]+1
+        if max(arrayToResetCount)-min(arrayToResetCount)>10:
+             subprocess.run(['./' + 'camHubRestart.sh'], check=True, shell=True)
+             print("reset to cammeras" + arrayToResetCount)
+
+    else:
+        arrayToReset.append(num)
+        arrayToResetCount.append(0)    
         
 def videoFeedHandler(port, cam_id, queue, barrier, qt):
         global isMain
@@ -119,10 +130,12 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
         webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
         webSocket_thread.start()
         res = map_cams()
+        print ("len-res",len(res))
         global cameras
         global devices
         camIdx = 0
         isFlip = False
+        
 
         while True:
             video_dev = res[cam_id[camIdx]]['dev']
@@ -144,6 +157,8 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             break
                        
                         ChannelHandler.send_message(frame.data)
+                        print(device.index)
+                        FuncToReset(device.index)
                         qt.put({"port":port,
                                     "cam_name":res[cam_id[camIdx]]['name']})
                         try:
@@ -171,6 +186,9 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                             if item['event'] == str(ord('4')):
                                 print("4 press")
                                 camIdx = 4
+                            if item['event'] == str(ord('`')):
+                                print("` press")
+                                camIdx = 5  
                                 
                             qt.put({"port":port,
                                     "cam_name":res[cam_id[camIdx]]['name']})
