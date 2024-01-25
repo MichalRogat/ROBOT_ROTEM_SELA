@@ -52,7 +52,7 @@ class LinuxSystemStatus:
     def list_usb_cameras(cls):
         try:
             # Use subprocess.run for simplicity
-            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True, check=True)
+            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True, check=False)
 
             # Split the output by lines
             lines = result.stdout.split('\n')

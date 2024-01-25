@@ -345,6 +345,7 @@ class RobotMain():
         # print(reverse_dir_list)
         
         if event['event'] == KEEP_ALIVE:
+            self.comm.client_socket.sendall(str(300).encode('utf-8'))
             return
         value = int(event["value"])
         # print(value)
@@ -723,24 +724,26 @@ class RobotMain():
             json_data = json.load(file)
         imu_flipping = json_data.get("imu", [])
         temp=[]
-        ############Pitch,Roll,Yow#########
-        for i in range (5):
-            for p,element in enumerate(imu_flipping[i]):
-                if 'P' in element:
-                   indexP=p
-                   signP=1 if element[:1]=='+' else -1
-                if 'R' in element:
-                   indexR=p
-                   signR=1 if element[:1]=='+' else -1
-                if 'Y' in element:
-                   indexY=p
-                   signY= 1 if element[:1]=='+' else -1     
-            temp.append( info["imu"][i][indexP]*signP)
-            temp.append( info["imu"][i][indexR]*signR)
-            temp.append( info["imu"][i][indexY]*signY)
-            info["imu"][i]=temp
-            temp=0
-
+        ############Pitch,Yow,Roll#########
+        try:
+            for i in range (5):
+                for p,element in enumerate(imu_flipping[i]):
+                    if 'P' in element:
+                        indexP=p
+                        signP=1 if element[:1]=='+' else -1
+                    if 'R' in element:
+                        indexR=p
+                        signR=1 if element[:1]=='+' else -1
+                    if 'Y' in element:
+                        indexY=p
+                        signY= 1 if element[:1]=='+' else -1     
+                temp.append( info["imu"][i][indexP]*signP)
+                temp.append( info["imu"][i][indexR]*signR)
+                temp.append( info["imu"][i][indexY]*signY)
+                info["imu"][i]=temp
+                temp=0
+        except:
+            pass
         # imu1Correction = -1 if ("imu1" in imu_flipping) else 1
         # imu2Correction = -1 if ("imu2" in imu_flipping) else 1
         # imu3Correction = -1 if ("imu3" in imu_flipping) else 1

@@ -14,6 +14,7 @@ import multiprocessing
 import time
 from datetime import datetime
 import subprocess
+import sys
 
 
 CAM_PORTS_FLIP = {
@@ -42,8 +43,7 @@ subQueues = []
 txQueues = []
 barrier = multiprocessing.Barrier(4)
 startTS = time.time()
-arrayToReset=[]
-arrayToResetCount=[]
+lock = threading.Lock()
 
 def sendCamsCB():
     return txQueues
@@ -113,96 +113,105 @@ def sendCommand(command:int):
         q.put({
             'command':command
         })
-def FuncToReset(num):
-    if num in arrayToReset:
-        arrayToResetCount[arrayToReset.index(num)]=arrayToResetCount[arrayToReset.index(num)]+1
-        if max(arrayToResetCount)-min(arrayToResetCount)>10:
-             subprocess.run(['./' + 'camHubRestart.sh'], check=True, shell=True)
-             print("reset to cammeras" + arrayToResetCount)
 
-    else:
-        arrayToReset.append(num)
-        arrayToResetCount.append(0)    
-        
 def videoFeedHandler(port, cam_id, queue, barrier, qt):
-        global isMain
-        isMain = False
-        webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
-        webSocket_thread.start()
-        res = map_cams()
-        print ("len-res",len(res))
-        global cameras
-        global devices
-        camIdx = 0
-        isFlip = False
         
+            global isMain
+            isMain = False
+            webSocket_thread = threading.Thread(target=websocket_server, args=(port,))
+            webSocket_thread.start()
+            res = map_cams()
+            print ("len-res",len(res))
+            global cameras
+            global devices
+            camIdx = 0
+            isFlip = False
+            isError = False
+            CamResflag=True
 
-        while True:
-            video_dev = res[cam_id[camIdx]]['dev']
-            if video_dev not in cameras:
-                cameras[cam_id[camIdx]] = video_dev
+            while True:
+                try:    
+                    video_dev = res[cam_id[camIdx]]['dev']
+                    if video_dev not in cameras:
+                        cameras[cam_id[camIdx]] = video_dev
 
-            print(f"{cam_id} start feed")
-            print(f"Open video device {video_dev}")
-            barrier.wait();
-            
-            
-            with v4l2py.Device(video_dev) as device:
-                devices[cam_id[camIdx]] = device
-                device.set_format(buffer_type=1, width=res[cam_id[camIdx]]['width'], height=res[cam_id[camIdx]]['height'], pixel_format='MJPG')
-                device.set_fps(buffer_type=1, fps=15)
-                for frame in device:
+                    print(f"{cam_id} start feed")
+                    print(f"Open video device {video_dev}")
+
+                    if not isError:
+                        barrier.wait();
+                    else:
+                        isError = False
+                    
+                
+                    with v4l2py.Device(video_dev) as device:
+                        devices[cam_id[camIdx]] = device
+                        device.set_format(buffer_type=1, width=res[cam_id[camIdx]]['width'], height=res[cam_id[camIdx]]['height'], pixel_format='MJPG')
+                        device.set_fps(buffer_type=1, fps=15)
+                        for frame in device:
+                            try:
+                                if stopVideo:
+                                    break
+                            
+                                ChannelHandler.send_message(frame.data)
+                                qt.put({"port":port,
+                                            "cam_name":res[cam_id[camIdx]]['name']})
+                                try:
+                                    item = queue.get(block=False)
+
+                                    if item['event'] == 'flip':
+                                        isFlip = not isFlip
+                                        if isFlip:
+                                            cam_id = CAM_PORTS_FLIP[port]
+                                        else:
+                                            cam_id = CAM_PORTS_NOT_FLIP[port]
+
+                                    if item['event'] == str(ord('0')):
+                                        print("0 press")  
+                                        camIdx = 0
+                                    if item['event'] ==  str(ord('1')):
+                                        print("1 press")
+                                        camIdx = 1
+                                    if item['event'] == str(ord('2')):
+                                        print("2 press") 
+                                        camIdx = 2
+                                    if item['event'] == str(ord('3')):
+                                        print("3 press")
+                                        camIdx = 3
+                                    if item['event'] == str(ord('4')):
+                                        print("4 press") 
+                                        camIdx = 4
+                                    if item['event'] == str(ord('`')):
+                                        print("` press")
+                                        camIdx = 5  
+                                        
+                                    qt.put({"port":port,
+                                            "cam_name":res[cam_id[camIdx]]['name']})
+                                    break
+                                except Exception:
+                                    # traceback.print_exc()
+                                    #videoFeedHandler(port, cam_id, queue, barrier, qt)
+                                    pass
+                            except Exception:
+                                # traceback.print_exc()
+                                break
+                            # if port == 5000:
+                            #     print("Cam "+str(port)+" "+str(time.time()))
+                            time.sleep(0.067)
+                except Exception:
+                   
                     try:
-                        if stopVideo:
-                            break
-                       
-                        ChannelHandler.send_message(frame.data)
-                        print(device.index)
-                        FuncToReset(device.index)
-                        qt.put({"port":port,
-                                    "cam_name":res[cam_id[camIdx]]['name']})
-                        try:
-                            item = queue.get(block=False)
-
-                            if item['event'] == 'flip':
-                                isFlip = not isFlip
-                                if isFlip:
-                                    cam_id = CAM_PORTS_FLIP[port]
-                                else:
-                                    cam_id = CAM_PORTS_NOT_FLIP[port]
-
-                            if item['event'] == str(ord('0')):
-                                print("0 press")
-                                camIdx = 0
-                            if item['event'] ==  str(ord('1')):
-                                print("1 press")
-                                camIdx = 1
-                            if item['event'] == str(ord('2')):
-                                print("2 press")
-                                camIdx = 2
-                            if item['event'] == str(ord('3')):
-                                print("3 press")
-                                camIdx = 3
-                            if item['event'] == str(ord('4')):
-                                print("4 press")
-                                camIdx = 4
-                            if item['event'] == str(ord('`')):
-                                print("` press")
-                                camIdx = 5  
-                                
-                            qt.put({"port":port,
-                                    "cam_name":res[cam_id[camIdx]]['name']})
-                            break
-                        except Exception:
-                            # traceback.print_exc()
-                            pass
-                    except Exception:
-                        # traceback.print_exc()
-                        break
-                    # if port == 5000:
-                    #     print("Cam "+str(port)+" "+str(time.time()))
-                    time.sleep(0.067)
-                  
+                        res = map_cams()
+                    except:
+                        pass
+                    isError = True
+                    #result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True, check=False)
+                    #camerasList = LinuxSystemStatus.list_usb_cameras()
+                    # if len(camerasList) <7:
+                         
+                    #       res=subprocess.run(['./camHubRestart.sh'], check=True, capture_output=True, text=True)
+                    #       print(res.stdout)
+                    pass    
 
 def make_app():
     return Application([
