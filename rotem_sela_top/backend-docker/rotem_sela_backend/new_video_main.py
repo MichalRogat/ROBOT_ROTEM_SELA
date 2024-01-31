@@ -27,10 +27,10 @@ CAM_PORTS_FLIP = {
 
 CAM_PORTS_NOT_FLIP = {
            
-            5000: ['5.1','5.1','5.1','5.1','5.1','5.1'],
-            5001: ['4.1','4.1','4.1','4.1','4.1','4.1'],
-            5002 :['1.1','1.1','1.2','3.1','3.2','3.1'],
-            5003: ['6.1','2.1','2.2','6.2','7.2','6.1']
+            5000: ['1.1','5.1','5.1','5.1','5.1','5.1'],
+            5001: ['2.1','4.1','4.1','4.1','4.1','4.1'],
+            5002 :['3.1','1.1','1.2','3.1','3.2','3.1'],
+            5003: ['4.1','2.1','2.2','6.2','7.2','6.1']
             }
 
 
@@ -41,7 +41,7 @@ devices = {}
 isMain = True
 subQueues = []
 txQueues = []
-barrier = multiprocessing.Barrier(4)
+#barrier = multiprocessing.Barrier(4)
 startTS = time.time()
 lock = threading.Lock()
 
@@ -53,7 +53,7 @@ def sendCamsCB():
 def map_cams():
     cameras = LinuxSystemStatus.list_usb_cameras()
 
-    id2name = {"1.1":3,"1.2.1":2,"1.2.2":1,"1.2.3":6,"1.2.4":5,"1.4":4, "1.3":7}
+    id2name = {"1.1":1,"1.2.1":7,"1.2":3,"1.2.3":6,"1.2.4":5,"1.4":4, "1.3":2}
 
     map = {
             str(id2name[cameras[0][0].split("-")[1]])+".1":{'dev' : cameras[0][1], 'width' : 640 ,'height' : 480, 'name':'cam1-side'},
@@ -64,13 +64,13 @@ def map_cams():
             str(id2name[cameras[2][0].split("-")[1]])+".2":{'dev' : cameras[2][1], 'width' : 640 ,'height' : 400, 'name':'cam3-front'},
             str(id2name[cameras[3][0].split("-")[1]])+".1":{'dev' : cameras[3][1], 'width' : 640 ,'height' : 480, 'name':'cam4-front'},
             str(id2name[cameras[3][0].split("-")[1]])+".2":{'dev' : cameras[3][1], 'width' : 640 ,'height' : 400, 'name':'cam4-side'},
-            str(id2name[cameras[4][0].split("-")[1]])+".1":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
-            str(id2name[cameras[4][0].split("-")[1]])+".2":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
-            str(id2name[cameras[5][0].split("-")[1]])+".1":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
-            str(id2name[cameras[5][0].split("-")[1]])+".2":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
-            str(id2name[cameras[6][0].split("-")[1]])+".1":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
-            str(id2name[cameras[6][0].split("-")[1]])+".2":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
-           }
+        #     str(id2name[cameras[4][0].split("-")[1]])+".1":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+        #     str(id2name[cameras[4][0].split("-")[1]])+".2":{'dev' : cameras[4][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+        #     str(id2name[cameras[5][0].split("-")[1]])+".1":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+        #     str(id2name[cameras[5][0].split("-")[1]])+".2":{'dev' : cameras[5][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+        #     str(id2name[cameras[6][0].split("-")[1]])+".1":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 480, 'name':'cam5-front'},
+        #     str(id2name[cameras[6][0].split("-")[1]])+".2":{'dev' : cameras[6][1], 'width' : 640 ,'height' : 400, 'name':'cam5-side'},
+            }
     
     print(map)
     return map
@@ -114,7 +114,7 @@ def sendCommand(command:int):
             'command':command
         })
 
-def videoFeedHandler(port, cam_id, queue, barrier, qt):
+def videoFeedHandler(port, cam_id, queue, qt):#barrier, qt):
         
             global isMain
             isMain = False
@@ -138,10 +138,10 @@ def videoFeedHandler(port, cam_id, queue, barrier, qt):
                     print(f"{cam_id} start feed")
                     print(f"Open video device {video_dev}")
 
-                    if not isError:
-                        barrier.wait();
-                    else:
-                        isError = False
+                    # if not isError:
+                    #     barrier.wait();
+                    # else:
+                    #     isError = False
                     
                 
                     with v4l2py.Device(video_dev) as device:
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     for item in CAM_PORTS:
         queue = multiprocessing.Queue()
         qt = multiprocessing.Queue()
-        process = multiprocessing.Process(target=videoFeedHandler, args=(item, CAM_PORTS[item], queue, barrier, qt))
+        process = multiprocessing.Process(target=videoFeedHandler, args=(item, CAM_PORTS[item], queue,qt))# barrier, qt))
         processes.append(process)
         subQueues.append(queue)
         txQueues.append(qt)
